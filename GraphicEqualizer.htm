@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+	<style type="text/css">
+	body {
+		background-color: #000000;
+		color: #ffffff;
+		font-family: Sans-Serif;
+	}
+	a {
+		color: #33ff33;
+	}
+	a:active, a:visited {
+		color: #ff3333;
+	}
+	.GELBL {
+		display: inline-block;
+		padding: 4pt;
+	}
+	.GEMNUIT {
+		display: block;
+		margin: 2pt;
+		padding: 2pt;
+	}
+	.GEMNUSEP {
+		border-bottom: solid 1px #ffffff;
+	}
+	.GEMNUCLK {
+		cursor: pointer;
+	}
+	.GEMNUCLK:hover {
+		color: #1c1c1c;
+		background-color: #ffffff;
+	}
+	</style>
+	<script type="text/javascript" charset="utf-8" src="Common.js"></script>
+	<script type="text/javascript" charset="utf-8" src="RFFT.js"></script>
+	<script type="text/javascript" charset="utf-8" src="GraphicEqualizer.js"></script>
+	<script type="text/javascript" charset="utf-8" src="Analyzer.js"></script>
+	<script type="text/javascript">
+	//<![CDATA[
+	"use strict";
+	var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, merger;
+	function main() {
+		var i, pi = Math.PI, cos = Math.cos;
+		//only the first 1024 samples are necessary as the last 1024 samples will always be zeroed out!
+		audioContext = new webkitAudioContext();
+		graphicEqualizer = new GraphicEqualizer(2048, 44100, audioContext);
+		graphicEqualizer.createControl(document.body);
+		analyzer = new Analyzer(graphicEqualizer, audioContext);
+		analyzer.createControl(document.body);
+		//DO NOT USE SPLITTER AND MERGER! Their current implementation appears to modify the sound (discards right channel??)
+		splitter = audioContext.createChannelSplitter();
+		merger = audioContext.createChannelMerger();
+		return true;
+	}
+	function cleanUp() {
+		analyzer.stop();
+		splitter.disconnect(0);
+		splitter.disconnect(1);
+		analyzer.analyzerL.disconnect(0);
+		analyzer.analyzerR.disconnect(0);
+		merger.disconnect(0);
+		return true;
+	}
+	function stop() {
+		if (source) {
+			//sourceAudio.stop();
+			//sourceAudio = null;
+			source.noteOff(0);
+			source.disconnect(0);
+			source = null;
+		}
+		graphicEqualizer.convolver.disconnect(0);
+		return cleanUp();
+	}
+	function updateAnalyzer() {
+		if (!source) return false;
+		graphicEqualizer.convolver.disconnect(0);
+		if ($("chkAnalyzer").checked) {
+			graphicEqualizer.convolver.connect(splitter, 0, 0);
+			splitter.connect(analyzer.analyzerL, 0, 0);
+			splitter.connect(analyzer.analyzerR, 1, 0);
+			analyzer.analyzerL.connect(merger, 0, 0);
+			analyzer.analyzerR.connect(merger, 0, 1);
+			merger.connect(audioContext.destination, 0, 0);
+			return analyzer.start();
+		} else {
+			graphicEqualizer.convolver.connect(audioContext.destination, 0, 0);
+			return cleanUp();
+		}
+	}
+	function filterLengthChanged() {
+		graphicEqualizer.setFilterLength(parseInt($("cbFilterLength").value));
+	}
+	function play() {
+		if ($("txtFile").files.length === 0) return false;
+
+		stop();
+		$("btnPlay").disabled = "disabled";
+		graphicEqualizer.setFilterLength(parseInt($("cbFilterLength").value));
+
+		//currently media elements ignore the convolver connection :(
+		
+		//sourceAudio = document.createElement("audio");
+		//sourceAudio.src = "test.mp3";
+		//source = audioContext.createMediaElementSource(sourceAudio);
+		try {
+			var reader = new FileReader();
+			reader.onload = function () {
+				try {
+					source = audioContext.createBufferSource();
+					source.buffer = audioContext.createBuffer(reader.result, false);
+					source.loop = true;
+
+					source.connect(graphicEqualizer.convolver, 0, 0);
+					updateAnalyzer();
+
+					//sourceAudio.load();
+					//sourceAudio.play();
+					source.noteOn(0);
+				} catch (e) {
+					alert(e);
+				}
+				$("btnPlay").disabled = "";
+			};
+			reader.readAsArrayBuffer($("txtFile").files[0]);
+		} catch (e) {
+			$("btnPlay").disabled = "";
+			alert(e);
+		}
+
+		return true;
+	}
+	//]]>
+	</script>
+    <title>Graphic Equalizer (Test)</title>
+</head>
+<body>
+<span style="font-size: smaller; font-style: italic;">This is a test for a JavaScript graphic equalizer, created by me
+(Carlos Rafael Gimenes das Neves - <a href="http://twitter.com/carlosrafaelgn">@carlosrafaelgn</a>,
+<script>
+//<![CDATA[
+document.write(["c", "a", "r", "l", "o", "s", "r", "a", "f", "a", "e", "l", ".", "prog"].join(""));
+document.write(" at ");
+document.write([" ", "g", "m", "a", "il", " dot "].join(""));
+document.write(["c", "o", "m"].join(""));
+//]]>
+</script>), based on my old C++ graphic equalizer. Check out the <a href="https://github.com/carlosrafaelgn/GraphicEqualizer">source</a> for more information! This test uses the new <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and requires the latest version of Chrome or Safari (WebKit).</span><br />
+<br />
+File: <input type="file" id="txtFile" /><br />
+Filter Length: <select id="cbFilterLength" onchange="filterLengthChanged()">
+	<option value="256">256</option>
+	<option value="512">512</option>
+	<option value="1024">1024</option>
+	<option value="2048" selected="selected">2048</option>
+</select><br />
+<button id="btnPlay" onclick="play()">Play</button>
+<button onclick="stop()">Stop</button>
+<input type="checkbox" onchange="updateAnalyzer()" checked="checked" id="chkAnalyzer" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Apparently there is a problem with the channel merger, making the right channel disappear while the analyzer is on!)</span></label>
+<br />
+
+<!-- Equalizer -->
+<span style="vertical-align: top; display: inline-block; background-color: #1c1c1c; color: #ffffff; position: relative; font-family: Sans-Serif; font-size: small; cursor: default;">
+<canvas id="graphicEqualizer" width="512" height="260" style="position: relative; margin: 0px; padding: 0px; display: block; cursor: crosshair;"></canvas>
+<span class="GELBL" style="width: 80pt;">Cursor: <span id="graphicEqualizerLblCursor">-0.00</span>dB</span><span class="GELBL" style="width: 80pt;">Curve: <span id="graphicEqualizerLblCurve">-0.00</span>dB</span><span class="GELBL">Frequency: <span id="graphicEqualizerLblFrequency">0Hz (31Hz)</span></span><span id="graphicEqualizerBtnMnu" class="GELBL GEMNUCLK" style="width: 15pt; text-align: center; float: right; border-left: solid 1px #ffffff">▲</span>
+	<!-- Menu -->
+	<span id="graphicEqualizerMnu" style="display: none; background-color: #1c1c1c; position: absolute; right: 0px; bottom: 0px; padding: 1pt;">
+	<span class="GEMNUIT" style="font-size: smaller;">Same curve for both channels</span>
+	<span id="graphicEqualizerMnuChBL" class="GEMNUIT GEMNUCLK"><span>● </span>Use left channel</span>
+	<span id="graphicEqualizerMnuChBR" class="GEMNUIT GEMNUCLK GEMNUSEP"><span style="visibility: hidden;">● </span>Use right channel</span>
+	<span class="GEMNUIT" style="font-size: smaller;">One curve for each channel</span>
+	<span id="graphicEqualizerMnuChL" class="GEMNUIT GEMNUCLK"><span style="visibility: hidden;">● </span>Show left channel</span>
+	<span id="graphicEqualizerMnuChR" class="GEMNUIT GEMNUCLK GEMNUSEP"><span style="visibility: hidden;">● </span>Show right channel</span>
+	<span id="graphicEqualizerMnuShowZones" class="GEMNUIT GEMNUCLK"><span style="visibility: hidden;">■ </span>Show zones</span>
+	<span id="graphicEqualizerMnuEditZones" class="GEMNUIT GEMNUCLK GEMNUSEP"><span style="visibility: hidden;">■ </span>Edit by zones</span>
+	<span id="graphicEqualizerMnuActual" class="GEMNUIT GEMNUCLK"><span>■ </span>Show actual response</span>
+	</span>
+	<!-- End Menu -->
+</span>
+<!-- End Equalizer -->
+
+<script type="text/javascript">main();</script>
+
+<p style="font-size: x-small; font-style: italic;">For a better sound experience, try loading a Kraftwerk's song! ;)</p>
+<p style="font-size: x-small; font-style: italic;">If running this locally, Chrome must be started with the command-line option --allow-file-access-from-files otherwise you will not be able to load any files!</p>
+</body>
+</html>
