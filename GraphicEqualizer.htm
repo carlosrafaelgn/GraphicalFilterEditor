@@ -41,7 +41,7 @@
 	<script type="text/javascript">
 	//<![CDATA[
 	"use strict";
-	var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, merger;
+	var audioContext, source, sourceAudio, graphicEqualizer, splitter, splitter2, analyzer, merger;
 	function main() {
 		var i, pi = Math.PI, cos = Math.cos;
 		//only the first 1024 samples are necessary as the last 1024 samples will always be zeroed out!
@@ -50,8 +50,11 @@
 		graphicEqualizer.createControl(document.body);
 		analyzer = new Analyzer(graphicEqualizer, audioContext);
 		analyzer.createControl(document.body);
-		//DO NOT USE SPLITTER AND MERGER! Their current implementation appears to modify the sound (discards right channel??)
+		//weird, but when connecting an analyzer to the left channel of a merger, the merger
+		//will ignore its right channel... so... the solution was to create one additional
+		//splitter, to make sure a mono channel enters the left channel of the merger!
 		splitter = audioContext.createChannelSplitter();
+		splitter2 = audioContext.createChannelSplitter();
 		merger = audioContext.createChannelMerger();
 		return true;
 	}
@@ -59,6 +62,8 @@
 		analyzer.stop();
 		splitter.disconnect(0);
 		splitter.disconnect(1);
+		splitter2.disconnect(0);
+		splitter2.disconnect(1);
 		analyzer.analyzerL.disconnect(0);
 		analyzer.analyzerR.disconnect(0);
 		merger.disconnect(0);
@@ -82,7 +87,12 @@
 			graphicEqualizer.convolver.connect(splitter, 0, 0);
 			splitter.connect(analyzer.analyzerL, 0, 0);
 			splitter.connect(analyzer.analyzerR, 1, 0);
-			analyzer.analyzerL.connect(merger, 0, 0);
+
+			//if an analyzer is connected to the left channel of the merger,
+			//it will make the right channel disappear...
+			analyzer.analyzerL.connect(splitter2, 0, 0);
+			splitter2.connect(merger, 0, 0);
+			
 			analyzer.analyzerR.connect(merger, 0, 1);
 			merger.connect(audioContext.destination, 0, 0);
 			return analyzer.start();
@@ -101,7 +111,7 @@
 		$("btnPlay").disabled = "disabled";
 		graphicEqualizer.setFilterLength(parseInt($("cbFilterLength").value));
 
-		//currently media elements ignore the convolver connection :(
+		//currently media elements ignore connections :(
 		
 		//sourceAudio = document.createElement("audio");
 		//sourceAudio.src = "test.mp3";
@@ -114,10 +124,11 @@
 					source.buffer = audioContext.createBuffer(reader.result, false);
 					source.loop = true;
 
+					//sourceAudio.load();
+
 					source.connect(graphicEqualizer.convolver, 0, 0);
 					updateAnalyzer();
 
-					//sourceAudio.load();
 					//sourceAudio.play();
 					source.noteOn(0);
 				} catch (e) {
@@ -158,7 +169,7 @@ Filter Length: <select id="cbFilterLength" onchange="filterLengthChanged()">
 </select><br />
 <button id="btnPlay" onclick="play()">Play</button>
 <button onclick="stop()">Stop</button>
-<input type="checkbox" onchange="updateAnalyzer()" checked="checked" id="chkAnalyzer" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Apparently there is a problem with the channel merger, making the right channel disappear while the analyzer is on!)</span></label>
+<input type="checkbox" onchange="updateAnalyzer()" checked="checked" id="chkAnalyzer" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></label>
 <br />
 
 <!-- Equalizer -->
