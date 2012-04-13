@@ -33,15 +33,12 @@
 "use strict";
 
 //Miscellaneous functions
-function isEmpty(e) {
-	return (e === undefined || e === null);
-}
 function seal$(x) {
-	if (!isEmpty(Object.seal)) Object.seal(x);
+	if (Object.seal) Object.seal(x);
 	return x;
 }
 function freeze$(x) {
-	if (!isEmpty(Object.freeze)) Object.freeze(x);
+	if (Object.freeze) Object.freeze(x);
 	return x;
 }
 function $(e) {
@@ -50,34 +47,21 @@ function $(e) {
 	return e;
 }
 function cancelEvent(e) {
-	if (!isEmpty(e.stopPropagation))
+	if (e.stopPropagation)
 		e.stopPropagation();
-	if (!isEmpty(e.preventDefault))
+	if (e.preventDefault)
 		e.preventDefault();
-	if (!isEmpty(e.cancelBubble))
+	if (e.cancelBubble !== undefined)
 		e.cancelBubble = true;
-	if (!isEmpty(e.cancel))
+	if (e.cancel !== undefined)
 		e.cancel = true;
-	if (!isEmpty(e.returnValue))
+	if (e.returnValue !== undefined)
 		e.returnValue = false;
 	return false;
 }
-function attachObserver(observable, eventName, targetFunction, capturePhase) {
-	if (observable.addEventListener)
-		return observable.addEventListener(eventName, targetFunction, capturePhase ? true : false);
-	else //if (observable.attachEvent)
-		return observable.attachEvent("on" + eventName, targetFunction);
-}
-function detachObserver(observable, eventName, targetFunction, capturePhase) {
-	if (observable.removeEventListener)
-		return observable.removeEventListener(eventName, targetFunction, capturePhase ? true : false);
-	else //if (observable.detachEvent)
-		return observable.detachEvent("on" + eventName, targetFunction);
-}
 function getElementLeftTop(element) {
-	element = $(element);
-	var left = 0;
-	var top = 0;
+	var left = 0,
+	top = 0;
 	while (element) {
 		left += element.offsetLeft;
 		top += element.offsetTop;

@@ -374,8 +374,8 @@ GraphicEqualizer.prototype = {
 				}
 				this.drawCurve();
 				this.canvas.onmousemove = null;
-				attachObserver(document, "mousemove", this.document_OnMouseMove, true);
-				attachObserver(document, "mouseup", this.document_OnMouseUp, true);
+				document.addEventListener("mousemove", this.document_OnMouseMove, true);
+				document.addEventListener("mouseup", this.document_OnMouseUp, true);
 			}
 		}
 		return cancelEvent(e);
@@ -387,8 +387,8 @@ GraphicEqualizer.prototype = {
 			if (this.showActualResponse)
 				this.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
-			detachObserver(document, "mousemove", this.document_OnMouseMove, true);
-			detachObserver(document, "mouseup", this.document_OnMouseUp, true);
+			document.removeEventListener("mousemove", this.document_OnMouseMove, true);
+			document.removeEventListener("mouseup", this.document_OnMouseUp, true);
 			this.canvas.onmousemove = this.document_OnMouseMove;
 		}
 		return true;
@@ -437,7 +437,7 @@ GraphicEqualizer.prototype = {
 		return true;
 	},
 	updateFilter: function (channelIndex) {
-		var ci = (isEmpty(channelIndex) ? this.currentChannelIndex : channelIndex), i, ii, k, freq, filterLength = this.filterLength,
+		var ci = ((channelIndex === undefined) ? this.currentChannelIndex : channelIndex), i, ii, k, freq, filterLength = this.filterLength,
 			curve = this.channelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth, lerp = GraphicEqualizer.prototype.lerp,
 			filterLength2 = (filterLength >>> 1), filter = this.rfft.trans, sin = Math.sin, cos = Math.cos, avg, avgCount,
 			visibleFrequencies = this.visibleFrequencies,
@@ -498,7 +498,7 @@ GraphicEqualizer.prototype = {
 		if (this.sameFilterLR) {
 			//copy the filter to the other channel
 			return this.copyFilter(ci, 1 - ci);
-		} else if (isEmpty(channelIndex)) {
+		} else if (channelIndex === undefined) {
 			//update the other channel as well
 			return this.updateFilter(1 - ci);
 		}
@@ -506,7 +506,7 @@ GraphicEqualizer.prototype = {
 		return true;
 	},
 	updateActualChannelCurve: function (channelIndex) {
-		var ci = (isEmpty(channelIndex) ? this.currentChannelIndex : channelIndex), freq, i, ii, avg, avgCount, filterLength = this.filterLength,
+		var ci = ((channelIndex === undefined) ? this.currentChannelIndex : channelIndex), freq, i, ii, avg, avgCount, filterLength = this.filterLength,
 			curve = this.actualChannelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth,
 			filterLength2 = (filterLength >>> 1), cos = Math.cos, lerp = GraphicEqualizer.prototype.lerp,
 			visibleFrequencies = this.visibleFrequencies,
@@ -561,7 +561,7 @@ GraphicEqualizer.prototype = {
 		i = (((this.rfft.sampleRate >>> 1) >= visibleFrequencies[valueCount - 1]) ? curve[ii - 1] : (this.validYRangeHeight + 1));
 		for (; ii < valueCount; ii++)
 			curve[ii] = i;
-		if (!this.sameFilterLR && isEmpty(channelIndex))
+		if (!this.sameFilterLR && (channelIndex === undefined))
 			return this.updateActualChannelCurve(1 - ci);
 		return true;
 	},

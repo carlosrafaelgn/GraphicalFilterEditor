@@ -1,7 +1,8 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" >
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+	<title>Graphic Equalizer (Test)</title>
 	<style type="text/css">
 	body {
 		background-color: #000000;
@@ -44,6 +45,11 @@
 	var audioContext, source, sourceAudio, graphicEqualizer, splitter, splitter2, analyzer, merger;
 	function main() {
 		var i, pi = Math.PI, cos = Math.cos;
+		$("btnPlay").onclick = play;
+		$("btnStop").onclick = stop;
+		$("txtFile").onchange = function () { $("chkSample").checked = false; return true; };
+		$("chkAnalyzer").onchange = updateAnalyzer;
+		$("cbFilterLength").onchange = filterLengthChanged;
 		//only the first 1024 samples are necessary as the last 1024 samples will always be zeroed out!
 		audioContext = new webkitAudioContext();
 		graphicEqualizer = new GraphicEqualizer(2048, 44100, audioContext);
@@ -105,7 +111,7 @@
 		graphicEqualizer.setFilterLength(parseInt($("cbFilterLength").value));
 	}
 	function play() {
-		if ($("txtFile").files.length === 0) return false;
+		if ($("txtFile").files.length === 0 && !$("chkSample").checked) return false;
 
 		stop();
 		$("btnPlay").disabled = "disabled";
@@ -117,26 +123,54 @@
 		//sourceAudio.src = "test.mp3";
 		//source = audioContext.createMediaElementSource(sourceAudio);
 		try {
-			var reader = new FileReader();
-			reader.onload = function () {
-				try {
-					source = audioContext.createBufferSource();
-					source.buffer = audioContext.createBuffer(reader.result, false);
-					source.loop = true;
+			var r;
+			if ($("chkSample").checked) {
+				r = new XMLHttpRequest();
+				r.responseType = "arraybuffer";
+				r.onreadystatechange = function () {
+					if (r.readyState === 4) {
+						try {
+							source = audioContext.createBufferSource();
+							source.buffer = audioContext.createBuffer(r.response, false);
+							source.loop = true;
 
-					//sourceAudio.load();
+							//sourceAudio.load();
 
-					source.connect(graphicEqualizer.convolver, 0, 0);
-					updateAnalyzer();
+							source.connect(graphicEqualizer.convolver, 0, 0);
+							updateAnalyzer();
 
-					//sourceAudio.play();
-					source.noteOn(0);
-				} catch (e) {
-					alert(e);
-				}
-				$("btnPlay").disabled = "";
-			};
-			reader.readAsArrayBuffer($("txtFile").files[0]);
+							//sourceAudio.play();
+							source.noteOn(0);
+						} catch (e) {
+							alert(e);
+						}
+						$("btnPlay").disabled = "";
+					}
+				};
+				r.open("GET", "midnightride.mp3", true);
+				r.send();
+			} else {
+				r = new FileReader();
+				r.onload = function () {
+					try {
+						source = audioContext.createBufferSource();
+						source.buffer = audioContext.createBuffer(r.result, false);
+						source.loop = true;
+
+						//sourceAudio.load();
+
+						source.connect(graphicEqualizer.convolver, 0, 0);
+						updateAnalyzer();
+
+						//sourceAudio.play();
+						source.noteOn(0);
+					} catch (e) {
+						alert(e);
+					}
+					$("btnPlay").disabled = "";
+				};
+				r.readAsArrayBuffer($("txtFile").files[0]);
+			}
 		} catch (e) {
 			$("btnPlay").disabled = "";
 			alert(e);
@@ -146,12 +180,11 @@
 	}
 	//]]>
 	</script>
-    <title>Graphic Equalizer (Test)</title>
 </head>
 <body>
 <span style="font-size: smaller; font-style: italic;">This is a test for a JavaScript graphic equalizer, created by me
 (Carlos Rafael Gimenes das Neves - <a href="http://twitter.com/carlosrafaelgn">@carlosrafaelgn</a>,
-<script>
+<script type="text/javascript">
 //<![CDATA[
 document.write(["c", "a", "r", "l", "o", "s", "r", "a", "f", "a", "e", "l", ".", "prog"].join(""));
 document.write(" at ");
@@ -160,17 +193,18 @@ document.write(["c", "o", "m"].join(""));
 //]]>
 </script>), based on my old C++ graphic equalizer. Check out the <a href="https://github.com/carlosrafaelgn/GraphicEqualizer">source</a> for more information! This test uses the new <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and requires the latest version of Chrome or Safari (WebKit).</span><br />
 <br />
-File: <input type="file" id="txtFile" /><br />
-Filter Length: <select id="cbFilterLength" onchange="filterLengthChanged()">
+Load your own file: <input type="file" id="txtFile" /><br />
+or<br />
+<input type="checkbox" id="chkSample" checked="checked" /><label for="chkSample">Try this sample: 50 seconds from the free track Midnight Ride, created by SoundJay</label> - <a href="http://www.soundjay.com">www.soundjay.com</a><br />
+<button id="btnPlay">Play</button>
+<button id="btnStop">Stop</button><br />
+<br />
+Filter Length: <select id="cbFilterLength">
 	<option value="256">256</option>
 	<option value="512">512</option>
 	<option value="1024">1024</option>
 	<option value="2048" selected="selected">2048</option>
-</select><br />
-<button id="btnPlay" onclick="play()">Play</button>
-<button onclick="stop()">Stop</button>
-<input type="checkbox" onchange="updateAnalyzer()" checked="checked" id="chkAnalyzer" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></label>
-<br />
+</select> <input type="checkbox" id="chkAnalyzer" checked="checked" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></label><br />
 
 <!-- Equalizer -->
 <span style="vertical-align: top; display: inline-block; background-color: #1c1c1c; color: #ffffff; position: relative; font-family: Sans-Serif; font-size: small; cursor: default;">
@@ -192,9 +226,9 @@ Filter Length: <select id="cbFilterLength" onchange="filterLengthChanged()">
 </span>
 <!-- End Equalizer -->
 
-<script type="text/javascript">main();</script>
+<script type="text/javascript">//<![CDATA[
+main(); //]]></script>
 
-<p style="font-size: x-small; font-style: italic;">For a better sound experience, try loading a Kraftwerk's song! ;)</p>
 <p style="font-size: x-small; font-style: italic;">If running this locally, Chrome must be started with the command-line option --allow-file-access-from-files otherwise you will not be able to load any files!</p>
 </body>
 </html>
