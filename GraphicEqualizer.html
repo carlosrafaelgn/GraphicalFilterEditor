@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
@@ -182,7 +182,7 @@
 	</script>
 </head>
 <body>
-<span style="font-size: smaller; font-style: italic;">This is a test for a JavaScript graphic equalizer, created by me
+<p><span style="font-size: smaller; font-style: italic;">This is a test for a JavaScript graphic equalizer, created by me
 (Carlos Rafael Gimenes das Neves - <a href="http://twitter.com/carlosrafaelgn">@carlosrafaelgn</a>,
 <script type="text/javascript">
 //<![CDATA[
@@ -191,23 +191,22 @@ document.write(" at ");
 document.write([" ", "g", "m", "a", "il", " dot "].join(""));
 document.write(["c", "o", "m"].join(""));
 //]]>
-</script>), based on my old C++ graphic equalizer. Check out the <a href="https://github.com/carlosrafaelgn/GraphicEqualizer">source</a> for more information! This test uses the new <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and requires the latest version of Chrome or Safari (WebKit).</span><br />
-<br />
+</script>), based on my old C++ graphic equalizer. Check out the <a href="https://github.com/carlosrafaelgn/GraphicEqualizer">source</a> for more information! This test uses the new <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and requires the latest version of Chrome or Safari (WebKit).</span></p>
+<p>
 Load your own file: <input type="file" id="txtFile" /><br />
 or<br />
 <input type="checkbox" id="chkSample" checked="checked" /><label for="chkSample">Try this sample: 50 seconds from the free track Midnight Ride, created by SoundJay</label> - <a href="http://www.soundjay.com">www.soundjay.com</a><br />
 <button id="btnPlay">Play</button>
-<button id="btnStop">Stop</button><br />
-<br />
-Filter Length: <select id="cbFilterLength">
+<button id="btnStop">Stop</button></p>
+<p>Filter Length: <select id="cbFilterLength">
 	<option value="256">256</option>
 	<option value="512">512</option>
 	<option value="1024">1024</option>
 	<option value="2048" selected="selected">2048</option>
-</select> <input type="checkbox" id="chkAnalyzer" checked="checked" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></label><br />
+</select> <input type="checkbox" id="chkAnalyzer" checked="checked" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></label></p>
 
 <!-- Equalizer -->
-<span style="vertical-align: top; display: inline-block; background-color: #1c1c1c; color: #ffffff; position: relative; font-family: Sans-Serif; font-size: small; cursor: default;">
+<div style="vertical-align: top; display: inline-block; background-color: #1c1c1c; color: #ffffff; position: relative; font-family: Sans-Serif; font-size: small; cursor: default;">
 <canvas id="graphicEqualizer" width="512" height="260" style="position: relative; margin: 0px; padding: 0px; display: block; cursor: crosshair;"></canvas>
 <span class="GELBL" style="width: 80pt;">Cursor: <span id="graphicEqualizerLblCursor">-0.00</span>dB</span><span class="GELBL" style="width: 80pt;">Curve: <span id="graphicEqualizerLblCurve">-0.00</span>dB</span><span class="GELBL">Frequency: <span id="graphicEqualizerLblFrequency">0Hz (31Hz)</span></span><span id="graphicEqualizerBtnMnu" class="GELBL GEMNUCLK" style="width: 15pt; text-align: center; float: right; border-left: solid 1px #ffffff">▲</span>
 	<!-- Menu -->
@@ -223,7 +222,7 @@ Filter Length: <select id="cbFilterLength">
 	<span id="graphicEqualizerMnuActual" class="GEMNUIT GEMNUCLK"><span>■ </span>Show actual response</span>
 	</span>
 	<!-- End Menu -->
-</span>
+</div>
 <!-- End Equalizer -->
 
 <script type="text/javascript">//<![CDATA[
