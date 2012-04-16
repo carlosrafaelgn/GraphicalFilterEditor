@@ -28,7 +28,7 @@
 // of the authors and should not be interpreted as representing official policies, 
 // either expressed or implied, of the FreeBSD Project.
 //
-// https://raw.github.com/carlosrafaelgn/GraphicEqualizer/Analyzer.js
+// https://raw.github.com/carlosrafaelgn/GraphicalFilterEditor/Analyzer.js
 //
 "use strict";
 
@@ -135,7 +135,7 @@ Analyzer.prototype = {
 		var d, im, i, w = this.window, tmp = this.tmp, data = this.data, ctx = this.ctx, sqrt = Math.sqrt, ln = Math.log,
 				freq, ii, avg, avgCount,
 				valueCount = 512, rfft = this.rfft, bw = rfft.bandwidth,
-				filterLength2 = (2048 >>> 1), cos = Math.cos, lerp = GraphicEqualizer.prototype.lerp,
+				filterLength2 = (2048 >>> 1), cos = Math.cos, lerp = GraphicalFilterEditor.prototype.lerp,
 				visibleFrequencies = this.visibleFrequencies, colors = Analyzer.prototype.colors;
 		if (!this.alive) return false;
 

@@ -1,5 +1,5 @@
 //
-// GraphicEqualizer.js is distributed under the FreeBSD License
+// GraphicalFilterEditor.js is distributed under the FreeBSD License
 //
 // Copyright (c) 2012, Carlos Rafael Gimenes das Neves
 // All rights reserved.
@@ -28,11 +28,11 @@
 // of the authors and should not be interpreted as representing official policies, 
 // either expressed or implied, of the FreeBSD Project.
 //
-// https://raw.github.com/carlosrafaelgn/GraphicEqualizer/GraphicEqualizer.js
+// https://raw.github.com/carlosrafaelgn/GraphicalFilterEditor/GraphicalFilterEditor.js
 //
 "use strict";
 
-function GraphicEqualizer(filterLength, sampleRate, audioContext) {
+function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	var i, s, freqSteps, firstFreqs, f, mthis = this;
 	
 	this.filterLength = 2048;
@@ -115,8 +115,8 @@ function GraphicEqualizer(filterLength, sampleRate, audioContext) {
 	this.drawOffsetX = 0;
 	this.drawOffsetY = 0;
 	this.tmpActual = null;
-	this.document_OnMouseMove = function (e) { return GraphicEqualizer.prototype.canvas_OnMouseMove.apply(mthis, arguments); };
-	this.document_OnMouseUp = function (e) { return GraphicEqualizer.prototype.canvas_OnMouseUp.apply(mthis, arguments); };
+	this.document_OnMouseMove = function (e) { return GraphicalFilterEditor.prototype.canvas_OnMouseMove.apply(mthis, arguments); };
+	this.document_OnMouseUp = function (e) { return GraphicalFilterEditor.prototype.canvas_OnMouseUp.apply(mthis, arguments); };
 	
 	this.updateFilter();
 	this.updateActualChannelCurve();
@@ -124,7 +124,7 @@ function GraphicEqualizer(filterLength, sampleRate, audioContext) {
 	seal$(this);
 }
 
-GraphicEqualizer.prototype = {
+GraphicalFilterEditor.prototype = {
 	lerp: function (x0, y0, x1, y1, x) {
 		return ((x - x0) * (y1 - y0) / (x1 - x0)) + y0;
 	},
@@ -155,7 +155,7 @@ GraphicEqualizer.prototype = {
 			this.mnuShowZones = $("graphicEqualizerMnuShowZones");
 			this.mnuEditZones = $("graphicEqualizerMnuEditZones");
 			this.mnuShowActual = $("graphicEqualizerMnuActual");
-			this.canvas.onmousedown = function (e) { return GraphicEqualizer.prototype.canvas_OnMouseDown.apply(mthis, arguments); };
+			this.canvas.onmousedown = function (e) { return GraphicalFilterEditor.prototype.canvas_OnMouseDown.apply(mthis, arguments); };
 			this.canvas.onmousemove = this.document_OnMouseMove;
 			this.element.onselectstart = cancelEvent;
 			this.element.oncontextmenu = cancelEvent;
@@ -170,16 +170,16 @@ GraphicEqualizer.prototype = {
 			this.rangeImage.addColorStop(0.796875, "#0000ff");
 			this.rangeImage.addColorStop(1, "#ff00ff");
 			this.mnu.style.bottom = (this.element.clientHeight - this.canvas.height) + "px";
-			this.btnMnu.onclick = function (e) { return GraphicEqualizer.prototype.btnMnu_Click.apply(mthis, arguments); };
-			this.mnuChBL.onclick = function (e) { return GraphicEqualizer.prototype.mnuChB_Click.apply(mthis, [e, 0]); };
-			this.mnuChL.onclick = function (e) { return GraphicEqualizer.prototype.mnuChLR_Click.apply(mthis, [e, 0]); };
-			this.mnuChBR.onclick = function (e) { return GraphicEqualizer.prototype.mnuChB_Click.apply(mthis, [e, 1]); };
-			this.mnuChR.onclick = function (e) { return GraphicEqualizer.prototype.mnuChLR_Click.apply(mthis, [e, 1]); };
-			this.mnuShowZones.onclick = function (e) { return GraphicEqualizer.prototype.mnuShowZones_Click.apply(mthis, arguments); };
-			this.mnuEditZones.onclick = function (e) { return GraphicEqualizer.prototype.mnuEditZones_Click.apply(mthis, arguments); };
-			this.mnuShowActual.onclick = function (e) { return GraphicEqualizer.prototype.mnuShowActual_Click.apply(mthis, arguments); };
+			this.btnMnu.onclick = function (e) { return GraphicalFilterEditor.prototype.btnMnu_Click.apply(mthis, arguments); };
+			this.mnuChBL.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuChB_Click.apply(mthis, [e, 0]); };
+			this.mnuChL.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuChLR_Click.apply(mthis, [e, 0]); };
+			this.mnuChBR.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuChB_Click.apply(mthis, [e, 1]); };
+			this.mnuChR.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuChLR_Click.apply(mthis, [e, 1]); };
+			this.mnuShowZones.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuShowZones_Click.apply(mthis, arguments); };
+			this.mnuEditZones.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuEditZones_Click.apply(mthis, arguments); };
+			this.mnuShowActual.onclick = function (e) { return GraphicalFilterEditor.prototype.mnuShowActual_Click.apply(mthis, arguments); };
 			this.labelImage = new Image();
-			this.labelImage.onload = function () { return GraphicEqualizer.prototype.drawCurve.apply(mthis); };
+			this.labelImage.onload = function () { return GraphicalFilterEditor.prototype.drawCurve.apply(mthis); };
 			this.labelImage.onerror = this.labelImage.onload;
 			this.labelImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAgCAYAAABpRpp6AAAAAXNSR0IArs4c6QAAAphJREFUWMPtl0tIVGEUx38zvdYZjVBEYBC1kB4EKa3auLEHtND4R6vaBC6MyVaVE0KWFlZE1qogOlEwgVQEgUKSVERFRhFEj4WLyESMFlKN0+YIl2HS6zyYgnvg8r+c73W+77vn+34XIovs3zBJWUnZubabX+SgDUAKWOeuV8BRM+svZAI5ringOzAEHDKzdwDxIoKtA+4Bv4FV/kwB9yVtLrRfM4t5XFVAJ9AIpEuxwklvnzKzLz6J48ADL2sKTG4L0AHUA5PAwCxBZ4EJSeeAU8CKUgRc7zoc8L10rcvZiQFgBNgKPAeWA7tm2L04sBg44K4ToQLOlxS+ZQAJ1/FA8fR7dcDXASwEWszsifs+Swo75jDwKFTAgeDCWr7606s9GPYblhTz2Ko9qR9KajKzdDGfxCiwzJNj1H1Vrl8D9Ra4/pxD4mWBX8CIpCSwD7gApONFBPzUdUPAtzGnDOCt6+oCx1nkmik26bqB7UBK0mv3HfOOewL1zgNXgC5J+33MMyGOzbhPsiuQC4Wfw2b22M/IGPDBnziwzcyGAvWuAq1ALfARuAhcC3EDZoBnntx7zOxyxAeRRRbxcJl5uNQTKCsPl8tKxsOSdvtNVgO8B46YWZ/DejewyZmi08wu5bQtGQ/HQwa7E7jht1k10A7cktQK9PsNlvA/kF5JzXl4eKXzcMIBf8ZrWdISoO2vPDwL+x52TZnZBHBbUq8zwySQNLMfknocupPAzbLy8Czsu971TcD3wvWOmY35+yfX2krz8DzX4OwbXe/mYd9MpXl4Gh9rfNuWAjtyVh9gbc6/XcV4uAe4DrRIavNTIQMcBE5KGvTka/f6pyvKw2ZmQIsD+5h31GBmZ4Fm7+wbsAbYa2Z9EQ//r/YHCOoe6W9/vj4AAAAASUVORK5CYII=";
 
@@ -219,7 +219,7 @@ GraphicEqualizer.prototype = {
 	yToDB: function (y) {
 		return ((y <= this.maximumChannelValueY) ? 40 :
 						((y > this.minimumChannelValueY) ? -Infinity :
-							GraphicEqualizer.prototype.lerp(this.maximumChannelValueY, 40, this.minimumChannelValueY, -40, y)));
+							GraphicalFilterEditor.prototype.lerp(this.maximumChannelValueY, 40, this.minimumChannelValueY, -40, y)));
 	},
 	yToMagnitude: function (y) {
 		//40dB = 100
@@ -230,7 +230,7 @@ GraphicEqualizer.prototype = {
 		//10^p = e ^ (p * log e (10))
 		return ((y <= this.maximumChannelValueY) ? 100 :
 						((y > this.minimumChannelValueY) ? 0 :
-							Math.exp(GraphicEqualizer.prototype.lerp(this.maximumChannelValueY, 2, this.minimumChannelValueY, -2, y) * Math.LN10))); //2 = 40dB/20
+							Math.exp(GraphicalFilterEditor.prototype.lerp(this.maximumChannelValueY, 2, this.minimumChannelValueY, -2, y) * Math.LN10))); //2 = 40dB/20
 	},
 	magnitudeToY: function (magnitude) {
 		//40dB = 100
@@ -402,9 +402,9 @@ GraphicEqualizer.prototype = {
 		if (this.drawingMode || (x >= 0 && x < this.canvas.width && y >= 0 && y < this.canvas.height)) {
 			if (x < 0) x = 0;
 			else if (x >= this.visibleBinCount) x = this.visibleBinCount - 1;
-			this.lblCursor.replaceChild(document.createTextNode(GraphicEqualizer.prototype.formatDB(this.yToDB(y))), this.lblCursor.firstChild);
-			this.lblCurve.replaceChild(document.createTextNode(GraphicEqualizer.prototype.formatDB(this.yToDB(curve[x]))), this.lblCurve.firstChild);
-			this.lblFrequency.replaceChild(document.createTextNode(GraphicEqualizer.prototype.formatFrequency(this.visibleBinToFrequency(x, true))), this.lblFrequency.firstChild);
+			this.lblCursor.replaceChild(document.createTextNode(GraphicalFilterEditor.prototype.formatDB(this.yToDB(y))), this.lblCursor.firstChild);
+			this.lblCurve.replaceChild(document.createTextNode(GraphicalFilterEditor.prototype.formatDB(this.yToDB(curve[x]))), this.lblCurve.firstChild);
+			this.lblFrequency.replaceChild(document.createTextNode(GraphicalFilterEditor.prototype.formatFrequency(this.visibleBinToFrequency(x, true))), this.lblFrequency.firstChild);
 			if (this.drawingMode) {
 				if (this.editZones) {
 					this.changeZoneY(x, y);
@@ -438,7 +438,7 @@ GraphicEqualizer.prototype = {
 	},
 	updateFilter: function (channelIndex) {
 		var ci = ((channelIndex === undefined) ? this.currentChannelIndex : channelIndex), i, ii, k, freq, filterLength = this.filterLength,
-			curve = this.channelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth, lerp = GraphicEqualizer.prototype.lerp,
+			curve = this.channelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth, lerp = GraphicalFilterEditor.prototype.lerp,
 			filterLength2 = (filterLength >>> 1), filter = this.rfft.trans, sin = Math.sin, cos = Math.cos, avg, avgCount,
 			visibleFrequencies = this.visibleFrequencies,
 		//M = ((FFT length/2) - 1)
@@ -508,7 +508,7 @@ GraphicEqualizer.prototype = {
 	updateActualChannelCurve: function (channelIndex) {
 		var ci = ((channelIndex === undefined) ? this.currentChannelIndex : channelIndex), freq, i, ii, avg, avgCount, filterLength = this.filterLength,
 			curve = this.actualChannelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth,
-			filterLength2 = (filterLength >>> 1), cos = Math.cos, lerp = GraphicEqualizer.prototype.lerp,
+			filterLength2 = (filterLength >>> 1), cos = Math.cos, lerp = GraphicalFilterEditor.prototype.lerp,
 			visibleFrequencies = this.visibleFrequencies,
 			filter = this.filterKernel.getChannelData(ci), tmp = this.tmpActual,
 			M = (filterLength2 - 1), PI2_M = 2 * Math.PI / M;

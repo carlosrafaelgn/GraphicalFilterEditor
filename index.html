@@ -3,7 +3,7 @@
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<link rel="Shortcut Icon" href="http://carlosrafaelgn.com.br/favicon.ico" />
-	<title>Graphic Equalizer (Test)</title>
+	<title>Graphical Filter Editor (Test)</title>
 	<style type="text/css">
 	body {
 		background-color: #000000;
@@ -38,7 +38,7 @@
 	</style>
 	<script type="text/javascript" charset="utf-8" src="Common.js"></script>
 	<script type="text/javascript" charset="utf-8" src="RFFT.js"></script>
-	<script type="text/javascript" charset="utf-8" src="GraphicEqualizer.js"></script>
+	<script type="text/javascript" charset="utf-8" src="GraphicalFilterEditor.js"></script>
 	<script type="text/javascript" charset="utf-8" src="Analyzer.js"></script>
 	<script type="text/javascript">
 	//<![CDATA[
@@ -53,7 +53,7 @@
 		$("cbFilterLength").onchange = filterLengthChanged;
 		//only the first 1024 samples are necessary as the last 1024 samples will always be zeroed out!
 		audioContext = new webkitAudioContext();
-		graphicEqualizer = new GraphicEqualizer(2048, 44100, audioContext);
+		graphicEqualizer = new GraphicalFilterEditor(2048, 44100, audioContext);
 		graphicEqualizer.createControl(document.body);
 		analyzer = new Analyzer(graphicEqualizer, audioContext);
 		analyzer.createControl(document.body);
@@ -183,7 +183,7 @@
 	</script>
 </head>
 <body>
-<p><span style="font-size: smaller; font-style: italic;">This is a test for a JavaScript graphic equalizer, created by me
+<p><span style="font-size: smaller; font-style: italic;">This is a test for a JavaScript graphical filter editor, created by me
 (Carlos Rafael Gimenes das Neves - <a href="http://twitter.com/carlosrafaelgn">@carlosrafaelgn</a>,
 <script type="text/javascript">
 //<![CDATA[
@@ -192,7 +192,7 @@ document.write(" at ");
 document.write([" ", "g", "m", "a", "il", " dot "].join(""));
 document.write(["c", "o", "m"].join(""));
 //]]>
-</script>), based on my old C++ graphic equalizer. Check out the <a href="https://github.com/carlosrafaelgn/GraphicEqualizer">source</a> for more information! This test uses the new <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and requires the latest version of Chrome or Safari (WebKit).</span></p>
+</script>), based on my old C++ graphic equalizer. Check out the <a href="https://github.com/carlosrafaelgn/GraphicalFilterEditor">source</a> for more information! This test uses the new <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and requires the latest version of Chrome or Safari (WebKit).</span></p>
 <p>
 Load your own file: <input type="file" id="txtFile" /><br />
 or<br />
