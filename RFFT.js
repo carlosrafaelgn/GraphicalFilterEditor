@@ -3,7 +3,7 @@
 // most of the functions I would not use, reorganizing the rest of the functions,
 // renaming the file, adding use strict, implementing the inverse transform...
 //
-// https://raw.github.com/carlosrafaelgn/GraphicalFilterEditor/RFFT.js
+// https://github.com/carlosrafaelgn/GraphicalFilterEditor/blob/master/RFFT.js
 //
 
 /*

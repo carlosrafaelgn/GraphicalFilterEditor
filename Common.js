@@ -28,7 +28,7 @@
 // of the authors and should not be interpreted as representing official policies, 
 // either expressed or implied, of the FreeBSD Project.
 //
-// https://raw.github.com/carlosrafaelgn/GraphicalFilterEditor/Common.js
+// https://github.com/carlosrafaelgn/GraphicalFilterEditor/blob/master/Common.js
 //
 "use strict";
 
