@@ -62,7 +62,7 @@ function RFFT(bufferSize, sampleRate) {
 	seal$(this);
 }
 RFFT.prototype = {
-	setSampleRate: function (newSampleRate) {
+	changeSampleRate: function (newSampleRate) {
 		this.sampleRate = newSampleRate;
 		this.bandwidth = newSampleRate / this.bufferSize;
 		return newSampleRate;
@@ -81,7 +81,7 @@ RFFT.prototype = {
 				dest[r] = mult * source[i];
 				i++;
 				h = halfSize << 1;
-				while (h = h >> 1, !((r ^= h) & h));
+				while ((h = h >> 1) && !((r ^= h) & h));
 				if (r >= i) {
 					dest[i] = mult * source[r];
 					dest[r] = mult * source[i];
@@ -99,7 +99,7 @@ RFFT.prototype = {
 				dest[r] = source[i];
 				i++;
 				h = halfSize << 1;
-				while (h = h >> 1, !((r ^= h) & h));
+				while ((h = h >> 1) && !((r ^= h) & h));
 				if (r >= i) {
 					dest[i] = source[r];
 					dest[r] = source[i];
@@ -311,15 +311,13 @@ RFFT.prototype = {
 			x = this.trans,
 			TWO_PI = 2 * Math.PI,
 			SQRT2 = Math.SQRT2,
-			n2, n4, n8, nn,
+			n2 = n << 1, n4, n8, nn = n >>> 1,
 			t1, t2, t3, t4,
 			j, ix, id, i0, i1, i2, i3, i4, i5, i6, i7, i8,
 			cc1, ss1, cc3, ss3,
 			sin = Math.sin,
 			cos = Math.cos,
-			e, a,
-			nn = n >>> 1,
-			n2 = n << 1;
+			e, a;
 		while ((nn >>>= 1)) {
 			ix = 0;
 			id = n2;
@@ -364,7 +362,6 @@ RFFT.prototype = {
 			e = TWO_PI / n2;
 			for (j = 1; j < n8; j++) {
 				a = j * e;
-				cc1, ss1, cc3, ss3;
 				ss1 = sin(a);
 				cc1 = cos(a);
 				//ss3 = sin(3*a); cc3 = cos(3*a);

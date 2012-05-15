@@ -35,7 +35,7 @@
 function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	var i, s, freqSteps, firstFreqs, f, mthis = this;
 	
-	this.filterLength = 2048;
+	this.filterLength = filterLength;
 	this.currentChannelIndex = 0;
 	this.binCount = (this.filterLength >>> 1) + 1;
 	this.audioContext = audioContext;
@@ -80,7 +80,7 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	}
 	for (i = 0, s = 0; i < this.visibleBinCount; i++) {
 		this.visibleFrequencies[i] = f;
-		if ((i + 1) >= this.equivalentZonesFrequencyCount[s + 1] && s !== (this.equivalentZonesFrequencyCount.length - 1)) {
+		if (s !== (this.equivalentZonesFrequencyCount.length - 1) && s !== (firstFreqs.length - 1) && (i + 1) >= this.equivalentZonesFrequencyCount[s + 1]) {
 			s++;
 			f = firstFreqs[s];
 		} else {
@@ -565,7 +565,7 @@ GraphicalFilterEditor.prototype = {
 			return this.updateActualChannelCurve(1 - ci);
 		return true;
 	},
-	setFilterLength: function (newFilterLength) {
+	changeFilterLength: function (newFilterLength) {
 		if (newFilterLength !== this.filterLength) {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
@@ -579,9 +579,9 @@ GraphicalFilterEditor.prototype = {
 		}
 		return false;
 	},
-	setSampleRate: function (newSampleRate) {
+	changeSampleRate: function (newSampleRate) {
 		if (newSampleRate !== this.rfft.sampleRate) {
-			this.rfft.setSampleRate(newSampleRate);
+			this.rfft.changeSampleRate(newSampleRate);
 			this.filterKernel = audioContext.createBuffer(2, this.filterLength, newSampleRate);
 			this.updateFilter();
 			if (this.showActualResponse)

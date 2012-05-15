@@ -109,14 +109,14 @@
 		}
 	}
 	function filterLengthChanged() {
-		graphicEqualizer.setFilterLength(parseInt($("cbFilterLength").value));
+		graphicEqualizer.changeFilterLength(parseInt($("cbFilterLength").value));
 	}
 	function play() {
 		if ($("txtFile").files.length === 0 && !$("chkSample").checked) return false;
 
 		stop();
 		$("btnPlay").disabled = "disabled";
-		graphicEqualizer.setFilterLength(parseInt($("cbFilterLength").value));
+		graphicEqualizer.changeFilterLength(parseInt($("cbFilterLength").value));
 
 		//currently media elements ignore connections :(
 		
