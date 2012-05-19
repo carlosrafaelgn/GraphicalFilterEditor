@@ -43,7 +43,7 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	this.convolver = audioContext.createConvolver();
 	this.convolver.normalize = false;
 	this.convolver.buffer = this.filterKernel;
-	this.rfft = new RFFT(this.filterLength, sampleRate);
+	this.fft = new FFTReal(this.filterLength, sampleRate, false);
 	this.visibleBinCount = 512;
 	//sorry, but due to the frequency mapping I created, this class will only work with
 	//512 visible bins... in order to change this, a new frequency mapping must be created...
@@ -114,7 +114,7 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	this.lastDrawY = 0;
 	this.drawOffsetX = 0;
 	this.drawOffsetY = 0;
-	this.tmpActual = null;
+	this.tmp = new Float32Array(filterLength);
 	this.document_OnMouseMove = function (e) { return GraphicalFilterEditor.prototype.canvas_OnMouseMove.apply(mthis, arguments); };
 	this.document_OnMouseUp = function (e) { return GraphicalFilterEditor.prototype.canvas_OnMouseUp.apply(mthis, arguments); };
 	
@@ -438,10 +438,10 @@ GraphicalFilterEditor.prototype = {
 	},
 	updateFilter: function (channelIndex) {
 		var ci = ((channelIndex === undefined) ? this.currentChannelIndex : channelIndex), i, ii, k, freq, filterLength = this.filterLength,
-			curve = this.channelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth, lerp = GraphicalFilterEditor.prototype.lerp,
-			filterLength2 = (filterLength >>> 1), filter = this.rfft.trans, sin = Math.sin, cos = Math.cos, avg, avgCount,
+			curve = this.channelCurves[ci], valueCount = this.visibleBinCount, bw = this.fft.bandwidth, lerp = GraphicalFilterEditor.prototype.lerp,
+			filterLength2 = (filterLength >>> 1), filter = this.tmp, sin = Math.sin, cos = Math.cos, avg, avgCount,
 			visibleFrequencies = this.visibleFrequencies,
-		//M = ((FFT length/2) - 1)
+			//M = ((FFT length/2) - 1)
 			M_HALF_PI_FFTLEN2 = (filterLength2 - 1) * 0.5 * Math.PI / filterLength2;
 		i = 1;
 		ii = 0;
@@ -490,11 +490,14 @@ GraphicalFilterEditor.prototype = {
 			//real = Mag . cos(-k)
 			//imag = Mag . sin(-k)
 			k = M_HALF_PI_FFTLEN2 * i;
-			filter[filterLength - i] = (filter[i] * sin(-k));
-			filter[i] *= cos(-k);
+			//****NOTE:
+			//when using FFTReal, k MUST BE passed as the argument of sin and cos, due to the
+			//signal of the imaginary component
+			//RFFT, intel and other fft's use the opposite signal... therefore, -k MUST BE passed!!
+			filter[filterLength2 + i] = (filter[i] * sin(k));
+			filter[i] *= cos(k);
 		}
-		filter = this.filterKernel.getChannelData(ci);
-		this.rfft.inverse(filter);
+		this.fft.inverse(this.filterKernel.getChannelData(ci), filter);
 		if (this.sameFilterLR) {
 			//copy the filter to the other channel
 			return this.copyFilter(ci, 1 - ci);
@@ -507,15 +510,11 @@ GraphicalFilterEditor.prototype = {
 	},
 	updateActualChannelCurve: function (channelIndex) {
 		var ci = ((channelIndex === undefined) ? this.currentChannelIndex : channelIndex), freq, i, ii, avg, avgCount, filterLength = this.filterLength,
-			curve = this.actualChannelCurves[ci], valueCount = this.visibleBinCount, bw = this.rfft.bandwidth,
+			curve = this.actualChannelCurves[ci], valueCount = this.visibleBinCount, bw = this.fft.bandwidth,
 			filterLength2 = (filterLength >>> 1), cos = Math.cos, lerp = GraphicalFilterEditor.prototype.lerp,
 			visibleFrequencies = this.visibleFrequencies,
-			filter = this.filterKernel.getChannelData(ci), tmp = this.tmpActual,
+			filter = this.filterKernel.getChannelData(ci), tmp = this.tmp,
 			M = (filterLength2 - 1), PI2_M = 2 * Math.PI / M;
-		if (!tmp) {
-			tmp = new Float32Array(filterLength);
-			this.tmpActual = tmp;
-		}
 		//it is not possible to know what kind of window the browser will use,
 		//so make an assumption here... Blackman window!
 		//...at least it is the one I used, back in C++ times :)
@@ -527,12 +526,13 @@ GraphicalFilterEditor.prototype = {
 			//Blackman window
 			tmp[i] = filter[i] * (0.42 - (0.5 * cos(PI2_M * i)) + (0.08 * cos(2 * PI2_M * i)));
 		}
-		//pad with zeroes
-		for (i = filterLength - 1; i > M; i--) {
-			tmp[i] = 0;
-		}
-		this.rfft.forward(tmp);
-		this.rfft.calculateSpectrum(tmp);
+		//there is no need to pad tmp with zeroes, as FFTReal was modified to assume that
+		//all input buffers (in time domain) are padded with zeroes
+		//for (i = filterLength - 1; i > M; i--)
+		//	tmp[i] = 0;
+		//}
+		this.fft.forward(tmp, tmp);
+		this.fft.calculateSpectrum(tmp, tmp);
 		//tmp now contains (filterLength2 + 1) magnitudes
 		i = 0;
 		ii = 0;
@@ -558,7 +558,7 @@ GraphicalFilterEditor.prototype = {
 			curve[ii] = this.magnitudeToY(avg / avgCount);
 			ii++;
 		}
-		i = (((this.rfft.sampleRate >>> 1) >= visibleFrequencies[valueCount - 1]) ? curve[ii - 1] : (this.validYRangeHeight + 1));
+		i = (((this.fft.sampleRate >>> 1) >= visibleFrequencies[valueCount - 1]) ? curve[ii - 1] : (this.validYRangeHeight + 1));
 		for (; ii < valueCount; ii++)
 			curve[ii] = i;
 		if (!this.sameFilterLR && (channelIndex === undefined))
@@ -569,8 +569,8 @@ GraphicalFilterEditor.prototype = {
 		if (newFilterLength !== this.filterLength) {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
-			this.filterKernel = audioContext.createBuffer(2, newFilterLength, this.rfft.sampleRate);
-			this.rfft = new RFFT(newFilterLength, this.rfft.sampleRate);
+			this.filterKernel = audioContext.createBuffer(2, newFilterLength, this.fft.sampleRate);
+			this.fft = new FFTReal(newFilterLength, this.fft.sampleRate, false);
 			this.updateFilter();
 			if (this.showActualResponse)
 				this.updateActualChannelCurve();
@@ -580,8 +580,8 @@ GraphicalFilterEditor.prototype = {
 		return false;
 	},
 	changeSampleRate: function (newSampleRate) {
-		if (newSampleRate !== this.rfft.sampleRate) {
-			this.rfft.changeSampleRate(newSampleRate);
+		if (newSampleRate !== this.fft.sampleRate) {
+			this.fft.changeSampleRate(newSampleRate);
 			this.filterKernel = audioContext.createBuffer(2, this.filterLength, newSampleRate);
 			this.updateFilter();
 			if (this.showActualResponse)
