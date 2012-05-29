@@ -1,5 +1,5 @@
 //
-// Analyzer.js is distributed under the FreeBSD License
+// AnalyzerWL.js is distributed under the FreeBSD License
 //
 // Copyright (c) 2012, Carlos Rafael Gimenes das Neves
 // All rights reserved.
@@ -28,27 +28,24 @@
 // of the authors and should not be interpreted as representing official policies, 
 // either expressed or implied, of the FreeBSD Project.
 //
-// https://github.com/carlosrafaelgn/GraphicalFilterEditor/blob/master/Analyzer.js
+// https://github.com/carlosrafaelgn/GraphicalFilterEditor/blob/master/AnalyzerWL.js
 //
 "use strict";
 
-function Analyzer(audioContext, graphicEqualizer) {
-	var i, mthis = this, pi = Math.PI, exp = Math.exp, cos = Math.cos, invln10 = 1 / Math.LN10;
-	//only the first 1024 samples are necessary as the last
-	//1024 samples would always be zeroed out!
-	this.data = new Uint8Array(1024);
+function AnalyzerWL(audioContext) {
+	var mthis = this;
+	this.data = new Uint8Array(128);
 	this.analyzerL = audioContext.createAnalyser();
-	this.analyzerL.fftSize = 1024;
+	this.analyzerL.fftSize = 128;
 	this.analyzerR = audioContext.createAnalyser();
-	this.analyzerR.fftSize = 1024;
-	this.tmp = new Float32Array(2048);
-	this.fft = new FFTReal(2048, 44100, false);
-	this.window = new Float32Array(1024);
-	this.multiplier = new Float32Array(512);
-	this.prevL = new Float32Array(512);
-	this.prevR = new Float32Array(512);
-	this.visibleFrequencies = graphicEqualizer.visibleFrequencies;
-	this.analyze = function () { return Analyzer.prototype.realAnalyze.apply(mthis); };
+	this.analyzerR.fftSize = 128;
+	this.turn = 0;
+	this.oL1 = new Float32Array(128);
+	this.oL2 = new Float32Array(128);
+	this.oR1 = new Float32Array(128);
+	this.oR2 = new Float32Array(128);
+	this.tmp = new Float32Array(64);
+	this.analyze = function () { return AnalyzerWL.prototype.realAnalyze.apply(mthis); };
 	this.canvas = null;
 	this.ctx = null;
 	this.alive = false;
@@ -60,24 +57,10 @@ function Analyzer(audioContext, graphicEqualizer) {
 			window.msRequestAnimationFrame ||
 			function (callback, element) { return window.setTimeout(callback, 1000 / 60); });
 	}
-	
-	for (i = 0; i < 1024; i++) {
-		this.window[i] =
-		//adjust coefficient (the original C++ code was
-		//meant to be used with 16 bit samples)
-		4 *
-		//Hamming window
-		(0.54 - (0.46 * cos(2 * pi * i / 1023)));
-	}
-	for (i = 0; i < 512; i++) {
-		//exp is to increase the gain as the frequency increases
-		//145 is just a gain to make the analyzer look good! :)
-		this.multiplier[i] = invln10 * 145 * exp(2.5 * i / 511);
-	}
 	seal$(this);
 	return true;
 }
-Analyzer.prototype = {
+AnalyzerWL.prototype = {
 	colors: ["#000000", "#0B00B2", "#0C00B1", "#0E00AF", "#0E00AF", "#0F00AE", "#1000AD", "#1200AC", "#1300AB", "#1500AB", "#1600AA", "#1700A9", "#1900A8", "#1A00A6", "#1B00A6", "#1D00A4", "#1F00A3", "#2000A1", "#2200A1", "#2300A0", "#25009E", "#27009D", "#29009C", "#2B009A", "#2D0099", "#2E0098", "#300096", "#320095", "#340094", "#360092", "#380090", "#39008F", "#3C008E", "#3E008C", "#40008B", "#420089", "#440088", "#470086", "#480085", "#4B0083", "#4C0082", "#4F0080", "#51007F", "#54007C", "#56007C", "#57007A", "#5A0078", "#5C0076", "#5F0075", "#610073", "#640071", "#65006F", "#68006E", "#6B006C", "#6D006A", "#6F0069", "#710066", "#740065", "#760063", "#790062", "#7B0060", "#7D005E", "#80005C", "#82005B", "#850059", "#860057", "#890056", "#8C0054", "#8E0052", "#910050", "#93004F", "#96004D", "#97004B", "#9A0049", "#9C0048", "#9F0046", "#A10045", "#A40043", "#A60040", "#A8003F", "#AA003E", "#AD003C", "#AF003A", "#B10039", "#B30037", "#B60035", "#B80034", "#BA0032", "#BC0031", "#BE002E", "#C1002D", "#C3002C", "#C5002A", "#C70028", "#CA0027", "#CB0025", "#CE0024", "#CF0023", "#D10022", "#D30020", "#D6001E", "#D7001D", "#D9001B", "#DB001A", "#DD0019", "#DF0017", "#E10017", "#E20015", "#E40014", "#E60012", "#E70011", "#E90010", "#EA000F", "#EC000D", "#ED000C", "#EF000B", "#F1000B", "#F2000A", "#F40008", "#F50007", "#F60006", "#F70005", "#F90005", "#F90003", "#FB0003", "#FC0002", "#FD0001", "#FE0001", "#FF0000", "#FF0100", "#FF0200", "#FF0300", "#FF0500", "#FF0600", "#FF0600", "#FF0800", "#FF0900", "#FF0B00", "#FF0C00", "#FF0D00", "#FF0F00", "#FF1000", "#FF1200", "#FF1400", "#FF1500", "#FF1700", "#FF1900", "#FF1A00", "#FF1C00", "#FF1D00", "#FF2000", "#FF2200", "#FF2300", "#FF2500", "#FF2700", "#FF2900", "#FF2B00", "#FF2D00", "#FF2F00", "#FF3100", "#FF3400", "#FF3500", "#FF3700", "#FF3900", "#FF3C00", "#FF3E00", "#FF4000", "#FF4200", "#FF4400", "#FF4700", "#FF4900", "#FF4B00", "#FF4E00", "#FF5000", "#FF5200", "#FF5500", "#FF5700", "#FF5900", "#FF5C00", "#FF5E00", "#FF6100", "#FF6300", "#FF6600", "#FF6800", "#FF6A00", "#FF6C00", "#FF6F00", "#FF7200", "#FF7400", "#FF7700", "#FF7900", "#FF7C00", "#FF7E00", "#FF8000", "#FF8300", "#FF8500", "#FF8700", "#FF8A00", "#FF8D00", "#FF8F00", "#FF9200", "#FF9500", "#FF9700", "#FF9900", "#FF9B00", "#FF9E00", "#FFA000", "#FFA300", "#FFA500", "#FFA700", "#FFA900", "#FFAC00", "#FFAE00", "#FFB100", "#FFB200", "#FFB600", "#FFB700", "#FFBA00", "#FFBC00", "#FFBE00", "#FFC100", "#FFC300", "#FFC400", "#FFC700", "#FFC900", "#FFCB00", "#FFCD00", "#FFCF00", "#FFD100", "#FFD300", "#FFD500", "#FFD700", "#FFD900", "#FFDB00", "#FFDD00", "#FFDE00", "#FFE000", "#FFE100", "#FFE400", "#FFE500", "#FFE700", "#FFE900", "#FFEA00", "#FFEB00", "#FFED00", "#FFEF00", "#FFF000", "#FFF100", "#FFF300", "#FFF400", "#FFF500", "#FFF600", "#FFF800", "#FFF900", "#FFFA00", "#FFFB00"],
 	createControl: function (parent, id) {
 		if (!this.ctx) {
@@ -126,138 +109,112 @@ Analyzer.prototype = {
 		this.lastRequest = null;
 		return true;
 	},
+	haar: function (x, n, tmp) {
+		//input:
+		//original time / previous lo pass data
+		//output:
+		//scaling = lo pass = 1st half
+		//wl coeff = hi pass = 2nd half
+		//0.70710678118654752440084436210485
+		
+		var i, n2 = n >>> 1, xi, xi1;
+		for (i = 0; i < n; i += 2) {
+			xi = x[i];
+			xi1 = x[i + 1];
+			x[i >>> 1] = (xi + xi1) * 0.70710678118654752440084436210485;
+			tmp[i >>> 1] = (xi - xi1) * 0.70710678118654752440084436210485;
+		}
+		for (i = n2; i < n; i++)
+			x[i] = tmp[i - n2];
+		
+		/*var i, n2 = n >>> 1, t, xi2;
+		for (i = 0; i < n2; i++) {
+		xi2 = x[i << 1];
+		t = (xi2 + x[(i << 1) + 1]) * 0.5;
+		tmp[i] = xi2 - t;
+		x[i] = t;
+		}
+		for (i = n2; i < n; i++)
+		x[i] = tmp[i - n2];*/
+		return true;
+	},
 	realAnalyze: function () {
 		//all the 0.5's here are because of this explanation:
 		//http://stackoverflow.com/questions/195262/can-i-turn-off-antialiasing-on-an-html-canvas-element
 		//"Draw your 1-pixel lines on coordinates like ctx.lineTo(10.5, 10.5). Drawing a one-pixel line
 		//over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
 		//results in two lines that get drawn on the canvas.
-		var d, im, i, w = this.window, tmp = this.tmp, data = this.data, ctx = this.ctx, sqrt = Math.sqrt, ln = Math.log,
-				freq, ii, avg, avgCount,
-				valueCount = 512, fft = this.fft, bw = fft.bandwidth,
-				filterLength2 = (2048 >>> 1), cos = Math.cos, lerp = GraphicalFilterEditor.prototype.lerp,
-				visibleFrequencies = this.visibleFrequencies, colors = Analyzer.prototype.colors;
+		var i, t, tot, w, x, y, y2, tmp = this.tmp, oL1, oL2, oR1, oR2,
+			data = this.data, ctx = this.ctx, colors = AnalyzerWL.prototype.colors;
 		if (!this.alive) return false;
-
+		if (this.turn) {
+			oL1 = this.oL1;
+			oL2 = this.oL2;
+			oR1 = this.oR1;
+			oR2 = this.oR2;
+			this.turn = 0;
+		} else {
+			oL1 = this.oL1;
+			oL2 = this.oL2;
+			oR1 = this.oR1;
+			oR2 = this.oR2;
+			this.turn = 1;
+		}
 		this.analyzerL.getByteTimeDomainData(data);
-		for (i = 0; i < 1024; i++) {
-			tmp[i] = w[i] * (data[i] - 128);
+		for (i = 0; i < 128; i++)
+			oL1[i] = (data[i] - 128) * 4;
+		i = 128;
+		while (i >= 4) {
+			AnalyzerWL.prototype.haar(oL1, i, tmp);
+			i >>>= 1;
 		}
-		fft.forward(tmp, tmp);
-		//DC bin is being ignored
-		tmp[0] = 0;
-		for (i = 1; i < 1024; i++) {
-			//0.0009765625 = 1 / (2048/2)
-			d = tmp[i] * 0.0009765625; //re
-			im = tmp[1024 + i] * 0.0009765625; //im
-			tmp[i] = ln(sqrt((d * d) + (im * im)) + 0.2);
-		}
-		w = this.multiplier;
-		data = this.prevL;
-
-		ctx.lineWidth = 1;
-		ctx.fillStyle = "#000000";
-		ctx.fillRect(0, 0, 512, 512);
-
-		i = 0;
-		ii = 0;
-		while (ii < (valueCount - 1) && i < filterLength2 && bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii])) {
-			freq = bw * i;
-			while (i < filterLength2 && (freq + bw) < visibleFrequencies[ii]) {
-				i++;
-				freq = bw * i;
-			}
-			d = (((data[ii] * 4) + (w[ii] * lerp(freq, tmp[i], freq + bw, tmp[i + 1], visibleFrequencies[ii]))) / 2.5) >> 1;
-			if (d > 255) d = 255;
-			else if (d < 0) d = 0;
-			data[ii] = d;
-			ctx.beginPath();
-			ctx.strokeStyle = colors[d];
-			ctx.moveTo(ii - 0.5, 256.5 - d);
-			ctx.lineTo(ii - 0.5, 256.5);
-			ctx.stroke();
-			ii++;
-		}
-		i++;
-		while (i < filterLength2 && ii < valueCount) {
-			avg = 0;
-			avgCount = 0;
-			do {
-				avg += tmp[i];
-				avgCount++;
-				i++;
-				freq = bw * i;
-			} while (freq < visibleFrequencies[ii] && i < filterLength2);
-			d = (((data[ii] * 4) + (w[ii] * avg / avgCount)) / 2.5) >> 1;
-			if (d > 255) d = 255;
-			else if (d < 0) d = 0;
-			data[ii] = d;
-			ctx.beginPath();
-			ctx.strokeStyle = colors[d];
-			ctx.moveTo(ii - 0.5, 256.5 - d);
-			ctx.lineTo(ii - 0.5, 256.5);
-			ctx.stroke();
-			ii++;
-		}
-
-		//sorry for the copy/paste :(
-		w = this.window;
-		data = this.data;
 		this.analyzerR.getByteTimeDomainData(data);
-		for (i = 0; i < 1024; i++) {
-			tmp[i] = w[i] * (data[i] - 128);
+		for (i = 0; i < 128; i++)
+			oR1[i] = (data[i] - 128) * 4;
+		i = 128;
+		while (i >= 4) {
+			AnalyzerWL.prototype.haar(oR1, i, tmp);
+			i >>>= 1;
 		}
-		fft.forward(tmp, tmp);
-		//DC bin is being ignored
-		tmp[0] = 0;
-		for (i = 1; i < 1024; i++) {
-			//0.0009765625 = 1 / (2048/2)
-			d = tmp[i] * 0.0009765625; //re
-			im = tmp[1024 + i] * 0.0009765625; //im
-			tmp[i] = ln(sqrt((d * d) + (im * im)) + 0.2);
-		}
-		w = this.multiplier;
-		data = this.prevR;
-
-		i = 0;
-		ii = 0;
-		while (ii < (valueCount - 1) && i < filterLength2 && bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii])) {
-			freq = bw * i;
-			while (i < filterLength2 && (freq + bw) < visibleFrequencies[ii]) {
+		//128
+		//1 (1)
+		//2  .. 3 (2)
+		//4  .. 7 (4)
+		//8  .. 15 (8)
+		//16 .. 31 (16)
+		//32 .. 63 (32)
+		//64 .. 127 (64)
+		tot = 64;
+		w = 512 / 64;
+		y = 0;
+		y2 = 512 - 32;
+		for (; ; ) {
+			i = tot;
+			x = 0;
+			while (x < 512) {
+				t = oL1[i]; // (oL1[i] * 0.125) + (oL2[i] * 0.875);
+				//oL2[i] = t;
+				if (t < 0) t = -t;
+				if (t >= 127) t = 508;
+				else t <<= 2;
+				ctx.fillStyle = colors[t >>> 1];
+				ctx.fillRect(x, y, w, 32);
+				t = oR1[i]; // (oR1[i] * 0.125) + (oR2[i] * 0.875);
+				//oR2[i] = t;
+				if (t < 0) t = -t;
+				if (t >= 127) t = 508;
+				else t <<= 2;
+				ctx.fillStyle = colors[t >>> 1];
+				ctx.fillRect(x, y2, w, 32);
 				i++;
-				freq = bw * i;
+				x += w;
 			}
-			d = (((data[ii] * 4) + (w[ii] * lerp(freq, tmp[i], freq + bw, tmp[i + 1], visibleFrequencies[ii]))) / 2.5) >> 1;
-			if (d > 255) d = 255;
-			else if (d < 0) d = 0;
-			data[ii] = d;
-			ctx.beginPath();
-			ctx.strokeStyle = colors[d];
-			ctx.moveTo(ii - 0.5, 256.5);
-			ctx.lineTo(ii - 0.5, 256.5 + d);
-			ctx.stroke();
-			ii++;
-		}
-		i++;
-		while (i < filterLength2 && ii < valueCount) {
-			avg = 0;
-			avgCount = 0;
-			do {
-				avg += tmp[i];
-				avgCount++;
-				i++;
-				freq = bw * i;
-			} while (freq < visibleFrequencies[ii] && i < filterLength2);
-			d = (((data[ii] * 4) + (w[ii] * avg / avgCount)) / 2.5) >> 1;
-			if (d > 255) d = 255;
-			else if (d < 0) d = 0;
-			data[ii] = d;
-			ctx.beginPath();
-			ctx.strokeStyle = colors[d];
-			ctx.moveTo(ii - 0.5, 256.5);
-			ctx.lineTo(ii - 0.5, 256.5 + d);
-			ctx.stroke();
-			ii++;
+			w <<= 1;
+			y += 32;
+			y2 -= 32;
+			if (!tot) break;
+			tot >>>= 1;
+			if (!tot) w = 512;
 		}
 		return (this.lastRequest = window.requestAnimationFrame(this.analyze, this.canvas));
 	}

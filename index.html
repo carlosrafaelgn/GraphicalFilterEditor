@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
-	<link rel="Shortcut Icon" href="http://carlosrafaelgn.com.br/favicon.ico" />
+	<link rel="Shortcut Icon" href="/favicon.ico" />
 	<title>Graphical Filter Editor (Test)</title>
 	<style type="text/css">
 	body {
@@ -39,24 +39,26 @@
 	<script type="text/javascript" charset="utf-8" src="Common.js"></script>
 	<script type="text/javascript" charset="utf-8" src="FFTReal.js"></script>
 	<script type="text/javascript" charset="utf-8" src="GraphicalFilterEditor.js"></script>
+	<script type="text/javascript" charset="utf-8" src="GraphicalFilterEditorControl.js"></script>
 	<script type="text/javascript" charset="utf-8" src="Analyzer.js"></script>
+	<script type="text/javascript" charset="utf-8" src="AnalyzerWL.js"></script>
 	<script type="text/javascript">
 	//<![CDATA[
 	"use strict";
-	var audioContext, source, sourceAudio, graphicEqualizer, splitter, splitter2, analyzer, merger;
+	var audioContext, source, sourceAudio, graphicEqualizer, splitter, splitter2, analyzer, analyzerType, merger;
 	function main() {
 		var i, pi = Math.PI, cos = Math.cos;
 		$("btnPlay").onclick = play;
 		$("btnStop").onclick = stop;
 		$("txtFile").onchange = function () { $("chkSample").checked = false; return true; };
-		$("chkAnalyzer").onchange = updateAnalyzer;
 		$("cbFilterLength").onchange = filterLengthChanged;
+		$("cbAnalyzer").onchange = updateAnalyzer;
 		//only the first 1024 samples are necessary as the last 1024 samples will always be zeroed out!
 		audioContext = new webkitAudioContext();
-		graphicEqualizer = new GraphicalFilterEditor(2048, 44100, audioContext);
+		graphicEqualizer = new GraphicalFilterEditorControl(2048, 44100, audioContext);
 		graphicEqualizer.createControl(document.body);
-		analyzer = new Analyzer(graphicEqualizer, audioContext);
-		analyzer.createControl(document.body);
+		analyzerType = null;
+		analyzer = null;
 		//weird, but when connecting an analyzer to the left channel of a merger, the merger
 		//will ignore its right channel... so... the solution was to create one additional
 		//splitter, to make sure a mono channel enters the left channel of the merger!
@@ -65,14 +67,18 @@
 		merger = audioContext.createChannelMerger();
 		return true;
 	}
-	function cleanUp() {
-		analyzer.stop();
+	function cleanUpAnalyzer() {
+		if (analyzer) analyzer.stop();
 		splitter.disconnect(0);
 		splitter.disconnect(1);
 		splitter2.disconnect(0);
 		splitter2.disconnect(1);
-		analyzer.analyzerL.disconnect(0);
-		analyzer.analyzerR.disconnect(0);
+		if (analyzer) {
+			analyzer.analyzerL.disconnect(0);
+			analyzer.analyzerR.disconnect(0);
+			analyzerType = null;
+			analyzer = null;
+		}
 		merger.disconnect(0);
 		return true;
 	}
@@ -84,28 +90,42 @@
 			source.disconnect(0);
 			source = null;
 		}
-		graphicEqualizer.convolver.disconnect(0);
-		return cleanUp();
+		graphicEqualizer.filter.convolver.disconnect(0);
+		return cleanUpAnalyzer();
 	}
 	function updateAnalyzer() {
+		var t = $("cbAnalyzer").value;
 		if (!source) return false;
-		graphicEqualizer.convolver.disconnect(0);
-		if ($("chkAnalyzer").checked) {
-			graphicEqualizer.convolver.connect(splitter, 0, 0);
-			splitter.connect(analyzer.analyzerL, 0, 0);
-			splitter.connect(analyzer.analyzerR, 1, 0);
+		graphicEqualizer.filter.convolver.disconnect(0);
+		switch (t) {
+			case "fft":
+			case "wl":
+				if (analyzerType !== t) {
+					if (analyzer) {
+						analyzer.destroyControl();
+						cleanUpAnalyzer();
+					}
+					analyzerType = t;
+					analyzer = ((analyzerType === "fft") ? new Analyzer(audioContext, graphicEqualizer.filter) : new AnalyzerWL(audioContext, graphicEqualizer.filter));
+					analyzer.createControl($("analyzerPlaceholder"));
+				}
 
-			//if an analyzer is connected to the left channel of the merger,
-			//it will make the right channel disappear...
-			analyzer.analyzerL.connect(splitter2, 0, 0);
-			splitter2.connect(merger, 0, 0);
-			
-			analyzer.analyzerR.connect(merger, 0, 1);
-			merger.connect(audioContext.destination, 0, 0);
-			return analyzer.start();
-		} else {
-			graphicEqualizer.convolver.connect(audioContext.destination, 0, 0);
-			return cleanUp();
+				graphicEqualizer.filter.convolver.connect(splitter, 0, 0);
+				splitter.connect(analyzer.analyzerL, 0, 0);
+				splitter.connect(analyzer.analyzerR, 1, 0);
+
+				//if an analyzer is connected to the left channel of the merger,
+				//it will make the right channel disappear...
+				analyzer.analyzerL.connect(splitter2, 0, 0);
+				splitter2.connect(merger, 0, 0);
+
+				analyzer.analyzerR.connect(merger, 0, 1);
+				merger.connect(audioContext.destination, 0, 0);
+				return analyzer.start();
+			default:
+				if (analyzer) analyzer.destroyControl();
+				graphicEqualizer.filter.convolver.connect(audioContext.destination, 0, 0);
+				return cleanUpAnalyzer();
 		}
 	}
 	function filterLengthChanged() {
@@ -137,7 +157,7 @@
 
 							//sourceAudio.load();
 
-							source.connect(graphicEqualizer.convolver, 0, 0);
+							source.connect(graphicEqualizer.filter.convolver, 0, 0);
 							updateAnalyzer();
 
 							//sourceAudio.play();
@@ -160,7 +180,7 @@
 
 						//sourceAudio.load();
 
-						source.connect(graphicEqualizer.convolver, 0, 0);
+						source.connect(graphicEqualizer.filter.convolver, 0, 0);
 						updateAnalyzer();
 
 						//sourceAudio.play();
@@ -204,7 +224,11 @@ or<br />
 	<option value="512">512</option>
 	<option value="1024">1024</option>
 	<option value="2048" selected="selected">2048</option>
-</select> <input type="checkbox" id="chkAnalyzer" checked="checked" /><label for="chkAnalyzer">Show analyzer <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></label></p>
+</select> Analyzer: <select id="cbAnalyzer">
+	<option value="none" selected="selected">None</option>
+	<option value="fft">Frequency analyzer</option>
+	<option value="wl">Haar wavelet analyzer</option>
+</select> <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></p>
 
 <!-- Equalizer -->
 <div style="vertical-align: top; display: inline-block; background-color: #1c1c1c; color: #ffffff; position: relative; font-family: Sans-Serif; font-size: small; cursor: default;">
@@ -225,10 +249,11 @@ or<br />
 	<!-- End Menu -->
 </div>
 <!-- End Equalizer -->
+<div id="analyzerPlaceholder" style="vertical-align: top; display: inline-block;"></div>
+
+<p style="font-size: x-small; font-style: italic;">If running this locally, Chrome must be started with the command-line option --allow-file-access-from-files otherwise you will not be able to load any files!</p>
 
 <script type="text/javascript">//<![CDATA[
 main(); //]]></script>
-
-<p style="font-size: x-small; font-style: italic;">If running this locally, Chrome must be started with the command-line option --allow-file-access-from-files otherwise you will not be able to load any files!</p>
 </body>
 </html>
