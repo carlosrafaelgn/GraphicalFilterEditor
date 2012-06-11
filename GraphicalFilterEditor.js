@@ -44,17 +44,16 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	this.fft = new FFTReal(filterLength, sampleRate, false);
 	this.tmp = new Float32Array(filterLength);
 	this.channelCurves = [new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount), new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount)];
-	this.actualChannelCurves = [new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount), new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount)];
+	this.actualChannelCurve = new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount);
 
 	for (var i = (GraphicalFilterEditor.prototype.visibleBinCount - 1); i >= 0; i--) {
 		this.channelCurves[0][i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
 		this.channelCurves[1][i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
-		this.actualChannelCurves[0][i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
-		this.actualChannelCurves[1][i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
+		this.actualChannelCurve[i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
 	}
 
 	this.updateFilter(0, true, true);
-	this.updateActualChannelCurve(0, true, true);
+	this.updateActualChannelCurve(0);
 
 	seal$(this);
 }
@@ -244,9 +243,9 @@ GraphicalFilterEditor.prototype = {
 		this.convolver.buffer = this.filterKernel;
 		return true;
 	},
-	updateActualChannelCurve: function (channelIndex, isSameFilterLR, updateBothChannels) {
+	updateActualChannelCurve: function (channelIndex) {
 		var freq, i, ii, avg, avgCount, filterLength = this.filterLength, lerp = GraphicalFilterEditor.prototype.lerp,
-		curve = this.actualChannelCurves[channelIndex], valueCount = GraphicalFilterEditor.prototype.visibleBinCount,
+		curve = this.actualChannelCurve, valueCount = GraphicalFilterEditor.prototype.visibleBinCount,
 		bw = this.fft.bandwidth, filterLength2 = (filterLength >>> 1), cos = Math.cos, tmp = this.tmp,
 		mag2y = GraphicalFilterEditor.prototype.magnitudeToY, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
 		filter = this.filterKernel.getChannelData(channelIndex),
@@ -297,27 +296,25 @@ GraphicalFilterEditor.prototype = {
 		i = (((this.sampleRate >>> 1) >= visibleFrequencies[valueCount - 1]) ? curve[ii - 1] : (GraphicalFilterEditor.prototype.validYRangeHeight + 1));
 		for (; ii < valueCount; ii++)
 			curve[ii] = i;
-		if (!isSameFilterLR && updateBothChannels)
-			return this.updateActualChannelCurve(1 - channelIndex, false, false);
 		return true;
 	},
-	changeFilterLength: function (newFilterLength, isSameFilterLR) {
+	changeFilterLength: function (newFilterLength, channelIndex, isSameFilterLR) {
 		if (newFilterLength !== this.filterLength) {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
-			this.filterKernel = audioContext.createBuffer(2, newFilterLength, this.sampleRate);
+			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this.sampleRate);
 			this.fft = new FFTReal(newFilterLength, this.sampleRate, false);
-			this.updateFilter(0, isSameFilterLR, true);
+			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
 		return false;
 	},
-	changeSampleRate: function (newSampleRate, isSameFilterLR) {
+	changeSampleRate: function (newSampleRate, channelIndex, isSameFilterLR) {
 		if (newSampleRate !== this.sampleRate) {
 			this.sampleRate = newSampleRate;
 			this.fft.changeSampleRate(newSampleRate);
-			this.filterKernel = audioContext.createBuffer(2, this.filterLength, newSampleRate);
-			this.updateFilter(0, isSameFilterLR, true);
+			this.filterKernel = this.audioContext.createBuffer(2, this.filterLength, newSampleRate);
+			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
 		return false;

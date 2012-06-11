@@ -46,15 +46,51 @@
 	//<![CDATA[
 	"use strict";
 	var audioContext, source, sourceAudio, graphicEqualizer, splitter, splitter2, analyzer, analyzerType, merger;
+	//fakeAudioContext was made only to act as a "null audio context", making at least the graph work in other browsers
+	function fakeAudioContext() {
+	}
+	fakeAudioContext.prototype = {
+		createChannelSplitter: function () {
+			return {};
+		},
+		createChannelMerger: function () {
+			return {};
+		},
+		createBuffer: function (channels, filterLength, sampleRate) {
+			return {
+				duration: filterLength / sampleRate,
+				gain: 1,
+				length: filterLength,
+				numberOfChannels: channels,
+				sampleRate: sampleRate,
+				data: (function () {
+					var a = new Array(channels), i;
+					for (i = channels - 1; i >= 0; i--)
+						a[i] = new Float32Array(filterLength);
+					return a;
+				})(),
+				getChannelData: function (index) { return this.data[index]; }
+			};
+		},
+		createConvolver: function () {
+			var mthis = this;
+			return {
+				buffer: null,
+				context: mthis,
+				normalize: true,
+				numberOfInputs: 1,
+				numberOfOutputs: 1
+			};
+		}
+	};
 	function main() {
-		var i, pi = Math.PI, cos = Math.cos;
-		$("btnPlay").onclick = play;
-		$("btnStop").onclick = stop;
-		$("txtFile").onchange = function () { $("chkSample").checked = false; return true; };
-		$("cbFilterLength").onchange = filterLengthChanged;
-		$("cbAnalyzer").onchange = updateAnalyzer;
+		attachMouse($("btnPlay"), "click", play);
+		attachMouse($("btnStop"), "click", stop);
+		$("txtFile").addEventListener("change", function () { $("chkSample").checked = false; return true; } );
+		$("cbFilterLength").addEventListener("change", filterLengthChanged);
+		$("cbAnalyzer").addEventListener("change", updateAnalyzer);
 		//only the first 1024 samples are necessary as the last 1024 samples will always be zeroed out!
-		audioContext = new webkitAudioContext();
+		audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
 		graphicEqualizer = new GraphicalFilterEditorControl(2048, 44100, audioContext);
 		graphicEqualizer.createControl(document.body);
 		analyzerType = null;
@@ -68,7 +104,10 @@
 		return true;
 	}
 	function cleanUpAnalyzer() {
-		if (analyzer) analyzer.stop();
+		if (analyzer) {
+			analyzer.stop();
+			analyzer.destroyControl();
+		}
 		splitter.disconnect(0);
 		splitter.disconnect(1);
 		splitter2.disconnect(0);
@@ -101,10 +140,7 @@
 			case "fft":
 			case "wl":
 				if (analyzerType !== t) {
-					if (analyzer) {
-						analyzer.destroyControl();
-						cleanUpAnalyzer();
-					}
+					if (analyzer) cleanUpAnalyzer();
 					analyzerType = t;
 					analyzer = ((analyzerType === "fft") ? new Analyzer(audioContext, graphicEqualizer.filter) : new AnalyzerWL(audioContext, graphicEqualizer.filter));
 					analyzer.createControl($("analyzerPlaceholder"));
@@ -123,7 +159,6 @@
 				merger.connect(audioContext.destination, 0, 0);
 				return analyzer.start();
 			default:
-				if (analyzer) analyzer.destroyControl();
 				graphicEqualizer.filter.convolver.connect(audioContext.destination, 0, 0);
 				return cleanUpAnalyzer();
 		}
@@ -148,7 +183,7 @@
 			if ($("chkSample").checked) {
 				r = new XMLHttpRequest();
 				r.responseType = "arraybuffer";
-				r.onreadystatechange = function () {
+				r.addEventListener("readystatechange", function () {
 					if (r.readyState === 4) {
 						try {
 							source = audioContext.createBufferSource();
@@ -167,12 +202,12 @@
 						}
 						$("btnPlay").disabled = "";
 					}
-				};
+				});
 				r.open("GET", "midnightride.mp3", true);
 				r.send();
 			} else {
 				r = new FileReader();
-				r.onload = function () {
+				r.addEventListener("load", function () {
 					try {
 						source = audioContext.createBufferSource();
 						source.buffer = audioContext.createBuffer(r.result, false);
@@ -189,7 +224,7 @@
 						alert(e);
 					}
 					$("btnPlay").disabled = "";
-				};
+				});
 				r.readAsArrayBuffer($("txtFile").files[0]);
 			}
 		} catch (e) {

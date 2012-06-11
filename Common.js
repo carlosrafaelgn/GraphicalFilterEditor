@@ -33,6 +33,7 @@
 "use strict";
 
 //Miscellaneous functions
+var _isTouch = (("ontouchend" in document) ? true : false);
 function seal$(x) {
 	if (Object.seal) Object.seal(x);
 	return x;
@@ -59,9 +60,8 @@ function cancelEvent(e) {
 		e.returnValue = false;
 	return false;
 }
-function getElementLeftTop(element) {
-	var left = 0,
-	top = 0;
+function leftTop(element) {
+	var left = 0, top = 0;
 	while (element) {
 		left += element.offsetLeft;
 		top += element.offsetTop;
@@ -69,3 +69,166 @@ function getElementLeftTop(element) {
 	}
 	return [left, top];
 }
+var touchMouse = (_isTouch ? {
+	_touchstartc: function (e) {
+		return touchMouse.touchstart(this, "_tc", e);
+	},
+	_touchstart: function (e) {
+		return touchMouse.touchstart(this, "_t", e);
+	},
+	touchstart: function (t, p, e) {
+		if (e.touches.length > 1) return;
+		if (!t._tstate) {
+			t._tstate = true;
+			e.button = 0;
+			e.clientX = e.changedTouches[0].clientX;
+			e.clientY = e.changedTouches[0].clientY;
+			var i, l;
+			l = t[p + "mouseover"];
+			if (l) {
+				for (i = l.length - 1; i >= 0; i--)
+					l[i](e);
+			}
+			l = t[p + "mousedown"];
+			if (l) {
+				for (i = l.length - 1; i >= 0; i--)
+					l[i](e);
+			}
+		}
+	},
+	_touchmovec: function (e) {
+		return touchMouse.touchmove(this, "_tc", e);
+	},
+	_touchmove: function (e) {
+		return touchMouse.touchmove(this, "_t", e);
+	},
+	touchmove: function (t, p, e) {
+		if (e.touches.length > 1) return;
+		if (!t._tstate) {
+			t._tstate = true;
+			e.button = 0;
+			e.clientX = e.changedTouches[0].clientX;
+			e.clientY = e.changedTouches[0].clientY;
+			var i, l;
+			l = t[p + "mousemove"];
+			if (l) {
+				for (i = l.length - 1; i >= 0; i--)
+					l[i](e);
+			}
+		}
+	},
+	_touchendc: function (e) {
+		return touchMouse.touchend(this, "_tc", e);
+	},
+	_touchend: function (e) {
+		return touchMouse.touchend(this, "_t", e);
+	},
+	touchend: function (t, p, e) {
+		if (t._tstate) {
+			e.preventDefault();
+			t._tstate = false;
+			e.button = 0;
+			if (e.changedTouches && e.changedTouches.length >= 1) {
+				e.clientX = e.changedTouches[0].clientX;
+				e.clientY = e.changedTouches[0].clientY;
+			} else {
+				e.clientX = 0;
+				e.clientY = 0;
+			}
+			var i, l;
+			l = t[p + "mouseup"];
+			if (l) {
+				for (i = l.length - 1; i >= 0; i--)
+					l[i](e);
+			}
+			l = t[p + "mouseout"];
+			if (l) {
+				for (i = l.length - 1; i >= 0; i--)
+					l[i](e);
+			}
+		}
+	}
+} : undefined),
+attachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
+	var e;
+	if (eventName === "click") {
+		observable.addEventListener(eventName, targetFunction, capturePhase);
+	} else if (eventName === "mousemove") {
+		e = (capturePhase ? "_tc" : "_t") + eventName;
+		if (!observable[e]) {
+			observable[e] = [targetFunction];
+			observable.addEventListener("touchmove", capturePhase ? touchMouse._touchmovec : touchMouse._touchmove, capturePhase);
+		} else {
+			observable[e].push(targetFunction);
+		}
+	} else {
+		e = (capturePhase ? "_tc" : "_t");
+		if (!observable[e]) {
+			observable[e] = 1;
+			observable.addEventListener("touchstart", capturePhase ? touchMouse._touchstartc : touchMouse._touchstart, capturePhase);
+			observable.addEventListener("touchend", capturePhase ? touchMouse._touchendc : touchMouse._touchend, capturePhase);
+		} else {
+			observable[e]++;
+		}
+		e += eventName;
+		if (!observable[e]) {
+			observable[e] = [targetFunction];
+		} else {
+			observable[e].push(targetFunction);
+		}
+	}
+	return true;
+} : function (observable, eventName, targetFunction, capturePhase) {
+	return observable.addEventListener(eventName, targetFunction, capturePhase);
+}),
+detachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
+	var i, l, p, e;
+	if (eventName === "click") {
+		observable.removeEventListener(eventName, targetFunction, capturePhase);
+	} else if (eventName === "mousemove") {
+		e = (capturePhase ? "_tc" : "_t") + eventName;
+		l = observable[e];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--) {
+				if (l[i] === targetFunction) {
+					if (l.length === 1) {
+						delete observable[e];
+						observable.removeEventListener("touchmove", capturePhase ? touchMouse._touchmovec : touchMouse._touchmove, capturePhase);
+					} else {
+						l.splice(i, 1);
+					}
+					break;
+				}
+			}
+		}
+	} else {
+		p = (capturePhase ? "_tc" : "_t");
+		e = p + eventName;
+		i = -1;
+		l = observable[e];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--) {
+				if (l[i] === targetFunction) {
+					if (l.length === 1) {
+						delete observable[e];
+					} else {
+						l.splice(i, 1);
+					}
+					break;
+				}
+			}
+		}
+		if (i >= 0) {
+			if (observable[p] > 1) {
+				observable[p]--;
+			} else {
+				delete observable[p];
+				observable.removeEventListener("touchstart", capturePhase ? touchMouse._touchstartc : touchMouse._touchstart, capturePhase);
+				observable.removeEventListener("touchend", capturePhase ? touchMouse._touchendc : touchMouse._touchend, capturePhase);
+			}
+		}
+	}
+	return true;
+} : function (observable, eventName, targetFunction, capturePhase) {
+	return observable.removeEventListener(eventName, targetFunction, capturePhase ? true : false);
+});

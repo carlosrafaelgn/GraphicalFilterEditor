@@ -85,6 +85,7 @@ GraphicalFilterEditorControl.prototype = {
 			//created here rather than fetched from the document
 			this.canvas = $("graphicEqualizer");
 			this.element = this.canvas.parentNode;
+			if (!_isTouch) attachMouse(this.element, "mousedown", GraphicalFilterEditorControl.prototype.misc_OnMouseDown);
 			this.lblCursor = $("graphicEqualizerLblCursor");
 			this.lblCurve = $("graphicEqualizerLblCurve");
 			this.lblFrequency = $("graphicEqualizerLblFrequency");
@@ -97,11 +98,10 @@ GraphicalFilterEditorControl.prototype = {
 			this.mnuShowZones = $("graphicEqualizerMnuShowZones");
 			this.mnuEditZones = $("graphicEqualizerMnuEditZones");
 			this.mnuShowActual = $("graphicEqualizerMnuActual");
-			this.canvas.onmousedown = function (e) { return GraphicalFilterEditorControl.prototype.canvas_OnMouseDown.apply(mthis, arguments); };
-			this.canvas.onmousemove = this.document_OnMouseMove;
-			this.element.onselectstart = cancelEvent;
-			this.element.oncontextmenu = cancelEvent;
-			this.canvas.oncontextmenu = cancelEvent;
+			attachMouse(this.canvas, "mousedown", function (e) { return GraphicalFilterEditorControl.prototype.canvas_OnMouseDown.apply(mthis, arguments); });
+			attachMouse(this.canvas, "mousemove", this.document_OnMouseMove);
+			this.element.addEventListener("contextmenu", cancelEvent);
+			this.canvas.addEventListener("contextmenu", cancelEvent);
 			this.ctx = this.canvas.getContext("2d");
 
 			this.rangeImage = this.ctx.createLinearGradient(0, 0, 1, this.canvas.height);
@@ -112,17 +112,17 @@ GraphicalFilterEditorControl.prototype = {
 			this.rangeImage.addColorStop(0.796875, "#0000ff");
 			this.rangeImage.addColorStop(1, "#ff00ff");
 			this.mnu.style.bottom = (this.element.clientHeight - this.canvas.height) + "px";
-			this.btnMnu.onclick = function (e) { return GraphicalFilterEditorControl.prototype.btnMnu_Click.apply(mthis, arguments); };
-			this.mnuChBL.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 0]); };
-			this.mnuChL.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 0]); };
-			this.mnuChBR.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 1]); };
-			this.mnuChR.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 1]); };
-			this.mnuShowZones.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuShowZones_Click.apply(mthis, arguments); };
-			this.mnuEditZones.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuEditZones_Click.apply(mthis, arguments); };
-			this.mnuShowActual.onclick = function (e) { return GraphicalFilterEditorControl.prototype.mnuShowActual_Click.apply(mthis, arguments); };
+			attachMouse(this.btnMnu, "click", function (e) { return GraphicalFilterEditorControl.prototype.btnMnu_Click.apply(mthis, arguments); });
+			attachMouse(this.mnuChBL, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 0]); });
+			attachMouse(this.mnuChL, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 0]); });
+			attachMouse(this.mnuChBR, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 1]); });
+			attachMouse(this.mnuChR, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 1]); });
+			attachMouse(this.mnuShowZones, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuShowZones_Click.apply(mthis, arguments); });
+			attachMouse(this.mnuEditZones, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuEditZones_Click.apply(mthis, arguments); });
+			attachMouse(this.mnuShowActual, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuShowActual_Click.apply(mthis, arguments); });
 			this.labelImage = new Image();
-			this.labelImage.onload = function () { return GraphicalFilterEditorControl.prototype.drawCurve.apply(mthis); };
-			this.labelImage.onerror = this.labelImage.onload;
+			this.labelImage.addEventListener("load", function () { return GraphicalFilterEditorControl.prototype.drawCurve.apply(mthis); });
+			this.labelImage.addEventListener("error", function () { return GraphicalFilterEditorControl.prototype.drawCurve.apply(mthis); });
 			this.labelImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAgCAYAAABpRpp6AAAAAXNSR0IArs4c6QAAAphJREFUWMPtl0tIVGEUx38zvdYZjVBEYBC1kB4EKa3auLEHtND4R6vaBC6MyVaVE0KWFlZE1qogOlEwgVQEgUKSVERFRhFEj4WLyESMFlKN0+YIl2HS6zyYgnvg8r+c73W+77vn+34XIovs3zBJWUnZubabX+SgDUAKWOeuV8BRM+svZAI5ringOzAEHDKzdwDxIoKtA+4Bv4FV/kwB9yVtLrRfM4t5XFVAJ9AIpEuxwklvnzKzLz6J48ADL2sKTG4L0AHUA5PAwCxBZ4EJSeeAU8CKUgRc7zoc8L10rcvZiQFgBNgKPAeWA7tm2L04sBg44K4ToQLOlxS+ZQAJ1/FA8fR7dcDXASwEWszsifs+Swo75jDwKFTAgeDCWr7606s9GPYblhTz2Ko9qR9KajKzdDGfxCiwzJNj1H1Vrl8D9Ra4/pxD4mWBX8CIpCSwD7gApONFBPzUdUPAtzGnDOCt6+oCx1nkmik26bqB7UBK0mv3HfOOewL1zgNXgC5J+33MMyGOzbhPsiuQC4Wfw2b22M/IGPDBnziwzcyGAvWuAq1ALfARuAhcC3EDZoBnntx7zOxyxAeRRRbxcJl5uNQTKCsPl8tKxsOSdvtNVgO8B46YWZ/DejewyZmi08wu5bQtGQ/HQwa7E7jht1k10A7cktQK9PsNlvA/kF5JzXl4eKXzcMIBf8ZrWdISoO2vPDwL+x52TZnZBHBbUq8zwySQNLMfknocupPAzbLy8Czsu971TcD3wvWOmY35+yfX2krz8DzX4OwbXe/mYd9MpXl4Gh9rfNuWAjtyVh9gbc6/XcV4uAe4DrRIavNTIQMcBE5KGvTka/f6pyvKw2ZmQIsD+5h31GBmZ4Fm7+wbsAbYa2Z9EQ//r/YHCOoe6W9/vj4AAAAASUVORK5CYII=";
 
 			return this.canvas;
@@ -154,7 +154,7 @@ GraphicalFilterEditorControl.prototype = {
 		return true;
 	},
 	btnMnu_Click: function (e) {
-		if (e.button === 0) {
+		if (!e.button) {
 			if (this.mnu.style.display === "none") {
 				this.mnu.style.display = "inline-block";
 				this.btnMnu.replaceChild(document.createTextNode("▼"), this.btnMnu.firstChild);
@@ -170,17 +170,21 @@ GraphicalFilterEditorControl.prototype = {
 		return chk;
 	},
 	mnuChB_Click: function (e, channelIndex) {
-		if (e.button === 0) {
+		if (!e.button) {
 			if (!this.isSameFilterLR || this.currentChannelIndex !== channelIndex) {
 				if (this.isSameFilterLR) {
 					this.currentChannelIndex = channelIndex;
 					this.filter.updateFilter(channelIndex, true, true);
+					if (this.isActualChannelCurveNeeded)
+						this.filter.updateActualChannelCurve(channelIndex);
 					this.drawCurve();
 				} else {
 					this.isSameFilterLR = true;
 					this.filter.copyFilter(channelIndex, 1 - channelIndex);
 					if (this.currentChannelIndex !== channelIndex) {
 						this.currentChannelIndex = channelIndex;
+						if (this.isActualChannelCurveNeeded)
+							this.filter.updateActualChannelCurve(channelIndex);
 						this.drawCurve();
 					}
 				}
@@ -193,7 +197,7 @@ GraphicalFilterEditorControl.prototype = {
 		return true;
 	},
 	mnuChLR_Click: function (e, channelIndex) {
-		if (e.button === 0) {
+		if (!e.button) {
 			if (this.isSameFilterLR || this.currentChannelIndex !== channelIndex) {
 				if (this.isSameFilterLR) {
 					this.isSameFilterLR = false;
@@ -201,6 +205,8 @@ GraphicalFilterEditorControl.prototype = {
 				}
 				if (this.currentChannelIndex !== channelIndex) {
 					this.currentChannelIndex = channelIndex;
+					if (this.isActualChannelCurveNeeded)
+						this.filter.updateActualChannelCurve(channelIndex);
 					this.drawCurve();
 				}
 				this.checkMenu(this.mnuChBL, false);
@@ -212,7 +218,7 @@ GraphicalFilterEditorControl.prototype = {
 		return true;
 	},
 	mnuShowZones_Click: function (e) {
-		if (e.button === 0) {
+		if (!e.button) {
 			this.showZones = !this.showZones;
 			this.checkMenu(this.mnuShowZones, this.showZones);
 			this.drawCurve();
@@ -220,70 +226,72 @@ GraphicalFilterEditorControl.prototype = {
 		return true;
 	},
 	mnuEditZones_Click: function (e) {
-		if (e.button === 0) {
+		if (!e.button) {
 			this.editZones = !this.editZones;
 			this.checkMenu(this.mnuEditZones, this.editZones);
 		}
 		return true;
 	},
 	mnuShowActual_Click: function (e) {
-		if (e.button === 0) {
+		if (!e.button) {
 			this.isActualChannelCurveNeeded = !this.isActualChannelCurveNeeded;
 			this.checkMenu(this.mnuShowActual, this.isActualChannelCurveNeeded);
 			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(0, this.isSameFilterLR, true);
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
 		}
 		return true;
 	},
+	misc_OnMouseDown: function (e) {
+		return (!e.button ? cancelEvent(e) : true);
+	},
 	canvas_OnMouseDown: function (e) {
-		if (e.button === 0 && !this.drawingMode) {
-			var x, y;
-			x = getElementLeftTop(this.canvas);
-			y = e.pageY - x[1];
-			x = e.pageX - x[0];
-			if (x >= 0 && x < this.filter.visibleBinCount) {
-				this.drawingMode = 1;
-				if (this.editZones) {
-					this.filter.changeZoneY(this.currentChannelIndex, x, y);
-				} else {
-					this.filter.channelCurves[this.currentChannelIndex][x] = this.filter.clampY(y);
-					this.lastDrawX = x;
-					this.lastDrawY = y;
+		if (!e.button) {
+			if (!this.drawingMode) {
+				var x, y;
+				x = leftTop(this.canvas);
+				y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop - x[1];
+				x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - x[0];
+				if (x >= 0 && x < this.filter.visibleBinCount) {
+					this.drawingMode = 1;
+					if (this.editZones) {
+						this.filter.changeZoneY(this.currentChannelIndex, x, y);
+					} else {
+						this.filter.channelCurves[this.currentChannelIndex][x] = this.filter.clampY(y);
+						this.lastDrawX = x;
+						this.lastDrawY = y;
+					}
+					this.drawCurve();
+					detachMouse(this.canvas, "mousemove", this.document_OnMouseMove);
+					attachMouse(document, "mousemove", this.document_OnMouseMove, true);
+					attachMouse(document, "mouseup", this.document_OnMouseUp, true);
 				}
-				this.drawCurve();
-				this.canvas.onmousemove = null;
-				document.addEventListener("mousemove", this.document_OnMouseMove, true);
-				document.addEventListener("mouseup", this.document_OnMouseUp, true);
 			}
+			return cancelEvent(e);
 		}
-		return cancelEvent(e);
+		return true;
 	},
 	canvas_OnMouseUp: function (e) {
 		if (this.drawingMode) {
 			this.drawingMode = 0;
 			this.filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, false);
 			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(this.currentChannelIndex, this.isSameFilterLR, false);
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
-			document.removeEventListener("mousemove", this.document_OnMouseMove, true);
-			document.removeEventListener("mouseup", this.document_OnMouseUp, true);
-			this.canvas.onmousemove = this.document_OnMouseMove;
+			detachMouse(document, "mousemove", this.document_OnMouseMove, true);
+			detachMouse(document, "mouseup", this.document_OnMouseUp, true);
+			attachMouse(this.canvas, "mousemove", this.document_OnMouseMove);
 		}
 		return true;
 	},
 	canvas_OnMouseMove: function (e) {
-		var x, y, delta, inc, count,
-			curve = this.filter.channelCurves[this.currentChannelIndex];
-		x = getElementLeftTop(this.canvas);
-		y = e.pageY - x[1];
-		x = e.pageX - x[0];
+		var x, y, delta, inc, count, curve = this.filter.channelCurves[this.currentChannelIndex];
+		x = leftTop(this.canvas);
+		y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop - x[1];
+		x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - x[0];
 		if (this.drawingMode || (x >= 0 && x < this.canvas.width && y >= 0 && y < this.canvas.height)) {
 			if (x < 0) x = 0;
 			else if (x >= GraphicalFilterEditor.prototype.visibleBinCount) x = GraphicalFilterEditor.prototype.visibleBinCount - 1;
-			this.lblCursor.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatDB(GraphicalFilterEditor.prototype.yToDB(y))), this.lblCursor.firstChild);
-			this.lblCurve.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatDB(GraphicalFilterEditor.prototype.yToDB(curve[x]))), this.lblCurve.firstChild);
-			this.lblFrequency.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatFrequency(GraphicalFilterEditor.prototype.visibleBinToFrequency(x, true))), this.lblFrequency.firstChild);
 			if (this.drawingMode) {
 				if (this.editZones) {
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
@@ -303,16 +311,21 @@ GraphicalFilterEditorControl.prototype = {
 					this.lastDrawY = y;
 				}
 				this.drawCurve();
-				return cancelEvent(e);
+			} else if (this.isActualChannelCurveNeeded) {
+				curve = this.filter.actualChannelCurve;
 			}
+			this.lblCursor.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatDB(GraphicalFilterEditor.prototype.yToDB(y))), this.lblCursor.firstChild);
+			this.lblCurve.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatDB(GraphicalFilterEditor.prototype.yToDB(curve[x]))), this.lblCurve.firstChild);
+			this.lblFrequency.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatFrequency(GraphicalFilterEditor.prototype.visibleBinToFrequency(x, true))), this.lblFrequency.firstChild);
+			if (this.drawingMode) return cancelEvent(e);
 		}
 		return true;
 	},
 	changeFilterLength: function (newFilterLength) {
 		if (newFilterLength !== this.filter.filterLength) {
-			this.filter.changeFilterLength(newFilterLength);
+			this.filter.changeFilterLength(newFilterLength, this.currentChannelIndex, this.isSameFilterLR);
 			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(0, this.isSameFilterLR, true);
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
 			return true;
 		}
@@ -320,9 +333,9 @@ GraphicalFilterEditorControl.prototype = {
 	},
 	changeSampleRate: function (newSampleRate) {
 		if (newSampleRate !== this.filter.sampleRate) {
-			this.filter.changeSampleRate(newSampleRate);
+			this.filter.changeSampleRate(newSampleRate, this.currentChannelIndex, this.isSameFilterLR);
 			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(0, this.isSameFilterLR, true);
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
 			return true;
 		}
@@ -386,7 +399,7 @@ GraphicalFilterEditorControl.prototype = {
 		ctx.lineTo(x + 1, curve[x] + 0.5);
 		ctx.stroke();
 		if (this.isActualChannelCurveNeeded && !this.drawingMode) {
-			curve = this.filter.actualChannelCurves[this.currentChannelIndex];
+			curve = this.filter.actualChannelCurve;
 			ctx.strokeStyle = this.rangeImage;
 			ctx.beginPath();
 			ctx.moveTo(0.5, curve[0] + 0.5);
