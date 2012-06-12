@@ -78,21 +78,23 @@ var touchMouse = (_isTouch ? {
 	},
 	touchstart: function (t, p, e) {
 		if (e.touches.length > 1) return;
-		if (!t._tstate) {
-			t._tstate = true;
-			e.button = 0;
-			e.clientX = e.changedTouches[0].clientX;
-			e.clientY = e.changedTouches[0].clientY;
-			var i, l;
-			l = t[p + "mouseover"];
-			if (l) {
-				for (i = l.length - 1; i >= 0; i--)
-					l[i](e);
-			}
-			l = t[p + "mousedown"];
-			if (l) {
-				for (i = l.length - 1; i >= 0; i--)
-					l[i](e);
+		if (t._tstate) touchMouse.touchend(t, p, e);
+		t._tstate = true;
+		e.button = 0;
+		e.clientX = e.changedTouches[0].clientX;
+		e.clientY = e.changedTouches[0].clientY;
+		e.pageX = e.changedTouches[0].pageX;
+		e.pageY = e.changedTouches[0].pageY;
+		var i, l;
+		l = t[p + "mouseover"];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--)
+				l[i].call(t, e);
+		}
+		l = t[p + "mousedown"];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--) {
+				l[i].call(t, e);
 			}
 		}
 	},
@@ -104,17 +106,15 @@ var touchMouse = (_isTouch ? {
 	},
 	touchmove: function (t, p, e) {
 		if (e.touches.length > 1) return;
-		if (!t._tstate) {
-			t._tstate = true;
-			e.button = 0;
-			e.clientX = e.changedTouches[0].clientX;
-			e.clientY = e.changedTouches[0].clientY;
-			var i, l;
-			l = t[p + "mousemove"];
-			if (l) {
-				for (i = l.length - 1; i >= 0; i--)
-					l[i](e);
-			}
+		e.button = 0;
+		e.clientX = e.changedTouches[0].clientX;
+		e.clientY = e.changedTouches[0].clientY;
+		e.pageX = e.changedTouches[0].pageX;
+		e.pageY = e.changedTouches[0].pageY;
+		var i, l = t[p + "mousemove"];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--)
+				l[i].call(t, e);
 		}
 	},
 	_touchendc: function (e) {
@@ -124,28 +124,29 @@ var touchMouse = (_isTouch ? {
 		return touchMouse.touchend(this, "_t", e);
 	},
 	touchend: function (t, p, e) {
-		if (t._tstate) {
-			e.preventDefault();
-			t._tstate = false;
-			e.button = 0;
-			if (e.changedTouches && e.changedTouches.length >= 1) {
-				e.clientX = e.changedTouches[0].clientX;
-				e.clientY = e.changedTouches[0].clientY;
-			} else {
-				e.clientX = 0;
-				e.clientY = 0;
-			}
-			var i, l;
-			l = t[p + "mouseup"];
-			if (l) {
-				for (i = l.length - 1; i >= 0; i--)
-					l[i](e);
-			}
-			l = t[p + "mouseout"];
-			if (l) {
-				for (i = l.length - 1; i >= 0; i--)
-					l[i](e);
-			}
+		t._tstate = false;
+		e.button = 0;
+		if (e.changedTouches && e.changedTouches.length >= 1) {
+			e.clientX = e.changedTouches[0].clientX;
+			e.clientY = e.changedTouches[0].clientY;
+			e.pageX = e.changedTouches[0].pageX;
+			e.pageY = e.changedTouches[0].pageY;
+		} else {
+			e.clientX = 0;
+			e.clientY = 0;
+			e.pageX = 0;
+			e.pageY = 0;
+		}
+		var i, l;
+		l = t[p + "mouseup"];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--)
+				l[i].call(t, e);
+		}
+		l = t[p + "mouseout"];
+		if (l) {
+			for (i = l.length - 1; i >= 0; i--)
+				l[i].call(t, e);
 		}
 	}
 } : undefined),
@@ -167,6 +168,7 @@ attachMouse = (_isTouch ? function (observable, eventName, targetFunction, captu
 			observable[e] = 1;
 			observable.addEventListener("touchstart", capturePhase ? touchMouse._touchstartc : touchMouse._touchstart, capturePhase);
 			observable.addEventListener("touchend", capturePhase ? touchMouse._touchendc : touchMouse._touchend, capturePhase);
+			observable.addEventListener("touchcancel", capturePhase ? touchMouse._touchendc : touchMouse._touchend, capturePhase);
 		} else {
 			observable[e]++;
 		}
@@ -225,6 +227,7 @@ detachMouse = (_isTouch ? function (observable, eventName, targetFunction, captu
 				delete observable[p];
 				observable.removeEventListener("touchstart", capturePhase ? touchMouse._touchstartc : touchMouse._touchstart, capturePhase);
 				observable.removeEventListener("touchend", capturePhase ? touchMouse._touchendc : touchMouse._touchend, capturePhase);
+				observable.removeEventListener("touchcancel", capturePhase ? touchMouse._touchendc : touchMouse._touchend, capturePhase);
 			}
 		}
 	}
