@@ -42,7 +42,6 @@ function Analyzer(audioContext, graphicEqualizer) {
 	this.analyzerR = audioContext.createAnalyser();
 	this.analyzerR.fftSize = 1024;
 	this.tmp = new Float32Array(2048);
-	this.fft = new FFTReal(2048, 44100, false);
 	this.window = new Float32Array(1024);
 	this.multiplier = new Float32Array(512);
 	this.prevL = new Float32Array(512);
@@ -134,23 +133,24 @@ Analyzer.prototype = {
 		//results in two lines that get drawn on the canvas.
 		var d, im, i, w = this.window, tmp = this.tmp, data = this.data, ctx = this.ctx, sqrt = Math.sqrt, ln = Math.log,
 				freq, ii, avg, avgCount,
-				valueCount = 512, fft = this.fft, bw = fft.bandwidth,
+				valueCount = 512, bw = 44100 / 2048, //one day this value will be replaced with the actual sample rate
 				filterLength2 = (2048 >>> 1), cos = Math.cos, lerp = GraphicalFilterEditor.prototype.lerp,
 				visibleFrequencies = this.visibleFrequencies, colors = Analyzer.prototype.colors;
 		if (!this.alive) return false;
 
 		this.analyzerL.getByteTimeDomainData(data);
-		for (i = 0; i < 1024; i++) {
+		for (i = 0; i < 1024; i++)
 			tmp[i] = w[i] * (data[i] - 128);
-		}
-		fft.forward(tmp, tmp);
-		//DC bin is being ignored
+		for (; i < 2048; i++)
+			tmp[i] = 0;
+		FFTNR.real(tmp, 2048, 1);
+		//DC and Nyquist bins are being ignored
 		tmp[0] = 0;
-		for (i = 1; i < 1024; i++) {
+		for (i = 2; i < 2048; i += 2) {
 			//0.0009765625 = 1 / (2048/2)
 			d = tmp[i] * 0.0009765625; //re
-			im = tmp[1024 + i] * 0.0009765625; //im
-			tmp[i] = ln(sqrt((d * d) + (im * im)) + 0.2);
+			im = tmp[i + 1] * 0.0009765625; //im
+			tmp[i >>> 1] = ln(sqrt((d * d) + (im * im)) + 0.2);
 		}
 		w = this.multiplier;
 		data = this.prevL;
@@ -204,17 +204,18 @@ Analyzer.prototype = {
 		w = this.window;
 		data = this.data;
 		this.analyzerR.getByteTimeDomainData(data);
-		for (i = 0; i < 1024; i++) {
+		for (i = 0; i < 1024; i++)
 			tmp[i] = w[i] * (data[i] - 128);
-		}
-		fft.forward(tmp, tmp);
-		//DC bin is being ignored
+		for (; i < 2048; i++)
+			tmp[i] = 0;
+		FFTNR.real(tmp, 2048, 1);
+		//DC and Nyquist bins are being ignored
 		tmp[0] = 0;
-		for (i = 1; i < 1024; i++) {
+		for (i = 2; i < 2048; i += 2) {
 			//0.0009765625 = 1 / (2048/2)
 			d = tmp[i] * 0.0009765625; //re
-			im = tmp[1024 + i] * 0.0009765625; //im
-			tmp[i] = ln(sqrt((d * d) + (im * im)) + 0.2);
+			im = tmp[i + 1] * 0.0009765625; //im
+			tmp[i >>> 1] = ln(sqrt((d * d) + (im * im)) + 0.2);
 		}
 		w = this.multiplier;
 		data = this.prevR;

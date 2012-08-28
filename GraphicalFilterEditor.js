@@ -33,6 +33,10 @@
 "use strict";
 
 function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
+	if (filterLength < 8 || (filterLength & (filterLength - 1))) {
+		alert("Sorry, class available only for fft sizes that are a power of 2 >= 8! :(");
+		throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
+	}
 	this.filterLength = filterLength;
 	this.sampleRate = sampleRate;
 	this.binCount = (filterLength >>> 1) + 1;
@@ -41,7 +45,6 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	this.convolver = audioContext.createConvolver();
 	this.convolver.normalize = false;
 	this.convolver.buffer = this.filterKernel;
-	this.fft = new FFTReal(filterLength, sampleRate, false);
 	this.tmp = new Float32Array(filterLength);
 	this.channelCurves = [new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount), new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount)];
 	this.actualChannelCurve = new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount);
@@ -173,8 +176,8 @@ GraphicalFilterEditor.prototype = {
 	},
 	updateFilter: function (channelIndex, isSameFilterLR, updateBothChannels) {
 		var i, ii, k, freq, filterLength = this.filterLength, y2mag = GraphicalFilterEditor.prototype.yToMagnitude,
-		curve = this.channelCurves[channelIndex], valueCount = GraphicalFilterEditor.prototype.visibleBinCount, bw = this.fft.bandwidth,
-		lerp = GraphicalFilterEditor.prototype.lerp, filterLength2 = (filterLength >>> 1), filter = this.tmp,
+		curve = this.channelCurves[channelIndex], valueCount = GraphicalFilterEditor.prototype.visibleBinCount, bw = this.sampleRate / filterLength,
+		lerp = GraphicalFilterEditor.prototype.lerp, filterLength2 = (filterLength >>> 1), filter = this.filterKernel.getChannelData(channelIndex),
 		sin = Math.sin, cos = Math.cos, avg, avgCount, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
 		//M = ((FFT length/2) - 1)
 		M_HALF_PI_FFTLEN2 = (filterLength2 - 1) * 0.5 * Math.PI / filterLength2;
@@ -183,7 +186,7 @@ GraphicalFilterEditor.prototype = {
 		for (; ; ) {
 			freq = bw * i;
 			if (freq >= visibleFrequencies[0]) break;
-			filter[i] = y2mag(curve[0]);
+			filter[i << 1] = y2mag(curve[0]); //re
 			i++;
 		}
 		while (bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii]) && i < filterLength2 && ii < (valueCount - 1)) {
@@ -195,25 +198,25 @@ GraphicalFilterEditor.prototype = {
 				avgCount++;
 				ii++;
 			} while (freq > visibleFrequencies[ii] && ii < (valueCount - 1));
-			filter[i] = y2mag(avg / avgCount);
+			filter[i << 1] = y2mag(avg / avgCount); //re
 			i++;
 		}
 		for (; i < filterLength2; i++) {
 			freq = bw * i;
 			if (freq >= visibleFrequencies[valueCount - 1]) {
-				filter[i] = y2mag(curve[valueCount - 1]);
+				filter[i << 1] = y2mag(curve[valueCount - 1]); //re
 			} else {
 				while (ii < (valueCount - 1) && freq > visibleFrequencies[ii + 1])
 					ii++;
-				filter[i] = y2mag(lerp(visibleFrequencies[ii], curve[ii], visibleFrequencies[ii + 1], curve[ii + 1], freq));
+				filter[i << 1] = y2mag(lerp(visibleFrequencies[ii], curve[ii], visibleFrequencies[ii + 1], curve[ii + 1], freq)); //re
 			}
 		}
 		//convert the coordinates from polar to rectangular
 		//dc and nyquist are purely real (for dc, cos(-k) = 1,
 		//as for nyquist, cos(-k) = 0) so do not bother with them in here
 		filter[0] = (filter[1] >= 1 ? 1 : filter[1]); //make sure dc has no gain
-		filter[filterLength2] = 0;
-		for (i = filterLength2 - 1; i >= 1; i--) {
+		filter[1] = 0; //Nyquist
+		for (i = filterLength - 2; i >= 2; i -= 2) {
 			//               -k.j
 			//polar = Mag . e
 			//
@@ -224,15 +227,15 @@ GraphicalFilterEditor.prototype = {
 			//rectangular:
 			//real = Mag . cos(-k)
 			//imag = Mag . sin(-k)
-			k = M_HALF_PI_FFTLEN2 * i;
+			k = M_HALF_PI_FFTLEN2 * (i >> 1);
 			//****NOTE:
-			//when using FFTReal, k MUST BE passed as the argument of sin and cos, due to the
+			//when using FFTReal ou FFTNR, k MUST BE passed as the argument of sin and cos, due to the
 			//signal of the imaginary component
 			//RFFT, intel and other fft's use the opposite signal... therefore, -k MUST BE passed!!
-			filter[filterLength2 + i] = (filter[i] * sin(k));
+			filter[i + 1] = (filter[i] * sin(k));
 			filter[i] *= cos(k);
 		}
-		this.fft.inverse(this.filterKernel.getChannelData(channelIndex), filter);
+		FFTNR.real(filter, filterLength, -1);
 		if (isSameFilterLR) {
 			//copy the filter to the other channel
 			return this.copyFilter(channelIndex, 1 - channelIndex);
@@ -244,9 +247,9 @@ GraphicalFilterEditor.prototype = {
 		return true;
 	},
 	updateActualChannelCurve: function (channelIndex) {
-		var freq, i, ii, avg, avgCount, filterLength = this.filterLength, lerp = GraphicalFilterEditor.prototype.lerp,
-		curve = this.actualChannelCurve, valueCount = GraphicalFilterEditor.prototype.visibleBinCount,
-		bw = this.fft.bandwidth, filterLength2 = (filterLength >>> 1), cos = Math.cos, tmp = this.tmp,
+		var freq, i, ii, rval, ival, avg, avgCount, filterLength = this.filterLength, lerp = GraphicalFilterEditor.prototype.lerp,
+		curve = this.actualChannelCurve, valueCount = GraphicalFilterEditor.prototype.visibleBinCount, sqrt = Math.sqrt,
+		bw = this.sampleRate / filterLength, filterLength2 = (filterLength >>> 1), cos = Math.cos, tmp = this.tmp,
 		mag2y = GraphicalFilterEditor.prototype.magnitudeToY, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
 		filter = this.filterKernel.getChannelData(channelIndex),
 		M = (filterLength2 - 1), PI2_M = 2 * Math.PI / M;
@@ -261,13 +264,21 @@ GraphicalFilterEditor.prototype = {
 			//Blackman window
 			tmp[i] = filter[i] * (0.42 - (0.5 * cos(PI2_M * i)) + (0.08 * cos(2 * PI2_M * i)));
 		}
-		//there is no need to pad tmp with zeroes, as FFTReal was modified to assume that
-		//all input buffers (in time domain) are padded with zeroes
-		//for (i = filterLength - 1; i > M; i--)
-		//	tmp[i] = 0;
-		//}
-		this.fft.forward(tmp, tmp);
-		this.fft.calculateSpectrum(tmp, tmp);
+		for (i = filterLength - 1; i > M; i--)
+			tmp[i] = 0;
+
+		//calculate the spectrum
+		FFTNR.real(tmp, filterLength, 1);
+		//save Nyquist for later
+		ii = tmp[1];
+		for (i = 2; i < filterLength; i += 2) {
+			rval = tmp[i];
+			ival = tmp[i + 1];
+			tmp[i >>> 1] = sqrt((rval * rval) + (ival * ival));
+		}
+		//restore Nyquist in its new position
+		tmp[filterLength] = ii;
+
 		//tmp now contains (filterLength2 + 1) magnitudes
 		i = 0;
 		ii = 0;
@@ -303,7 +314,6 @@ GraphicalFilterEditor.prototype = {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
 			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this.sampleRate);
-			this.fft = new FFTReal(newFilterLength, this.sampleRate, false);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
@@ -312,7 +322,6 @@ GraphicalFilterEditor.prototype = {
 	changeSampleRate: function (newSampleRate, channelIndex, isSameFilterLR) {
 		if (newSampleRate !== this.sampleRate) {
 			this.sampleRate = newSampleRate;
-			this.fft.changeSampleRate(newSampleRate);
 			this.filterKernel = this.audioContext.createBuffer(2, this.filterLength, newSampleRate);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
