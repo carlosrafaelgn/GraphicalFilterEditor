@@ -43,7 +43,7 @@
 	<script type="text/javascript">
 	//<![CDATA[
 	"use strict";
-	var audioContext, source, sourceAudio, graphicEqualizer, splitter, splitter2, analyzer, analyzerType, merger;
+	var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger;
 	//fakeAudioContext was made only to act as a "null audio context", making at least the graph work in other browsers
 	function fakeAudioContext() {
 	}
@@ -93,11 +93,7 @@
 		graphicEqualizer.createControl(document.body);
 		analyzerType = null;
 		analyzer = null;
-		//weird, but when connecting an analyzer to the left channel of a merger, the merger
-		//will ignore its right channel... so... the solution was to create one additional
-		//splitter, to make sure a mono channel enters the left channel of the merger!
 		splitter = audioContext.createChannelSplitter();
-		splitter2 = audioContext.createChannelSplitter();
 		merger = audioContext.createChannelMerger();
 		return true;
 	}
@@ -108,8 +104,6 @@
 		}
 		splitter.disconnect(0);
 		splitter.disconnect(1);
-		splitter2.disconnect(0);
-		splitter2.disconnect(1);
 		if (analyzer) {
 			analyzer.analyzerL.disconnect(0);
 			analyzer.analyzerR.disconnect(0);
@@ -148,12 +142,9 @@
 				splitter.connect(analyzer.analyzerL, 0, 0);
 				splitter.connect(analyzer.analyzerR, 1, 0);
 
-				//if an analyzer is connected to the left channel of the merger,
-				//it will make the right channel disappear...
-				analyzer.analyzerL.connect(splitter2, 0, 0);
-				splitter2.connect(merger, 0, 0);
-
+				analyzer.analyzerL.connect(merger, 0, 0);
 				analyzer.analyzerR.connect(merger, 0, 1);
+
 				merger.connect(audioContext.destination, 0, 0);
 				return analyzer.start();
 			default:
@@ -261,7 +252,7 @@ or<br />
 	<option value="none" selected="selected">None</option>
 	<option value="fft">Frequency analyzer</option>
 	<option value="wl">Haar wavelet analyzer</option>
-</select> <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() for the workaround to make stereo output using two analyzers!)</span></p>
+</select> <span style="font-style: italic; font-size: smaller;">(Check out the functions main() and updateAnalyzer() to see how to have stereo output using two analyzers!)</span></p>
 
 <!-- Equalizer -->
 <div style="vertical-align: top; display: inline-block; background-color: #1c1c1c; color: #ffffff; position: relative; font-family: Sans-Serif; font-size: small; cursor: default;">
