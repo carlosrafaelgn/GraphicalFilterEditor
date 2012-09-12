@@ -1,0 +1,12 @@
+Misc/
+Properties/
+bin/
+obj/
+*.lnk
+*.mp3
+indexTest2.html
+GraphicEqualizer.csproj
+GraphicEqualizer.csproj.user
+Web.config
+Web.Debug.config
+Web.Release.config
