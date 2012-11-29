@@ -214,8 +214,8 @@ GraphicalFilterEditor.prototype = {
 		//convert the coordinates from polar to rectangular
 		//dc and nyquist are purely real (for dc, cos(-k) = 1,
 		//as for nyquist, cos(-k) = 0) so do not bother with them in here
-		filter[0] = (filter[1] >= 1 ? 1 : filter[1]); //make sure dc has no gain
-		filter[1] = 0; //Nyquist
+		filter[0] = (filter[2] >= 1 ? 1 : filter[2]); //make sure dc has no gain
+		filter[1] = (filter[filterLength - 2] >= 1 ? 1 : filter[filterLength - 2]); //make sure Nyquist has no gain
 		for (i = filterLength - 2; i >= 2; i -= 2) {
 			//               -k.j
 			//polar = Mag . e
@@ -277,7 +277,7 @@ GraphicalFilterEditor.prototype = {
 			tmp[i >>> 1] = sqrt((rval * rval) + (ival * ival));
 		}
 		//restore Nyquist in its new position
-		tmp[filterLength] = ii;
+		tmp[filterLength2] = ii;
 
 		//tmp now contains (filterLength2 + 1) magnitudes
 		i = 0;
