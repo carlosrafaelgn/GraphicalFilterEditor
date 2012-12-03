@@ -49,6 +49,7 @@ function GraphicalFilterEditorControl(filterLength, sampleRate, audioContext) {
 	this.mnuChR = null;
 	this.mnuShowZones = null;
 	this.mnuEditZones = null;
+	this.mnuNormalizeCurves = null;
 	this.mnuShowActual = null;
 	this.lblCursor = null;
 	this.lblCurve = null;
@@ -97,6 +98,7 @@ GraphicalFilterEditorControl.prototype = {
 			this.mnuChR = $("graphicEqualizerMnuChR");
 			this.mnuShowZones = $("graphicEqualizerMnuShowZones");
 			this.mnuEditZones = $("graphicEqualizerMnuEditZones");
+			this.mnuNormalizeCurves = $("graphicEqualizerMnuNormalizeCurves");
 			this.mnuShowActual = $("graphicEqualizerMnuActual");
 			attachMouse(this.canvas, "mousedown", function (e) { return GraphicalFilterEditorControl.prototype.canvas_OnMouseDown.apply(mthis, arguments); });
 			attachMouse(this.canvas, "mousemove", this.document_OnMouseMove);
@@ -119,6 +121,7 @@ GraphicalFilterEditorControl.prototype = {
 			attachMouse(this.mnuChR, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 1]); });
 			attachMouse(this.mnuShowZones, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuShowZones_Click.apply(mthis, arguments); });
 			attachMouse(this.mnuEditZones, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuEditZones_Click.apply(mthis, arguments); });
+			attachMouse(this.mnuNormalizeCurves, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuNormalizeCurves_Click.apply(mthis, arguments); });
 			attachMouse(this.mnuShowActual, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuShowActual_Click.apply(mthis, arguments); });
 			this.labelImage = new Image();
 			this.labelImage.addEventListener("load", function () { return GraphicalFilterEditorControl.prototype.drawCurve.apply(mthis); });
@@ -143,6 +146,7 @@ GraphicalFilterEditorControl.prototype = {
 			this.mnuChR = null;
 			this.mnuShowZones = null;
 			this.mnuEditZones = null;
+			this.mnuNormalizeCurves = null;
 			this.mnuShowActual = null;
 			this.ctx = null;
 			this.rangeImage = null;
@@ -229,6 +233,17 @@ GraphicalFilterEditorControl.prototype = {
 		if (!e.button) {
 			this.editZones = !this.editZones;
 			this.checkMenu(this.mnuEditZones, this.editZones);
+		}
+		return true;
+	},
+	mnuNormalizeCurves_Click: function (e) {
+		if (!e.button) {
+			this.filter.changeIsNormalized(!this.filter.isNormalized);
+			this.checkMenu(this.mnuNormalizeCurves, this.filter.isNormalized);
+			if (this.isActualChannelCurveNeeded) {
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
+				this.drawCurve();
+			}
 		}
 		return true;
 	},
@@ -323,7 +338,7 @@ GraphicalFilterEditorControl.prototype = {
 	},
 	changeFilterLength: function (newFilterLength) {
 		if (newFilterLength !== this.filter.filterLength) {
-			this.filter.changeFilterLength(newFilterLength, this.currentChannelIndex, this.isSameFilterLR);
+			this.filter.changeFilterLength(newFilterLength);
 			if (this.isActualChannelCurveNeeded)
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
@@ -333,7 +348,7 @@ GraphicalFilterEditorControl.prototype = {
 	},
 	changeSampleRate: function (newSampleRate) {
 		if (newSampleRate !== this.filter.sampleRate) {
-			this.filter.changeSampleRate(newSampleRate, this.currentChannelIndex, this.isSameFilterLR);
+			this.filter.changeSampleRate(newSampleRate);
 			if (this.isActualChannelCurveNeeded)
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();

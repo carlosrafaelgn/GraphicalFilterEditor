@@ -39,6 +39,7 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 	}
 	this.filterLength = filterLength;
 	this.sampleRate = sampleRate;
+	this.isNormalized = false;
 	this.binCount = (filterLength >>> 1) + 1;
 	this.audioContext = audioContext;
 	this.filterKernel = audioContext.createBuffer(2, filterLength, sampleRate);
@@ -55,7 +56,7 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 		this.actualChannelCurve[i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
 	}
 
-	this.updateFilter(0, true, true);
+	this.updateFilter(0, false, true);
 	this.updateActualChannelCurve(0);
 
 	seal$(this);
@@ -175,7 +176,7 @@ GraphicalFilterEditor.prototype = {
 		return true;
 	},
 	updateFilter: function (channelIndex, isSameFilterLR, updateBothChannels) {
-		var i, ii, k, freq, filterLength = this.filterLength, y2mag = GraphicalFilterEditor.prototype.yToMagnitude,
+		var i, ii, k, mag, maxMag = 0, freq, filterLength = this.filterLength, y2mag = GraphicalFilterEditor.prototype.yToMagnitude,
 		curve = this.channelCurves[channelIndex], valueCount = GraphicalFilterEditor.prototype.visibleBinCount, bw = this.sampleRate / filterLength,
 		lerp = GraphicalFilterEditor.prototype.lerp, filterLength2 = (filterLength >>> 1), filter = this.filterKernel.getChannelData(channelIndex),
 		sin = Math.sin, cos = Math.cos, avg, avgCount, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
@@ -186,7 +187,9 @@ GraphicalFilterEditor.prototype = {
 		for (; ; ) {
 			freq = bw * i;
 			if (freq >= visibleFrequencies[0]) break;
-			filter[i << 1] = y2mag(curve[0]); //re
+			mag = y2mag(curve[0]); //re
+			filter[i << 1] = mag;
+			if (mag > maxMag) maxMag = mag;
 			i++;
 		}
 		while (bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii]) && i < filterLength2 && ii < (valueCount - 1)) {
@@ -198,18 +201,27 @@ GraphicalFilterEditor.prototype = {
 				avgCount++;
 				ii++;
 			} while (freq > visibleFrequencies[ii] && ii < (valueCount - 1));
-			filter[i << 1] = y2mag(avg / avgCount); //re
+			mag = y2mag(avg / avgCount); //re
+			filter[i << 1] = mag;
+			if (mag > maxMag) maxMag = mag;
 			i++;
 		}
 		for (; i < filterLength2; i++) {
 			freq = bw * i;
 			if (freq >= visibleFrequencies[valueCount - 1]) {
-				filter[i << 1] = y2mag(curve[valueCount - 1]); //re
+				mag = y2mag(curve[valueCount - 1]); //re
 			} else {
 				while (ii < (valueCount - 1) && freq > visibleFrequencies[ii + 1])
 					ii++;
-				filter[i << 1] = y2mag(lerp(visibleFrequencies[ii], curve[ii], visibleFrequencies[ii + 1], curve[ii + 1], freq)); //re
+				mag = y2mag(lerp(visibleFrequencies[ii], curve[ii], visibleFrequencies[ii + 1], curve[ii + 1], freq)); //re
 			}
+			filter[i << 1] = mag;
+			if (mag > maxMag) maxMag = mag;
+		}
+		if (this.isNormalized && maxMag) {
+			for (i = filterLength - 2; i >= 0; i -= 2)
+				filter[i] /= maxMag;
+			filter[1] /= maxMag; //Nyquist
 		}
 		//convert the coordinates from polar to rectangular
 		//dc and nyquist are purely real (for dc, cos(-k) = 1,
@@ -309,21 +321,29 @@ GraphicalFilterEditor.prototype = {
 			curve[ii] = i;
 		return true;
 	},
-	changeFilterLength: function (newFilterLength, channelIndex, isSameFilterLR) {
+	changeFilterLength: function (newFilterLength) {
 		if (newFilterLength !== this.filterLength) {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
 			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this.sampleRate);
-			this.updateFilter(channelIndex, isSameFilterLR, true);
+			this.updateFilter(0, false, true);
 			return true;
 		}
 		return false;
 	},
-	changeSampleRate: function (newSampleRate, channelIndex, isSameFilterLR) {
+	changeSampleRate: function (newSampleRate) {
 		if (newSampleRate !== this.sampleRate) {
 			this.sampleRate = newSampleRate;
 			this.filterKernel = this.audioContext.createBuffer(2, this.filterLength, newSampleRate);
-			this.updateFilter(channelIndex, isSameFilterLR, true);
+			this.updateFilter(0, false, true);
+			return true;
+		}
+		return false;
+	},
+	changeIsNormalized: function (isNormalized) {
+		if (!isNormalized !== !this.isNormalized) {
+			this.isNormalized = !!isNormalized;
+			this.updateFilter(0, false, true);
 			return true;
 		}
 		return false;
