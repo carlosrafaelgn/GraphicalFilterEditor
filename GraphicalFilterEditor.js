@@ -321,29 +321,29 @@ GraphicalFilterEditor.prototype = {
 			curve[ii] = i;
 		return true;
 	},
-	changeFilterLength: function (newFilterLength) {
+	changeFilterLength: function (newFilterLength, channelIndex, isSameFilterLR) {
 		if (newFilterLength !== this.filterLength) {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
 			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this.sampleRate);
-			this.updateFilter(0, false, true);
+			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
 		return false;
 	},
-	changeSampleRate: function (newSampleRate) {
+	changeSampleRate: function (newSampleRate, channelIndex, isSameFilterLR) {
 		if (newSampleRate !== this.sampleRate) {
 			this.sampleRate = newSampleRate;
 			this.filterKernel = this.audioContext.createBuffer(2, this.filterLength, newSampleRate);
-			this.updateFilter(0, false, true);
+			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
 		return false;
 	},
-	changeIsNormalized: function (isNormalized) {
+	changeIsNormalized: function (isNormalized, channelIndex, isSameFilterLR) {
 		if (!isNormalized !== !this.isNormalized) {
 			this.isNormalized = !!isNormalized;
-			this.updateFilter(0, false, true);
+			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
 		return false;

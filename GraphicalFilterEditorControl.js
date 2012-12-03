@@ -238,7 +238,7 @@ GraphicalFilterEditorControl.prototype = {
 	},
 	mnuNormalizeCurves_Click: function (e) {
 		if (!e.button) {
-			this.filter.changeIsNormalized(!this.filter.isNormalized);
+			this.filter.changeIsNormalized(!this.filter.isNormalized, this.currentChannelIndex, this.isSameFilterLR);
 			this.checkMenu(this.mnuNormalizeCurves, this.filter.isNormalized);
 			if (this.isActualChannelCurveNeeded) {
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
@@ -338,7 +338,7 @@ GraphicalFilterEditorControl.prototype = {
 	},
 	changeFilterLength: function (newFilterLength) {
 		if (newFilterLength !== this.filter.filterLength) {
-			this.filter.changeFilterLength(newFilterLength);
+			this.filter.changeFilterLength(newFilterLength, this.currentChannelIndex, this.isSameFilterLR);
 			if (this.isActualChannelCurveNeeded)
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
@@ -348,7 +348,7 @@ GraphicalFilterEditorControl.prototype = {
 	},
 	changeSampleRate: function (newSampleRate) {
 		if (newSampleRate !== this.filter.sampleRate) {
-			this.filter.changeSampleRate(newSampleRate);
+			this.filter.changeSampleRate(newSampleRate, this.currentChannelIndex, this.isSameFilterLR);
 			if (this.isActualChannelCurveNeeded)
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
