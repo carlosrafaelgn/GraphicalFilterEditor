@@ -3,7 +3,7 @@ GraphicalFilterEditor
 
 This is a test for a JavaScript graphical filter editor, based on my old C++ graphic equalizer. Check out the source for more information!
 
-For usage sample, please, check out my site's source (in English): http://carlosrafaelgn.com.br/GraphicalFilterEditor/index.html
+For usage sample, please, check out my site's source (in English): http://carlosrafaelgn.com.br/GraphicalFilterEditor
 
 This test uses the new Web Audio API and requires the latest version of Chrome (or any other compliant browser).
 
