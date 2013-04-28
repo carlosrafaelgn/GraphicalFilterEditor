@@ -72,39 +72,110 @@ function GraphicalFilterEditorControl(filterLength, sampleRate, audioContext) {
 
 GraphicalFilterEditorControl.prototype = {
 	formatDB: function (dB) {
-		if (dB < -40) return "-Inf."; //∞";
+		if (dB < -40) return "-Inf.";
 		return ((dB < 0) ? dB.toFixed(2) : ((dB === 0) ? "-" + dB.toFixed(2) : "+" + dB.toFixed(2)));
 	},
 	formatFrequency: function (frequencyAndEquivalent) {
-		return frequencyAndEquivalent[0] + "Hz (" + ((frequencyAndEquivalent[1] < 1000) ? frequencyAndEquivalent[1] : ((frequencyAndEquivalent[1] / 1000) + "k")) + "Hz)";
+		return frequencyAndEquivalent[0] + " Hz (" + ((frequencyAndEquivalent[1] < 1000) ? (frequencyAndEquivalent[1] + " Hz") : ((frequencyAndEquivalent[1] / 1000) + " kHz")) + ")";
 	},
-	createControl: function (parent, id) {
+	createControl: function (placeholder) {
 		if (!this.ctx) {
-			var mthis = this;
+			var mthis = this, lbl,
+				createLabel = function () {
+				},
+				createMenuSep = function () {
+					var s = document.createElement("div");
+					s.className = "GEMNUSEP";
+					return s;
+				},
+				createMenuLabel = function (text) {
+					var l = document.createElement("div");
+					l.className = "GEMNULBL";
+					l.appendChild(document.createTextNode(text));
+					return l;
+				},
+				createMenuItem = function (text, checkable, checked, radio, clickHandler) {
+					var i = document.createElement("div"), s;
+					i.className = "GEMNUIT GECLK";
+					if (checkable) {
+						s = document.createElement("span");
+						s.appendChild(document.createTextNode(radio ? "\u25CF " : "\u25A0 "));
+						if (!checked)
+							s.style.visibility = "hidden";
+						i.appendChild(s);
+					}
+					i.appendChild(document.createTextNode(text));
+					if (clickHandler)
+						attachMouse(i, "click", clickHandler);
+					return i;
+				};
 
-			//one day the controls will have to be actually
-			//created here rather than fetched from the document
-			this.canvas = $("graphicEqualizer");
-			this.element = this.canvas.parentNode;
-			if (!_isTouch) attachMouse(this.element, "mousedown", GraphicalFilterEditorControl.prototype.misc_OnMouseDown);
-			this.lblCursor = $("graphicEqualizerLblCursor");
-			this.lblCurve = $("graphicEqualizerLblCurve");
-			this.lblFrequency = $("graphicEqualizerLblFrequency");
-			this.btnMnu = $("graphicEqualizerBtnMnu");
-			this.mnu = $("graphicEqualizerMnu");
-			this.mnuChBL = $("graphicEqualizerMnuChBL");
-			this.mnuChL = $("graphicEqualizerMnuChL");
-			this.mnuChBR = $("graphicEqualizerMnuChBR");
-			this.mnuChR = $("graphicEqualizerMnuChR");
-			this.mnuShowZones = $("graphicEqualizerMnuShowZones");
-			this.mnuEditZones = $("graphicEqualizerMnuEditZones");
-			this.mnuNormalizeCurves = $("graphicEqualizerMnuNormalizeCurves");
-			this.mnuShowActual = $("graphicEqualizerMnuActual");
+			this.element = placeholder;
+			placeholder.className = "GE";
+			if (!_isTouch) attachMouse(placeholder, "mousedown", GraphicalFilterEditorControl.prototype.misc_OnMouseDown);
+			placeholder.addEventListener("contextmenu", cancelEvent);
+
+			this.canvas = document.createElement("canvas");
+			this.canvas.setAttribute("width", "512");
+			this.canvas.setAttribute("height", "260");
+			this.canvas.style.margin = "0px";
+			this.canvas.style.display = "block";
+			this.canvas.style.cursor = "crosshair";
 			attachMouse(this.canvas, "mousedown", function (e) { return GraphicalFilterEditorControl.prototype.canvas_OnMouseDown.apply(mthis, arguments); });
 			attachMouse(this.canvas, "mousemove", this.document_OnMouseMove);
-			this.element.addEventListener("contextmenu", cancelEvent);
 			this.canvas.addEventListener("contextmenu", cancelEvent);
+			placeholder.appendChild(this.canvas);
 			this.ctx = this.canvas.getContext("2d");
+
+			lbl = document.createElement("div");
+			lbl.className = "GELBL";
+			lbl.style.width = "9em";
+			lbl.appendChild(document.createTextNode("Cursor: "));
+			lbl.appendChild(this.lblCursor = document.createElement("span"));
+			lbl.appendChild(document.createTextNode(" dB"));
+			this.lblCursor.appendChild(document.createTextNode("-0.00"));
+			placeholder.appendChild(lbl);
+
+			lbl = document.createElement("div");
+			lbl.className = "GELBL";
+			lbl.style.width = "9em";
+			lbl.appendChild(document.createTextNode("Curve: "));
+			lbl.appendChild(this.lblCurve = document.createElement("span"));
+			lbl.appendChild(document.createTextNode(" dB"));
+			this.lblCurve.appendChild(document.createTextNode("-0.00"));
+			placeholder.appendChild(lbl);
+
+			lbl = document.createElement("div");
+			lbl.className = "GELBL";
+			lbl.appendChild(document.createTextNode("Frequency: "));
+			lbl.appendChild(this.lblFrequency = document.createElement("span"));
+			this.lblFrequency.appendChild(document.createTextNode("0 Hz (31 Hz)"));
+			placeholder.appendChild(lbl);
+
+			this.btnMnu = document.createElement("div");
+			this.btnMnu.className = "GEBTN GECLK";
+			this.btnMnu.appendChild(document.createTextNode("\u25B2"));
+			attachMouse(this.btnMnu, "click", function (e) { return GraphicalFilterEditorControl.prototype.btnMnu_Click.apply(mthis, arguments); });
+			placeholder.appendChild(this.btnMnu);
+
+			this.mnu = document.createElement("div");
+			this.mnu.style.bottom = (placeholder.clientHeight - 260) + "px";
+			this.mnu.className = "GEMNU";
+			this.mnu.style.display = "none";
+			this.mnu.appendChild(createMenuLabel("Same curve for both channels"));
+			this.mnu.appendChild(this.mnuChBL = createMenuItem("Use left curve", true, true, true, function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 0]); }));
+			this.mnu.appendChild(this.mnuChBR = createMenuItem("Use right curve", true, false, true, function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 1]); }));
+			this.mnu.appendChild(createMenuSep());
+			this.mnu.appendChild(createMenuLabel("One curve for each channel"));
+			this.mnu.appendChild(this.mnuChL = createMenuItem("Show left curve", true, false, true, function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 0]); }));
+			this.mnu.appendChild(this.mnuChR = createMenuItem("Show right curve", true, false, true, function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 1]); }));
+			this.mnu.appendChild(createMenuSep());
+			this.mnu.appendChild(this.mnuShowZones = createMenuItem("Show zones", true, false, false, function () { return GraphicalFilterEditorControl.prototype.mnuShowZones_Click.apply(mthis, arguments); }));
+			this.mnu.appendChild(this.mnuEditZones = createMenuItem("Edit by zones", true, false, false, function () { return GraphicalFilterEditorControl.prototype.mnuEditZones_Click.apply(mthis, arguments); }));
+			this.mnu.appendChild(createMenuSep());
+			this.mnu.appendChild(this.mnuNormalizeCurves = createMenuItem("Normalize curves", true, false, false, function () { return GraphicalFilterEditorControl.prototype.mnuNormalizeCurves_Click.apply(mthis, arguments); }));
+			this.mnu.appendChild(this.mnuShowActual = createMenuItem("Show actual response", true, true, false, function () { return GraphicalFilterEditorControl.prototype.mnuShowActual_Click.apply(mthis, arguments); }));
+			placeholder.appendChild(this.mnu);
 
 			this.rangeImage = this.ctx.createLinearGradient(0, 0, 1, this.canvas.height);
 			this.rangeImage.addColorStop(0, "#ff0000");
@@ -113,16 +184,6 @@ GraphicalFilterEditorControl.prototype = {
 			this.rangeImage.addColorStop(0.60546875, "#00ffff");
 			this.rangeImage.addColorStop(0.796875, "#0000ff");
 			this.rangeImage.addColorStop(1, "#ff00ff");
-			this.mnu.style.bottom = (this.element.clientHeight - this.canvas.height) + "px";
-			attachMouse(this.btnMnu, "click", function (e) { return GraphicalFilterEditorControl.prototype.btnMnu_Click.apply(mthis, arguments); });
-			attachMouse(this.mnuChBL, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 0]); });
-			attachMouse(this.mnuChL, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 0]); });
-			attachMouse(this.mnuChBR, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChB_Click.apply(mthis, [e, 1]); });
-			attachMouse(this.mnuChR, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuChLR_Click.apply(mthis, [e, 1]); });
-			attachMouse(this.mnuShowZones, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuShowZones_Click.apply(mthis, arguments); });
-			attachMouse(this.mnuEditZones, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuEditZones_Click.apply(mthis, arguments); });
-			attachMouse(this.mnuNormalizeCurves, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuNormalizeCurves_Click.apply(mthis, arguments); });
-			attachMouse(this.mnuShowActual, "click", function (e) { return GraphicalFilterEditorControl.prototype.mnuShowActual_Click.apply(mthis, arguments); });
 			this.labelImage = new Image();
 			this.labelImage.addEventListener("load", function () { return GraphicalFilterEditorControl.prototype.drawCurve.apply(mthis); });
 			this.labelImage.addEventListener("error", function () { return GraphicalFilterEditorControl.prototype.drawCurve.apply(mthis); });
@@ -151,7 +212,6 @@ GraphicalFilterEditorControl.prototype = {
 			this.ctx = null;
 			this.rangeImage = null;
 			this.labelImage = null;
-
 			this.element.parentNode.removeChild(this.element);
 			this.element = null;
 		}
@@ -161,10 +221,10 @@ GraphicalFilterEditorControl.prototype = {
 		if (!e.button) {
 			if (this.mnu.style.display === "none") {
 				this.mnu.style.display = "inline-block";
-				this.btnMnu.replaceChild(document.createTextNode("▼"), this.btnMnu.firstChild);
+				this.btnMnu.replaceChild(document.createTextNode("\u25BC"), this.btnMnu.firstChild);
 			} else {
 				this.mnu.style.display = "none";
-				this.btnMnu.replaceChild(document.createTextNode("▲"), this.btnMnu.firstChild);
+				this.btnMnu.replaceChild(document.createTextNode("\u25B2"), this.btnMnu.firstChild);
 			}
 		}
 		return true;
@@ -427,3 +487,10 @@ GraphicalFilterEditorControl.prototype = {
 		return true;
 	}
 };
+if (!("ontouchend" in document)) {
+	//do not use hover effect on tablets and other touch devices
+	var s = document.createElement("link");
+	s.setAttribute("rel", "stylesheet");
+	s.setAttribute("href", "GraphicalFilterEditorHover.css");
+	document.head.appendChild(s);
+}

@@ -1,7 +1,7 @@
 //
 // Analyzer.js is distributed under the FreeBSD License
 //
-// Copyright (c) 2012, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2013, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,7 @@ Analyzer.prototype = {
 			if (id)
 				this.canvas.id = id;
 			this.ctx = this.canvas.getContext("2d");
-			$(parent).appendChild(this.canvas);
+			parent.appendChild(this.canvas);
 			return this.canvas;
 		}
 		return null;

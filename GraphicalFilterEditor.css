@@ -1,0 +1,46 @@
+.GE {
+	vertical-align: top;
+	font: normal 13px sans-serif;
+	display: inline-block;
+	background-color: #1c1c1c;
+	color: #fff;
+	position: relative;
+	cursor: default;
+}
+.GELBL {
+	display: inline-block;
+	padding: 4px;
+}
+.GEBTN {
+	display: inline-block;
+	padding: 4px;
+	position: absolute;
+	right: 0px;
+	width: 1.5em;
+	text-align: center;
+	border-left: solid 1px #fff;
+}
+.GEMNU {
+	background-color: #1c1c1c;
+	color: #fff;
+	position: absolute;
+	right: 0px;
+	padding: 2px;
+}
+.GEMNUIT {
+	margin: 2px;
+	padding: 2px;
+}
+.GEMNUSEP {
+	margin: 4px;
+	border-top: solid 1px #fff;
+	height: 1px;
+}
+.GEMNULBL {
+	margin: 4px;
+	font-weight: bold;
+	color: #0f0;
+}
+.GECLK {
+	cursor: pointer;
+}

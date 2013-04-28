@@ -56,7 +56,7 @@ function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
 		this.actualChannelCurve[i] = GraphicalFilterEditor.prototype.zeroChannelValueY;
 	}
 
-	this.updateFilter(0, false, true);
+	this.updateFilter(0, true, true);
 	this.updateActualChannelCurve(0);
 
 	seal$(this);

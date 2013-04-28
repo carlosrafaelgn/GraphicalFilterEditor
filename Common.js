@@ -1,7 +1,7 @@
 //
 // Common.js is distributed under the FreeBSD License
 //
-// Copyright (c) 2012, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2013, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -43,9 +43,7 @@ function freeze$(x) {
 	return x;
 }
 function $(e) {
-	if (typeof (e) === "string")
-		return document.getElementById(e);
-	return e;
+	return document.getElementById(e);
 }
 function cancelEvent(e) {
 	if (e.stopPropagation)
@@ -61,15 +59,38 @@ function cancelEvent(e) {
 	return false;
 }
 function leftTop(element) {
-	var left = 0, top = 0;
-	while (element) {
-		left += element.offsetLeft;
-		top += element.offsetTop;
-		element = element.offsetParent;
+	var left, top;
+	if (element.getBoundingClientRect) {
+		left = element.getBoundingClientRect();
+		top = left.top + window.pageYOffset;
+		left = left.left + window.pageXOffset;
+	} else {
+		left = 0;
+		top = 0;
+		while (element) {
+			left += element.offsetLeft;
+			top += element.offsetTop;
+			element = element.offsetParent;
+		}
 	}
 	return [left, top];
 }
 var touchMouse = (_isTouch ? {
+	_cloneEvent: function (e, cx, cy, px, py) {
+		var c = { button: 0, target: e.target, eventPhase: e.eventPhase, clientX: cx, clientY: cy, pageX: px, pageY: py };
+		if (e.stopPropagation) c.stopPropagation = function () { return e.stopPropagation(); };
+		if (e.preventDefault) c.preventDefault = function () { return e.preventDefault(); };
+		if (e.cancelBubble !== undefined) c.cancelBubble = e.cancelBubble;
+		if (e.cancel !== undefined) c.cancel = e.cancel;
+		if (e.returnValue !== undefined) c.returnValue = e.returnValue;
+		return c;
+	},
+	_terminateEvent: function (e, c) {
+		if (c.cancelBubble) e.cancelBubble = c.cancelBubble;
+		if (c.cancel) e.cancel = c.cancel;
+		if (e.returnValue !== undefined) e.returnValue = c.returnValue;
+		return c;
+	},
 	_touchstartc: function (e) {
 		return touchMouse.touchstart(this, "_tc", e);
 	},
@@ -80,23 +101,18 @@ var touchMouse = (_isTouch ? {
 		if (e.touches.length > 1) return;
 		if (t._tstate) touchMouse.touchend(t, p, e);
 		t._tstate = true;
-		e.button = 0;
-		e.clientX = e.changedTouches[0].clientX;
-		e.clientY = e.changedTouches[0].clientY;
-		e.pageX = e.changedTouches[0].pageX;
-		e.pageY = e.changedTouches[0].pageY;
-		var i, l;
+		var i, l, c = touchMouse._cloneEvent(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.changedTouches[0].pageX, e.changedTouches[0].pageY);
 		l = t[p + "mouseover"];
 		if (l) {
 			for (i = l.length - 1; i >= 0; i--)
-				l[i].call(t, e);
+				l[i].call(t, c);
 		}
 		l = t[p + "mousedown"];
 		if (l) {
-			for (i = l.length - 1; i >= 0; i--) {
-				l[i].call(t, e);
-			}
+			for (i = l.length - 1; i >= 0; i--)
+				l[i].call(t, c);
 		}
+		touchMouse._terminateEvent(e, c);
 	},
 	_touchmovec: function (e) {
 		return touchMouse.touchmove(this, "_tc", e);
@@ -106,16 +122,12 @@ var touchMouse = (_isTouch ? {
 	},
 	touchmove: function (t, p, e) {
 		if (e.touches.length > 1) return;
-		e.button = 0;
-		e.clientX = e.changedTouches[0].clientX;
-		e.clientY = e.changedTouches[0].clientY;
-		e.pageX = e.changedTouches[0].pageX;
-		e.pageY = e.changedTouches[0].pageY;
-		var i, l = t[p + "mousemove"];
+		var i, l = t[p + "mousemove"], c = touchMouse._cloneEvent(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.changedTouches[0].pageX, e.changedTouches[0].pageY);
 		if (l) {
 			for (i = l.length - 1; i >= 0; i--)
-				l[i].call(t, e);
+				l[i].call(t, c);
 		}
+		touchMouse._terminateEvent(e, c);
 	},
 	_touchendc: function (e) {
 		return touchMouse.touchend(this, "_tc", e);
@@ -125,29 +137,18 @@ var touchMouse = (_isTouch ? {
 	},
 	touchend: function (t, p, e) {
 		t._tstate = false;
-		e.button = 0;
-		if (e.changedTouches && e.changedTouches.length >= 1) {
-			e.clientX = e.changedTouches[0].clientX;
-			e.clientY = e.changedTouches[0].clientY;
-			e.pageX = e.changedTouches[0].pageX;
-			e.pageY = e.changedTouches[0].pageY;
-		} else {
-			e.clientX = 0;
-			e.clientY = 0;
-			e.pageX = 0;
-			e.pageY = 0;
-		}
-		var i, l;
+		var i, l, c = ((e.changedTouches && e.changedTouches.length >= 1) ? touchMouse._cloneEvent(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.changedTouches[0].pageX, e.changedTouches[0].pageY) : touchMouse._cloneEvent(e, 0, 0, 0, 0));
 		l = t[p + "mouseup"];
 		if (l) {
 			for (i = l.length - 1; i >= 0; i--)
-				l[i].call(t, e);
+				l[i].call(t, c);
 		}
 		l = t[p + "mouseout"];
 		if (l) {
 			for (i = l.length - 1; i >= 0; i--)
-				l[i].call(t, e);
+				l[i].call(t, c);
 		}
+		touchMouse._terminateEvent(e, c);
 	}
 } : undefined),
 attachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
