@@ -176,78 +176,81 @@ GraphicalFilterEditor.prototype = {
 		return true;
 	},
 	updateFilter: function (channelIndex, isSameFilterLR, updateBothChannels) {
-		var i, ii, k, mag, maxMag = 0, freq, filterLength = this.filterLength, y2mag = GraphicalFilterEditor.prototype.yToMagnitude,
+		var i, ii, k, mag, freq, filterLength = this.filterLength, y2mag = GraphicalFilterEditor.prototype.yToMagnitude,
 		curve = this.channelCurves[channelIndex], valueCount = GraphicalFilterEditor.prototype.visibleBinCount, bw = this.sampleRate / filterLength,
 		lerp = GraphicalFilterEditor.prototype.lerp, filterLength2 = (filterLength >>> 1), filter = this.filterKernel.getChannelData(channelIndex),
 		sin = Math.sin, cos = Math.cos, avg, avgCount, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
 		//M = ((FFT length/2) - 1)
-		M_HALF_PI_FFTLEN2 = (filterLength2 - 1) * 0.5 * Math.PI / filterLength2;
-		i = 1;
-		ii = 0;
-		for (; ; ) {
-			freq = bw * i;
-			if (freq >= visibleFrequencies[0]) break;
-			mag = y2mag(curve[0]); //re
-			filter[i << 1] = mag;
-			if (mag > maxMag) maxMag = mag;
-			i++;
-		}
-		while (bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii]) && i < filterLength2 && ii < (valueCount - 1)) {
-			freq = bw * i;
-			avg = 0;
-			avgCount = 0;
-			do {
-				avg += curve[ii];
-				avgCount++;
-				ii++;
-			} while (freq > visibleFrequencies[ii] && ii < (valueCount - 1));
-			mag = y2mag(avg / avgCount); //re
-			filter[i << 1] = mag;
-			if (mag > maxMag) maxMag = mag;
-			i++;
-		}
-		for (; i < filterLength2; i++) {
-			freq = bw * i;
-			if (freq >= visibleFrequencies[valueCount - 1]) {
-				mag = y2mag(curve[valueCount - 1]); //re
-			} else {
-				while (ii < (valueCount - 1) && freq > visibleFrequencies[ii + 1])
-					ii++;
-				mag = y2mag(lerp(visibleFrequencies[ii], curve[ii], visibleFrequencies[ii + 1], curve[ii + 1], freq)); //re
+		M_HALF_PI_FFTLEN2 = (filterLength2 - 1) * 0.5 * Math.PI / filterLength2, invMaxMag = 1, repeat = (this.isNormalized ? 2 : 1);
+		//fill in all filter points, either averaging or interpolating them as necessary
+		do {
+			repeat--;
+			i = 1;
+			ii = 0;
+			for (; ;) {
+				freq = bw * i;
+				if (freq >= visibleFrequencies[0]) break;
+				mag = y2mag(curve[0]);
+				filter[i << 1] = mag * invMaxMag;
+				i++;
 			}
-			filter[i << 1] = mag;
-			if (mag > maxMag) maxMag = mag;
-		}
-		if (this.isNormalized && maxMag) {
-			for (i = filterLength - 2; i >= 0; i -= 2)
-				filter[i] /= maxMag;
-			filter[1] /= maxMag; //Nyquist
-		}
-		//convert the coordinates from polar to rectangular
-		//dc and nyquist are purely real (for dc, cos(-k) = 1,
-		//as for nyquist, cos(-k) = 0) so do not bother with them in here
-		filter[0] = (filter[2] >= 1 ? 1 : filter[2]); //make sure dc has no gain
-		filter[1] = (filter[filterLength - 2] >= 1 ? 1 : filter[filterLength - 2]); //make sure Nyquist has no gain
-		for (i = filterLength - 2; i >= 2; i -= 2) {
-			//               -k.j
-			//polar = Mag . e
-			//
-			//where:
-			//k = (M / 2) * pi * i / (fft length / 2)
-			//i = index varying from 0 to (fft length / 2)
-			//
-			//rectangular:
-			//real = Mag . cos(-k)
-			//imag = Mag . sin(-k)
-			k = M_HALF_PI_FFTLEN2 * (i >> 1);
-			//****NOTE:
-			//when using FFTReal ou FFTNR, k MUST BE passed as the argument of sin and cos, due to the
-			//signal of the imaginary component
-			//RFFT, intel and other fft's use the opposite signal... therefore, -k MUST BE passed!!
-			filter[i + 1] = (filter[i] * sin(k));
-			filter[i] *= cos(k);
-		}
-		FFTNR.real(filter, filterLength, -1);
+			while (bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii]) && i < filterLength2 && ii < (valueCount - 1)) {
+				freq = bw * i;
+				avg = 0;
+				avgCount = 0;
+				do {
+					avg += curve[ii];
+					avgCount++;
+					ii++;
+				} while (freq > visibleFrequencies[ii] && ii < (valueCount - 1));
+				mag = y2mag(avg / avgCount);
+				filter[i << 1] = mag * invMaxMag;
+				i++;
+			}
+			for (; i < filterLength2; i++) {
+				freq = bw * i;
+				if (freq >= visibleFrequencies[valueCount - 1]) {
+					mag = y2mag(curve[valueCount - 1]);
+				} else {
+					while (ii < (valueCount - 1) && freq > visibleFrequencies[ii + 1])
+						ii++;
+					mag = y2mag(lerp(visibleFrequencies[ii], curve[ii], visibleFrequencies[ii + 1], curve[ii + 1], freq));
+				}
+				filter[i << 1] = mag * invMaxMag;
+			}
+			//since DC and Nyquist are purely real, do not bother with them in the for loop,
+			//just make sure neither one has a gain greater than 0 dB
+			filter[0] = (filter[2] >= 1 ? 1 : filter[2]);
+			filter[1] = (filter[filterLength - 2] >= 1 ? 1 : filter[filterLength - 2]);
+			//convert the coordinates from polar to rectangular
+			for (i = filterLength - 2; i >= 2; i -= 2) {
+				//               -k.j
+				//polar = Mag . e
+				//
+				//where:
+				//k = (M / 2) * pi * i / (fft length / 2)
+				//i = index varying from 0 to (fft length / 2)
+				//
+				//rectangular:
+				//real = Mag . cos(-k)
+				//imag = Mag . sin(-k)
+				k = M_HALF_PI_FFTLEN2 * (i >> 1);
+				//****NOTE:
+				//when using FFTReal ou FFTNR, k MUST BE passed as the argument of sin and cos, due to the
+				//signal of the imaginary component
+				//RFFT, intel and other fft's use the opposite signal... therefore, -k MUST BE passed!!
+				filter[i + 1] = (filter[i] * sin(k));
+				filter[i] *= cos(k);
+			}
+			FFTNR.real(filter, filterLength, -1);
+			if (repeat) {
+				//get the actual filter response, and then, compensate
+				invMaxMag = this.applyWindowAndComputeActualMagnitudes(filter, filterLength, this.tmp);
+				if (invMaxMag <= 0) repeat = 0;
+				invMaxMag = 1.0 / invMaxMag;
+			}
+		} while (repeat);
+
 		if (isSameFilterLR) {
 			//copy the filter to the other channel
 			return this.copyFilter(channelIndex, 1 - channelIndex);
@@ -258,13 +261,9 @@ GraphicalFilterEditor.prototype = {
 		this.convolver.buffer = this.filterKernel;
 		return true;
 	},
-	updateActualChannelCurve: function (channelIndex) {
-		var freq, i, ii, rval, ival, avg, avgCount, filterLength = this.filterLength, lerp = GraphicalFilterEditor.prototype.lerp,
-		curve = this.actualChannelCurve, valueCount = GraphicalFilterEditor.prototype.visibleBinCount, sqrt = Math.sqrt,
-		bw = this.sampleRate / filterLength, filterLength2 = (filterLength >>> 1), cos = Math.cos, tmp = this.tmp,
-		mag2y = GraphicalFilterEditor.prototype.magnitudeToY, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
-		filter = this.filterKernel.getChannelData(channelIndex),
-		M = (filterLength2 - 1), PI2_M = 2 * Math.PI / M;
+	applyWindowAndComputeActualMagnitudes: function (filter, filterLength, tmp) {
+		var i, ii, rval, ival, filterLength2 = (filterLength >>> 1), sqrt = Math.sqrt, cos = Math.cos,
+			M = (filterLength2 - 1), PI2_M = 2 * Math.PI / M, maxMag, mag;
 		//it is not possible to know what kind of window the browser will use,
 		//so make an assumption here... Blackman window!
 		//...at least it is the one I used, back in C++ times :)
@@ -283,13 +282,26 @@ GraphicalFilterEditor.prototype = {
 		FFTNR.real(tmp, filterLength, 1);
 		//save Nyquist for later
 		ii = tmp[1];
+		maxMag = (tmp[0] > ii ? tmp[0] : ii);
 		for (i = 2; i < filterLength; i += 2) {
 			rval = tmp[i];
 			ival = tmp[i + 1];
-			tmp[i >>> 1] = sqrt((rval * rval) + (ival * ival));
+			mag = sqrt((rval * rval) + (ival * ival));
+			tmp[i >>> 1] = mag;
+			if (mag > maxMag) maxMag = mag;
 		}
 		//restore Nyquist in its new position
 		tmp[filterLength2] = ii;
+		return maxMag;
+	},
+	updateActualChannelCurve: function (channelIndex) {
+		var freq, i, ii, avg, avgCount, filterLength = this.filterLength, lerp = GraphicalFilterEditor.prototype.lerp,
+		curve = this.actualChannelCurve, valueCount = GraphicalFilterEditor.prototype.visibleBinCount,
+		bw = this.sampleRate / filterLength, filterLength2 = (filterLength >>> 1), tmp = this.tmp,
+		mag2y = GraphicalFilterEditor.prototype.magnitudeToY, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
+		filter = this.filterKernel.getChannelData(channelIndex);
+
+		this.applyWindowAndComputeActualMagnitudes(filter, filterLength, tmp);
 
 		//tmp now contains (filterLength2 + 1) magnitudes
 		i = 0;
