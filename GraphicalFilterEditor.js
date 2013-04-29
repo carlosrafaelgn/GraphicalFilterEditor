@@ -338,6 +338,7 @@ GraphicalFilterEditor.prototype = {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
 			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this.sampleRate);
+			this.tmp = new Float32Array(newFilterLength);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
