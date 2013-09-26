@@ -180,8 +180,8 @@ GraphicalFilterEditor.prototype = {
 		curve = this.channelCurves[channelIndex], valueCount = GraphicalFilterEditor.prototype.visibleBinCount, bw = this.sampleRate / filterLength,
 		lerp = GraphicalFilterEditor.prototype.lerp, filterLength2 = (filterLength >>> 1), filter = this.filterKernel.getChannelData(channelIndex),
 		sin = Math.sin, cos = Math.cos, avg, avgCount, visibleFrequencies = GraphicalFilterEditor.prototype.visibleFrequencies,
-		//M = ((FFT length/2) - 1)
-		M_HALF_PI_FFTLEN2 = (filterLength2 - 1) * 0.5 * Math.PI / filterLength2, invMaxMag = 1, repeat = (this.isNormalized ? 2 : 1);
+		//M = filterLength2, so, M_HALF_PI_FFTLEN2 = (filterLength2 * 0.5 * Math.PI) / filterLength2
+		M_HALF_PI_FFTLEN2 = 0.5 * Math.PI, invMaxMag = 1, repeat = (this.isNormalized ? 2 : 1);
 		//fill in all filter points, either averaging or interpolating them as necessary
 		do {
 			repeat--;
@@ -234,7 +234,7 @@ GraphicalFilterEditor.prototype = {
 				//rectangular:
 				//real = Mag . cos(-k)
 				//imag = Mag . sin(-k)
-				k = M_HALF_PI_FFTLEN2 * (i >> 1);
+				k = M_HALF_PI_FFTLEN2 * (i >>> 1);
 				//****NOTE:
 				//when using FFTReal ou FFTNR, k MUST BE passed as the argument of sin and cos, due to the
 				//signal of the imaginary component
@@ -263,7 +263,7 @@ GraphicalFilterEditor.prototype = {
 	},
 	applyWindowAndComputeActualMagnitudes: function (filter, filterLength, tmp) {
 		var i, ii, rval, ival, filterLength2 = (filterLength >>> 1), sqrt = Math.sqrt, cos = Math.cos,
-			M = (filterLength2 - 1), PI2_M = 2 * Math.PI / M, maxMag, mag;
+			M = filterLength2, PI2_M = 2 * Math.PI / M, maxMag, mag;
 		//it is not possible to know what kind of window the browser will use,
 		//so make an assumption here... Blackman window!
 		//...at least it is the one I used, back in C++ times :)
