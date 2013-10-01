@@ -334,7 +334,7 @@ GraphicalFilterEditor.prototype = {
 		return true;
 	},
 	changeFilterLength: function (newFilterLength, channelIndex, isSameFilterLR) {
-		if (newFilterLength !== this.filterLength) {
+		if (this.filterLength !== newFilterLength) {
 			this.filterLength = newFilterLength;
 			this.binCount = (newFilterLength >>> 1) + 1;
 			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this.sampleRate);
@@ -345,7 +345,7 @@ GraphicalFilterEditor.prototype = {
 		return false;
 	},
 	changeSampleRate: function (newSampleRate, channelIndex, isSameFilterLR) {
-		if (newSampleRate !== this.sampleRate) {
+		if (this.sampleRate !== newSampleRate) {
 			this.sampleRate = newSampleRate;
 			this.filterKernel = this.audioContext.createBuffer(2, this.filterLength, newSampleRate);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
@@ -354,8 +354,21 @@ GraphicalFilterEditor.prototype = {
 		return false;
 	},
 	changeIsNormalized: function (isNormalized, channelIndex, isSameFilterLR) {
-		if (!isNormalized !== !this.isNormalized) {
+		if (!this.isNormalized !== !isNormalized) {
 			this.isNormalized = !!isNormalized;
+			this.updateFilter(channelIndex, isSameFilterLR, true);
+			return true;
+		}
+		return false;
+	},
+	changeAudioContext: function (newAudioContext, channelIndex, isSameFilterLR) {
+		if (this.audioContext !== newAudioContext) {
+			this.convolver.disconnect(0);
+			this.audioContext = newAudioContext;
+			this.filterKernel = newAudioContext.createBuffer(2, this.filterLength, this.sampleRate);
+			this.convolver = newAudioContext.createConvolver();
+			this.convolver.normalize = false;
+			this.convolver.buffer = this.filterKernel;
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}

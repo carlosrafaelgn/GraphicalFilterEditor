@@ -397,8 +397,7 @@ GraphicalFilterEditorControl.prototype = {
 		return true;
 	},
 	changeFilterLength: function (newFilterLength) {
-		if (newFilterLength !== this.filter.filterLength) {
-			this.filter.changeFilterLength(newFilterLength, this.currentChannelIndex, this.isSameFilterLR);
+		if (this.filter.changeFilterLength(newFilterLength, this.currentChannelIndex, this.isSameFilterLR)) {
 			if (this.isActualChannelCurveNeeded)
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
@@ -407,14 +406,16 @@ GraphicalFilterEditorControl.prototype = {
 		return false;
 	},
 	changeSampleRate: function (newSampleRate) {
-		if (newSampleRate !== this.filter.sampleRate) {
-			this.filter.changeSampleRate(newSampleRate, this.currentChannelIndex, this.isSameFilterLR);
+		if (this.filter.changeSampleRate(newSampleRate, this.currentChannelIndex, this.isSameFilterLR)) {
 			if (this.isActualChannelCurveNeeded)
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
 			return true;
 		}
 		return false;
+	},
+	changeAudioContext: function (newAudioContext) {
+		return this.filter.changeAudioContext(newAudioContext, this.currentChannelIndex, this.isSameFilterLR);
 	},
 	drawCurve: function () {
 		//all the 0.5's here are because of this explanation:

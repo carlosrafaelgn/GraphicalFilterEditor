@@ -1,6 +1,6 @@
 .GE {
 	vertical-align: top;
-	font: normal 13px sans-serif;
+	font: normal 12px 'Segoe UI', sans-serif;
 	display: inline-block;
 	background-color: #1c1c1c;
 	color: #fff;
@@ -38,8 +38,8 @@
 }
 .GEMNULBL {
 	margin: 4px;
-	font-weight: bold;
-	color: #0f0;
+	font-size: 14px;
+	color: #0f2;
 }
 .GECLK {
 	cursor: pointer;

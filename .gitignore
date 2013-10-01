@@ -4,6 +4,9 @@ bin/
 obj/
 *.lnk
 *.mp3
+*.pdf
+*.png
+*.gif
 indexTest2.html
 GraphicEqualizer.csproj
 GraphicEqualizer.csproj.user
