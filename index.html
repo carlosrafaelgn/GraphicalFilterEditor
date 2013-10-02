@@ -191,14 +191,14 @@
 			return true;
 		}
 		function uint32ToArray(array, startIndex, value) {
-			array[startIndex] = (value & 0xFF);
-			array[startIndex + 1] = ((value >>> 8) & 0xFF);
-			array[startIndex + 2] = ((value >>> 16) & 0xFF);
-			array[startIndex + 3] = ((value >>> 24) & 0xFF);
+			array[startIndex] = value;
+			array[startIndex + 1] = (value >>> 8);
+			array[startIndex + 2] = (value >>> 16);
+			array[startIndex + 3] = (value >>> 24);
 		}
 		function uint16ToArray(array, startIndex, value) {
-			array[startIndex] = (value & 0xFF);
-			array[startIndex + 1] = ((value >>> 8) & 0xFF);
+			array[startIndex] = value;
+			array[startIndex + 1] = (value >>> 8);
 		}
 		function offlineAudioContextCompleted(renderedData) {
 			showLoader(false);
