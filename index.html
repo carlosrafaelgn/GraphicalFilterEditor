@@ -124,12 +124,11 @@
 			merger.disconnect(0);
 			return true;
 		}
-		function enableButtons(enable, ignoreStopButton) {
+		function enableButtons(enable) {
 			var e = (enable ? "" : "disabled");
 			$("btnPlay").disabled = e;
 			$("btnProcess").disabled = e;
-			if (!ignoreStopButton)
-				$("btnStop").disabled = e;
+			$("btnStop").disabled = e;
 			return true;
 		}
 		function showLoader(show) {
@@ -265,6 +264,8 @@
 		}
 		function finishLoadingIntoMemoryAndPlay(array, offline) {
 			try {
+				//Eventhough everything up to here is asynchronous, createBuffer is synchronous and usually takes some time...
+				//I thought of using Web Workers, but audioContext cannot be sent to another thread yet... :(
 				var offlineAudioContext, buffer = audioContext.createBuffer(array, false);
 				if (offline) {
 					offlineAudioContext = (window.OfflineAudioContext ? new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : (window.webkitOfflineAudioContext ? new webkitOfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : null));
@@ -277,7 +278,6 @@
 					source.noteOn(0);
 					offlineAudioContext.oncomplete = offlineAudioContextCompleted;
 					offlineAudioContext.startRendering();
-					showLoader(true);
 				} else {
 					source = audioContext.createBufferSource();
 					source.buffer = buffer;
@@ -286,8 +286,10 @@
 					source.connect(graphicEqualizer.filter.convolver, 0, 0);
 					updateConnections();
 					source.noteOn(0);
+					$("btnStop").disabled = "";
 				}
 			} catch (e) {
+				showLoader(false);
 				enableButtons(true);
 				alert(e);
 			}
@@ -295,6 +297,7 @@
 		}
 		function loadIntoMemoryAndPlay(offline) {
 			var r, done = false;
+			showLoader(true);
 			if ($("chkSample").checked) {
 				//Read the sample file into memory
 				r = new XMLHttpRequest();
@@ -315,6 +318,11 @@
 					finishLoadingIntoMemoryAndPlay(r.result, offline);
 					return true;
 				});
+				r.addEventListener("loadend", function () {
+					if (!offline)
+						showLoader(false);
+					return true;
+				});
 				r.readAsArrayBuffer($("txtFile").files[0]);
 			}
 			return true;
@@ -332,6 +340,7 @@
 			updateConnections();
 			sourceAudio.play();
 			pendingUrls.push(objurl);
+			$("btnStop").disabled = "";
 			return true;
 		}
 		function play() {
@@ -340,13 +349,14 @@
 				return true;
 			}
 			stop();
-			enableButtons(false, true);
+			enableButtons(false);
 			try {
 				if (parseInt($("cbLoadType").value))
 					loadIntoMemoryAndPlay(false);
 				else
 					prepareStreamingAndPlay();
 			} catch (e) {
+				showLoader(false);
 				enableButtons(true);
 				alert(e);
 			}
@@ -362,6 +372,7 @@
 			try {
 				loadIntoMemoryAndPlay(true);
 			} catch (e) {
+				showLoader(false);
 				enableButtons(true);
 				alert(e);
 			}
