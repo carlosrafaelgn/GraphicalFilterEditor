@@ -206,16 +206,6 @@
 			graphicEqualizer.changeFilterLength(parseInt($("cbFilterLength").value));
 			return true;
 		}
-		function uint32ToArray(array, startIndex, value) {
-			array[startIndex] = value;
-			array[startIndex + 1] = (value >>> 8);
-			array[startIndex + 2] = (value >>> 16);
-			array[startIndex + 3] = (value >>> 24);
-		}
-		function uint16ToArray(array, startIndex, value) {
-			array[startIndex] = value;
-			array[startIndex + 1] = (value >>> 8);
-		}
 		function finishLoadingIntoMemoryAndPlay(array, name, offline) {
 			try {
 				//Decode the array asynchronously
