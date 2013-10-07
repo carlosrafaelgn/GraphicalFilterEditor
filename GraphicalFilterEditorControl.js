@@ -325,8 +325,8 @@ GraphicalFilterEditorControl.prototype = {
 			if (!this.drawingMode) {
 				var x, y;
 				x = leftTop(this.canvas);
-				y = e.pageY - x[1];
-				x = e.pageX - x[0];
+				y = ((e.pageY - x[1]) | 0);
+				x = ((e.pageX - x[0]) | 0);
 				if (x >= 0 && x < this.filter.visibleBinCount) {
 					this.drawingMode = 1;
 					if (this.editZones) {
@@ -362,8 +362,8 @@ GraphicalFilterEditorControl.prototype = {
 	canvas_OnMouseMove: function (e) {
 		var x, y, delta, inc, count, curve = this.filter.channelCurves[this.currentChannelIndex];
 		x = leftTop(this.canvas);
-		y = e.pageY - x[1];
-		x = e.pageX - x[0];
+		y = ((e.pageY - x[1]) | 0);
+		x = ((e.pageX - x[0]) | 0);
 		if (this.drawingMode || (x >= 0 && x < this.canvas.width && y >= 0 && y < this.canvas.height)) {
 			if (x < 0) x = 0;
 			else if (x >= GraphicalFilterEditor.prototype.visibleBinCount) x = GraphicalFilterEditor.prototype.visibleBinCount - 1;

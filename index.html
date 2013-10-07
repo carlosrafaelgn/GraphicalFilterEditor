@@ -135,6 +135,20 @@
 			$("imgLoader").className = (show ? "" : "HID");
 			return true;
 		}
+		function createObjURL(obj, opts) {
+			var url = (window.URL || window.webkitURL), objurl = (opts ? url.createObjectURL(obj, opts) : url.createObjectURL(obj));
+			pendingUrls.push(objurl);
+			return objurl;
+		}
+		function freeObjURLs() {
+			if (pendingUrls.length) {
+				var i, url = (window.URL || window.webkitURL);
+				for (i = pendingUrls.length - 1; i >= 0; i--)
+					url.revokeObjectURL(pendingUrls[i]);
+				pendingUrls.splice(0, pendingUrls.length);
+			}
+			return true;
+		}
 		function stop() {
 			enableButtons(true);
 			if (sourceAudio) {
@@ -143,19 +157,22 @@
 				source.disconnect(0);
 				source = null;
 			} else if (source) {
-				source.noteOff(0);
+				source.stop(0);
 				source.disconnect(0);
 				source = null;
 			}
-			if (pendingUrls && pendingUrls.length) {
-				//Free all created URL's only at safe moments!
-				var i, url = (window.URL || window.webkitURL);
-				for (i = pendingUrls.length - 1; i >= 0; i--)
-					url.revokeObjectURL(pendingUrls[i]);
-			}
-			pendingUrls = [];
 			graphicEqualizer.filter.convolver.disconnect(0);
+			//Free all created URL's only at safe moments!
+			freeObjURLs();
 			return cleanUpAnalyzer();
+		}
+		function handleError(e) {
+			showLoader(false);
+			enableButtons(true);
+			//Free all created URL's only at safe moments!
+			freeObjURLs();
+			alert(e);
+			return true;
 		}
 		function updateConnections() {
 			var t = $("cbAnalyzer").value;
@@ -199,139 +216,115 @@
 			array[startIndex] = value;
 			array[startIndex + 1] = (value >>> 8);
 		}
-		function offlineAudioContextCompleted(renderedData) {
-			showLoader(false);
-			enableButtons(true);
-			var buffer = renderedData.renderedBuffer, left, right, length, byteLength, blockAlign,
-				i, d, s, hdrData, dstData, url, objurl, a, channelCount;
-			if (buffer && (length = buffer.length)) {
-				left = buffer.getChannelData(0);
-				if (buffer.numberOfChannels > 1) {
-					channelCount = 2;
-					right = buffer.getChannelData(1);
-					dstData = new Uint8Array(length << 2);
-					for (i = length - 1, d = i << 2; i >= 0; i--, d -= 4) {
-						//Interleave left and right channels before saving the WAVE file
-						//convert the output into an array of 16 bit samples (little endian)
-						s = (left[i] * 0x7FFF) | 0;
-						if (s > 0x7FFF) s = 0x7FFF;
-						else if (s < -0x8000) s = -0x8000;
-						uint16ToArray(dstData, d, s);
-
-						s = (right[i] * 0x7FFF) | 0;
-						if (s > 0x7FFF) s = 0x7FFF;
-						else if (s < -0x8000) s = -0x8000;
-						uint16ToArray(dstData, d + 2, s);
-					}
-				} else {
-					channelCount = 1;
-					dstData = new Uint8Array(length << 1);
-					for (i = length - 1, d = i << 1; i >= 0; i--, d -= 2) {
-						//Convert the output into an array of 16 bit samples (little endian)
-						s = (left[i] * 0x7FFF) | 0;
-						if (s > 0x7FFF) s = 0x7FFF;
-						else if (s < -0x8000) s = -0x8000;
-						uint16ToArray(dstData, d, s);
-					}
-				}
-				//Generate the WAVE file header
-				blockAlign = channelCount << 1; //16 bit samples (2 bytes per channel)
-				byteLength = length * blockAlign;
-				hdrData = new Uint8Array(44);
-				uint32ToArray(hdrData,  0, 0x46464952); //"RIFF"
-				uint32ToArray(hdrData,  4, byteLength + 36); //chunk size
-				uint32ToArray(hdrData,  8, 0x45564157); //"WAVE"
-				uint32ToArray(hdrData, 12, 0x20746d66); //"fmt "
-				uint32ToArray(hdrData, 16, 16); //PCM header size
-				uint16ToArray(hdrData, 20, 1); //audio format (PCM = 1)
-				uint16ToArray(hdrData, 22, channelCount);
-				uint32ToArray(hdrData, 24, buffer.sampleRate | 0);
-				uint32ToArray(hdrData, 28, (buffer.sampleRate | 0) * blockAlign);
-				uint16ToArray(hdrData, 32, blockAlign);
-				uint16ToArray(hdrData, 34, 16); //bits per samples
-				uint32ToArray(hdrData, 36, 0x61746164); //"data"
-				uint32ToArray(hdrData, 40, byteLength);
-				//Massive workaround to save the file in Chrome (simulate a click on a link)! ;)
-				url = (window.URL || window.webkitURL);
-				objurl = url.createObjectURL(new Blob([hdrData, dstData], { type: "application/octet-stream" }));
-				pendingUrls.push(objurl);
-				a = document.createElement("a");
-				a.href = objurl;
-				a.download = "FilteredFile.wav";
-				a.click();
-			}
-			return true;
-		}
-		function finishLoadingIntoMemoryAndPlay(array, offline) {
+		function finishLoadingIntoMemoryAndPlay(array, name, offline) {
 			try {
-				//Eventhough everything up to here is asynchronous, createBuffer is synchronous and usually takes some time...
-				//I thought of using Web Workers, but audioContext cannot be sent to another thread yet... :(
-				var offlineAudioContext, buffer = audioContext.createBuffer(array, false);
-				if (offline) {
-					offlineAudioContext = (window.OfflineAudioContext ? new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : (window.webkitOfflineAudioContext ? new webkitOfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : null));
-					source = offlineAudioContext.createBufferSource();
-					source.buffer = buffer;
-					source.loop = false;
-					graphicEqualizer.changeAudioContext(offlineAudioContext);
-					source.connect(graphicEqualizer.filter.convolver, 0, 0);
-					graphicEqualizer.filter.convolver.connect(offlineAudioContext.destination, 0, 0);
-					source.noteOn(0);
-					offlineAudioContext.oncomplete = offlineAudioContextCompleted;
-					offlineAudioContext.startRendering();
-				} else {
-					source = audioContext.createBufferSource();
-					source.buffer = buffer;
-					source.loop = true;
-					graphicEqualizer.changeAudioContext(audioContext);
-					source.connect(graphicEqualizer.filter.convolver, 0, 0);
-					updateConnections();
-					source.noteOn(0);
-					$("btnStop").disabled = "";
-				}
+				//Decode the array asynchronously
+				audioContext.decodeAudioData(array, function (buffer) {
+					try {
+						if (offline) {
+							//Start processing the decoded buffer offline
+							var offlineAudioContext = (window.OfflineAudioContext ? new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : (window.webkitOfflineAudioContext ? new webkitOfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : null));
+							if (!offlineAudioContext)
+								return handleError("Offline audio processing is not supported!");
+							source = offlineAudioContext.createBufferSource();
+							source.buffer = buffer;
+							source.loop = false;
+							graphicEqualizer.changeAudioContext(offlineAudioContext);
+							source.connect(graphicEqualizer.filter.convolver, 0, 0);
+							graphicEqualizer.filter.convolver.connect(offlineAudioContext.destination, 0, 0);
+							source.start(0);
+							offlineAudioContext.oncomplete = function (renderedData) {
+								var worker = new Worker("WaveExporterWorker.js"),
+									leftBuffer = renderedData.renderedBuffer.getChannelData(0).buffer,
+									rightBuffer = ((renderedData.renderedBuffer.numberOfChannels > 1) ? renderedData.renderedBuffer.getChannelData(1).buffer : null);
+								worker.onmessage = function (e) {
+									showLoader(false);
+									enableButtons(true);
+									//Massive workaround to save the file (simulate a click on a link)!
+									//(From: http://updates.html5rocks.com/2011/08/Saving-generated-files-on-the-client-side)
+									var a = document.createElement("a"), i = name.lastIndexOf("."), evt;
+									a.href = createObjURL(new Blob(e.data, { type: "application/octet-stream" }));
+									a.download = ((i > 0) ? (name.substring(0, i) + " - (Filtered).wav") : "FilteredFile.wav");
+									//a.click(); //Works on Chrome, but not on Firefox...
+									evt = document.createEvent("MouseEvents");
+									evt.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+									a.dispatchEvent(evt);
+									return true;
+								};
+								worker.postMessage({
+									left: leftBuffer,
+									right: rightBuffer,
+									length: renderedData.renderedBuffer.length,
+									sampleRate: (renderedData.renderedBuffer.sampleRate | 0)
+								}, [ leftBuffer, rightBuffer ]);
+								return true;
+							};
+							offlineAudioContext.startRendering();
+						} else {
+							//Play the decoded buffer
+							source = audioContext.createBufferSource();
+							source.buffer = buffer;
+							source.loop = true;
+							graphicEqualizer.changeAudioContext(audioContext);
+							source.connect(graphicEqualizer.filter.convolver, 0, 0);
+							updateConnections();
+							source.start(0);
+							showLoader(false);
+							$("btnStop").disabled = "";
+						}
+					} catch (e) {
+						handleError(e);
+					}
+					return true;
+				}, function () {
+					return handleError("Error decoding the file!");
+				});
 			} catch (e) {
-				showLoader(false);
-				enableButtons(true);
-				alert(e);
+				handleError(e);
 			}
 			return true;
 		}
 		function loadIntoMemoryAndPlay(offline) {
-			var r, done = false;
+			var r, f, done = false;
 			showLoader(true);
 			if ($("chkSample").checked) {
 				//Read the sample file into memory
 				r = new XMLHttpRequest();
+				r.open("GET", "midnightride.mp3", true);
 				r.responseType = "arraybuffer";
-				r.addEventListener("readystatechange", function () {
+				r.onreadystatechange = function () {
 					if (r.readyState === 4 && !done) {
 						done = true;
-						finishLoadingIntoMemoryAndPlay(r.response, offline);
+						finishLoadingIntoMemoryAndPlay(r.response, "Midnight Ride.mp3", offline);
 					}
 					return true;
-				});
-				r.open("GET", "midnightride.mp3", true);
+				};
 				r.send();
 			} else {
+				f = $("txtFile").files[0];
 				//Read the chosen file into memory
 				r = new FileReader();
-				r.addEventListener("load", function () {
-					finishLoadingIntoMemoryAndPlay(r.result, offline);
+				r.onload = function () {
+					done = true;
+					finishLoadingIntoMemoryAndPlay(r.result, f.name, offline);
 					return true;
-				});
-				r.addEventListener("loadend", function () {
-					if (!offline)
+				};
+				r.onerror = function () {
+					return handleError("Error reading the file!");
+				};
+				r.onloadend = function () {
+					if (!offline && !done)
 						showLoader(false);
 					return true;
-				});
-				r.readAsArrayBuffer($("txtFile").files[0]);
+				};
+				r.readAsArrayBuffer(f);
 			}
 			return true;
 		}
 		function prepareStreamingAndPlay() {
-			var url = (window.URL || window.webkitURL), objurl = null;
 			//Chrome now supports processing audio played over streamings (tested with Chrome v29.0.1547.76)
 			//If chkSample is checked, use the sample file's URL, otherwise, create a temporary URL for the chosen file
-			sourceAudio = new Audio($("chkSample").checked ? "midnightride.mp3" : (objurl = url.createObjectURL($("txtFile").files[0])));
+			sourceAudio = new Audio($("chkSample").checked ? "midnightride.mp3" : createObjURL($("txtFile").files[0]));
 			sourceAudio.loop = true;
 			source = audioContext.createMediaElementSource(sourceAudio);
 			sourceAudio.load();
@@ -339,13 +332,16 @@
 			source.connect(graphicEqualizer.filter.convolver, 0, 0);
 			updateConnections();
 			sourceAudio.play();
-			pendingUrls.push(objurl);
 			$("btnStop").disabled = "";
 			return true;
 		}
 		function play() {
 			if ($("txtFile").files.length === 0 && !$("chkSample").checked) {
 				alert("Please, select a file to play!");
+				return true;
+			}
+			if (!window.AudioContext && !window.webkitAudioContext) {
+				alert("Your browser does not seem to support the Web Audio API! :(");
 				return true;
 			}
 			stop();
@@ -356,9 +352,7 @@
 				else
 					prepareStreamingAndPlay();
 			} catch (e) {
-				showLoader(false);
-				enableButtons(true);
-				alert(e);
+				handleError(e);
 			}
 			return true;
 		}
@@ -367,14 +361,20 @@
 				alert("Please, select a file to process!");
 				return true;
 			}
+			if (!window.AudioContext && !window.webkitAudioContext) {
+				alert("Your browser does not seem to support the Web Audio API! :(");
+				return true;
+			}
+			if (!window.Worker) {
+				alert("Your browser does not seem to support the Web Worker API! :(");
+				return true;
+			}
 			stop();
 			enableButtons(false);
 			try {
 				loadIntoMemoryAndPlay(true);
 			} catch (e) {
-				showLoader(false);
-				enableButtons(true);
-				alert(e);
+				handleError(e);
 			}
 			return true;
 		}
@@ -391,11 +391,11 @@ or<br />
 <button id="btnStop">Stop</button>
 |
 <select id="cbLoadType">
-	<option value="0" selected="selected">Play file via streaming **</option>
-	<option value="1">Load entire file into memory before playing</option>
+	<option value="0" selected="selected">Play file via streaming *</option>
+	<option value="1">Load entire file into memory before playing **</option>
 </select>
 <div class="SEP"></div>
-<button id="btnProcess">Process file offline and download the filtered version (WAVE)!</button> <img class="HID" id="imgLoader" alt="Processing..." src="loader.gif" />
+<button id="btnProcess">Process file offline and download the filtered version (WAVE)! **</button> <img class="HID" id="imgLoader" alt="Processing..." src="loader.gif" />
 <div class="SEP"></div>
 <label for="cbFilterLength">Filter Length:</label> <select id="cbFilterLength">
 	<option value="64">64</option>
@@ -428,11 +428,12 @@ or<br />
 	document.write([" ", "g", "m", "a", "il", " dot "].join(""));
 	document.write(["c", "o", "m"].join(""));
 	//]]></script></code>), based on my old C++ graphic equalizer.</p>
-<p>Check out the <a href="https://github.com/carlosrafaelgn/GraphicalFilterEditor">source</a> for more information! This test uses both <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a> and <a href="http://www.w3.org/TR/FileAPI/">File API</a> and requires the latest version of Chrome to run properly.</p>
-<p>Please, load files with a sample rate of 44100Hz (the filter itself supports any sample rate, this is just due to AudioContext).</p>
+<p>Check out the <a href="https://github.com/carlosrafaelgn/GraphicalFilterEditor">source</a> for more information! This test uses <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a>, <a href="http://www.w3.org/TR/FileAPI/">File API</a> and <a href="http://www.w3.org/TR/workers/">Web Worker API</a> and requires a <a href="http://caniuse.com/audio-api">compliant browser</a> to run properly. In <a href="https://wiki.mozilla.org/WebAudio_API_Rollout_Status">Firefox 23 and 24</a>, Web Audio API must be enabled using <code>about:config</code>.</p>
+<p>Please, load files with a sample rate of 44100Hz or 48000Hz (the filter itself supports any sample rate, this is just due to AudioContext).</p>
 <p>Check out the functions <code>main()</code> and <code>updateConnections()</code> to see how to have stereo output using two analyzers!</p>
-<p>If running this locally, Chrome must be started with the command-line option <code>--allow-file-access-from-files</code> otherwise you will not be able to load any files!</p>
-<p>** Playing files via streaming was tested on Chrome v29.0.1547.76. If any error happens, or you hear no difference when changing the filter, please, load the entire file into memory before playing.</p>
+<p>If running this locally in Chrome, it must be started with the command-line option <code>--allow-file-access-from-files</code> otherwise you will not be able to load any files!</p>
+<p>* Playing files via streaming was tested on Chrome v29.0.1547.76 and later, and on Firefox Nightly v27.0a1 (2013-10-04). If any error happens, or you hear no difference when changing the filter, please, load the entire file into memory before playing.</p>
+<p>** Chrome v30 has apparently stopped to support loading large files into memory. If any error happens, or only a small portion of the file is played/filtered, please, use Firefox 26/27+.</p>
 
 <script type="text/javascript">//<![CDATA[
 "use strict"; main(); //]]></script>
