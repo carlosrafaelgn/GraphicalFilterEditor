@@ -1,7 +1,7 @@
 //
-// GraphicalFilterEditorControl.js is distributed under the FreeBSD License
+// GraphicalFilterEditor is distributed under the FreeBSD License
 //
-// Copyright (c) 2012, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2013, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 // of the authors and should not be interpreted as representing official policies, 
 // either expressed or implied, of the FreeBSD Project.
 //
-// https://github.com/carlosrafaelgn/GraphicalFilterEditor/blob/master/GraphicalFilterEditorControl.js
+// https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 "use strict";
 

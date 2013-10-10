@@ -1,5 +1,5 @@
 //
-// Analyzer.js is distributed under the FreeBSD License
+// GraphicalFilterEditor is distributed under the FreeBSD License
 //
 // Copyright (c) 2013, Carlos Rafael Gimenes das Neves
 // All rights reserved.
@@ -28,7 +28,7 @@
 // of the authors and should not be interpreted as representing official policies, 
 // either expressed or implied, of the FreeBSD Project.
 //
-// https://github.com/carlosrafaelgn/GraphicalFilterEditor/blob/master/Analyzer.js
+// https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 "use strict";
 
