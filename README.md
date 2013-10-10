@@ -15,3 +15,5 @@ This project uses [Web Audio API][1], [File API][2] and [Web Worker API][3] and 
 [5]: https://wiki.mozilla.org/WebAudio_API_Rollout_Status
 
 If running this sample locally, Chrome must be started with the command-line option --allow-file-access-from-files otherwise you will not be able to load any files!
+
+This projected is licensed under the terms of the MIT license. See LICENSE.txt for more details.
