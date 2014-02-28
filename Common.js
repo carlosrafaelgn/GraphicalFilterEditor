@@ -33,7 +33,7 @@
 "use strict";
 
 //Miscellaneous functions
-var _isTouch = (("ontouchend" in document) ? true : false);
+window._isTouch = (("ontouchend" in document) ? true : false);
 function seal$(x) {
 	if (Object.seal) Object.seal(x);
 	return x;
@@ -50,12 +50,6 @@ function cancelEvent(e) {
 		e.stopPropagation();
 	if (e.preventDefault)
 		e.preventDefault();
-	if (e.cancelBubble !== undefined)
-		e.cancelBubble = true;
-	if (e.cancel !== undefined)
-		e.cancel = true;
-	if (e.returnValue !== undefined)
-		e.returnValue = false;
 	return false;
 }
 function leftTop(element) {
@@ -75,7 +69,7 @@ function leftTop(element) {
 	}
 	return [left, top];
 }
-var touchMouse = (_isTouch ? {
+window.touchMouse = (_isTouch ? {
 	_cloneEvent: function (e, cx, cy, px, py) {
 		var c = { button: 0, target: e.target, eventPhase: e.eventPhase, clientX: cx, clientY: cy, pageX: px, pageY: py };
 		if (e.stopPropagation) c.stopPropagation = function () { return e.stopPropagation(); };
@@ -150,8 +144,8 @@ var touchMouse = (_isTouch ? {
 		}
 		touchMouse._terminateEvent(e, c);
 	}
-} : undefined),
-attachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
+} : undefined);
+window.attachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
 	var e;
 	if (eventName === "click") {
 		observable.addEventListener(eventName, targetFunction, capturePhase);
@@ -183,8 +177,8 @@ attachMouse = (_isTouch ? function (observable, eventName, targetFunction, captu
 	return true;
 } : function (observable, eventName, targetFunction, capturePhase) {
 	return observable.addEventListener(eventName, targetFunction, capturePhase);
-}),
-detachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
+});
+window.detachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {
 	var i, l, p, e;
 	if (eventName === "click") {
 		observable.removeEventListener(eventName, targetFunction, capturePhase);
