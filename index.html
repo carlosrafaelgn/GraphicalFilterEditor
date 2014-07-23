@@ -2,6 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=544, initial-scale=1" />
 	<link rel="Shortcut Icon" href="/favicon.ico" />
 	<title>Graphical Filter Editor (Test)</title>
 	<style type="text/css">
@@ -48,7 +49,7 @@
 	<script type="text/javascript">
 		//<![CDATA[
 		"use strict";
-		var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger, pendingUrls;
+		var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger, pendingUrls, chkSource;
 		//fakeAudioContext was created only to act as a "null audio context", making at least the graph work in other browsers
 		function fakeAudioContext() {
 		}
@@ -96,7 +97,12 @@
 			attachMouse($("btnPlay"), "click", play);
 			attachMouse($("btnStop"), "click", stop);
 			attachMouse($("btnProcess"), "click", processAndDownload);
-			$("txtFile").addEventListener("change", function () { $("chkSample").checked = false; return true; });
+			chkSource = [$("chkSource0"), $("chkSource1"), $("chkSource2")];
+			chkSource[0].addEventListener("change", chkSource_Change);
+			chkSource[1].addEventListener("change", chkSource_Change);
+			chkSource[2].addEventListener("change", chkSource_Change);
+			$("txtFile").addEventListener("change", txtFile_Change);
+			$("txtURL").addEventListener("change", txtURL_Change);
 			$("cbFilterLength").addEventListener("change", filterLengthChanged);
 			$("cbAnalyzer").addEventListener("change", updateConnections);
 			audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
@@ -107,6 +113,22 @@
 			splitter = audioContext.createChannelSplitter();
 			merger = audioContext.createChannelMerger();
 			return true;
+		}
+		function chkSource_Change() {
+			var e = (chkSource[1].checked ? "disabled" : "");
+			$("cbLoadType").disabled = e;
+			$("btnProcess").disabled = e;
+			return true;
+		}
+		function selectSource(index) {
+			chkSource[index].checked = true;
+			return chkSource_Change();
+		}
+		function txtFile_Change() {
+			return selectSource(0);
+		}
+		function txtURL_Change() {
+			return selectSource(1);
 		}
 		function cleanUpAnalyzer() {
 			if (analyzer) {
@@ -129,6 +151,9 @@
 			$("btnPlay").disabled = e;
 			$("btnProcess").disabled = e;
 			$("btnStop").disabled = e;
+			chkSource[0].disabled = e;
+			chkSource[1].disabled = e;
+			chkSource[2].disabled = e;
 			return true;
 		}
 		function showLoader(show) {
@@ -277,7 +302,7 @@
 		function loadIntoMemoryAndPlay(offline) {
 			var r, f, done = false;
 			showLoader(true);
-			if ($("chkSample").checked) {
+			if (chkSource[2].checked) {
 				//Read the sample file into memory
 				r = new XMLHttpRequest();
 				r.open("GET", "midnightride.mp3", true);
@@ -313,8 +338,14 @@
 		}
 		function prepareStreamingAndPlay() {
 			//Chrome now supports processing audio played over streamings (tested with Chrome v29.0.1547.76)
-			//If chkSample is checked, use the sample file's URL, otherwise, create a temporary URL for the chosen file
-			sourceAudio = new Audio($("chkSample").checked ? "midnightride.mp3" : createObjURL($("txtFile").files[0]));
+			if (chkSource[0].checked) {
+				//If chkSource[0] is checked, create a temporary URL for the chosen file
+				sourceAudio = new Audio(createObjURL($("txtFile").files[0]));
+			} else if (chkSource[1].checked) {
+				sourceAudio = new Audio($("txtURL").value);
+			} else {
+				sourceAudio = new Audio("midnightride.mp3");
+			}
 			sourceAudio.loop = true;
 			source = audioContext.createMediaElementSource(sourceAudio);
 			sourceAudio.load();
@@ -326,9 +357,16 @@
 			return true;
 		}
 		function play() {
-			if ($("txtFile").files.length === 0 && !$("chkSample").checked) {
-				alert("Please, select a file to play!");
-				return true;
+			if (chkSource[0].checked) {
+				if ($("txtFile").files.length === 0) {
+					alert("Please, select a file to play!");
+					return true;
+				}
+			} else if (chkSource[1].checked) {
+				if ($("txtURL").value.length === 0) {
+					alert("Please, type the address of a file to be played :(");
+					return true;
+				}
 			}
 			if (!window.AudioContext && !window.webkitAudioContext) {
 				alert("Your browser does not seem to support the Web Audio API! :(");
@@ -337,7 +375,7 @@
 			stop();
 			enableButtons(false);
 			try {
-				if (parseInt($("cbLoadType").value))
+				if (!chkSource[1].checked && parseInt($("cbLoadType").value))
 					loadIntoMemoryAndPlay(false);
 				else
 					prepareStreamingAndPlay();
@@ -347,8 +385,15 @@
 			return true;
 		}
 		function processAndDownload() {
-			if ($("txtFile").files.length === 0 && !$("chkSample").checked) {
-				alert("Please, select a file to process!");
+			if (chkSource[0].checked) {
+				if ($("txtFile").files.length === 0) {
+					alert("Please, select a file to process!");
+					return true;
+				}
+			} else if (chkSource[1].checked) {
+				//We can't load an entire stream into memory... as far as we know, a few URL's
+				//point to infinite streams ;)
+				alert("Sorry, but that action is not available for streams :(");
 				return true;
 			}
 			if (!window.AudioContext && !window.webkitAudioContext) {
@@ -373,9 +418,11 @@
 </head>
 <body>
 <div style="margin: 16px 0px;"><div style="display:inline-block; background-color: #303030; padding: 8px;">
-<label for="txtFile">Load your own file:</label> <input type="file" id="txtFile" /><br />
+<input type="radio" value="0" name="chkSource" id="chkSource0" /> <label for="txtFile" onclick="return selectSource(0);">Load your own file:</label> <input type="file" id="txtFile" /><br />
 or<br />
-<input type="checkbox" id="chkSample" checked="checked" /><label for="chkSample">Try this sample: 50 seconds from the free track Midnight Ride, created by SoundJay</label> - <a href="http://www.soundjay.com">www.soundjay.com</a><br />
+<input type="radio" value="1" name="chkSource" id="chkSource1" /> <label for="txtURL" onclick="return selectSource(1);">Enter the address of a file:</label> <input type="url" id="txtURL" /> <span>* Not all URL's may work, and may fail without warning :(</span><br />
+or<br />
+<input type="radio" value="2" name="chkSource" id="chkSource2" checked="checked" /> <label for="chkSource2" onclick="return selectSource(2);">Try this sample: 50 seconds from the free track Midnight Ride, created by SoundJay</label> - <a href="http://www.soundjay.com">www.soundjay.com</a><br />
 <div class="SEP"></div>
 <button id="btnPlay">Play</button>
 <button id="btnStop">Stop</button>
