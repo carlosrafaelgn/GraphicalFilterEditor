@@ -1,7 +1,7 @@
 //
 // GraphicalFilterEditor is distributed under the FreeBSD License
 //
-// Copyright (c) 2013, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2012-2014, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -46,10 +46,12 @@ function $(e) {
 	return document.getElementById(e);
 }
 function cancelEvent(e) {
-	if (e.stopPropagation)
-		e.stopPropagation();
+	if (e.isCancelled !== undefined)
+		e.isCancelled = true;
 	if (e.preventDefault)
 		e.preventDefault();
+	if (e.stopPropagation)
+		e.stopPropagation();
 	return false;
 }
 function leftTop(element) {
@@ -71,18 +73,9 @@ function leftTop(element) {
 }
 window.touchMouse = (_isTouch ? {
 	_cloneEvent: function (e, cx, cy, px, py) {
-		var c = { button: 0, target: e.target, eventPhase: e.eventPhase, clientX: cx, clientY: cy, pageX: px, pageY: py };
-		if (e.stopPropagation) c.stopPropagation = function () { return e.stopPropagation(); };
+		var c = { button: 0, target: e.target, eventPhase: e.eventPhase, clientX: cx, clientY: cy, pageX: px, pageY: py, isCancelled: false };
 		if (e.preventDefault) c.preventDefault = function () { return e.preventDefault(); };
-		if (e.cancelBubble !== undefined) c.cancelBubble = e.cancelBubble;
-		if (e.cancel !== undefined) c.cancel = e.cancel;
-		if (e.returnValue !== undefined) c.returnValue = e.returnValue;
-		return c;
-	},
-	_terminateEvent: function (e, c) {
-		if (c.cancelBubble) e.cancelBubble = c.cancelBubble;
-		if (c.cancel) e.cancel = c.cancel;
-		if (e.returnValue !== undefined) e.returnValue = c.returnValue;
+		if (e.stopPropagation) c.stopPropagation = function () { return e.stopPropagation(); };
 		return c;
 	},
 	_touchstartc: function (e) {
@@ -106,7 +99,7 @@ window.touchMouse = (_isTouch ? {
 			for (i = l.length - 1; i >= 0; i--)
 				l[i].call(t, c);
 		}
-		touchMouse._terminateEvent(e, c);
+		return !c.isCancelled;
 	},
 	_touchmovec: function (e) {
 		return touchMouse.touchmove(this, "_tc", e);
@@ -121,7 +114,7 @@ window.touchMouse = (_isTouch ? {
 			for (i = l.length - 1; i >= 0; i--)
 				l[i].call(t, c);
 		}
-		touchMouse._terminateEvent(e, c);
+		return !c.isCancelled;
 	},
 	_touchendc: function (e) {
 		return touchMouse.touchend(this, "_tc", e);
@@ -142,7 +135,7 @@ window.touchMouse = (_isTouch ? {
 			for (i = l.length - 1; i >= 0; i--)
 				l[i].call(t, c);
 		}
-		touchMouse._terminateEvent(e, c);
+		return !c.isCancelled;
 	}
 } : undefined);
 window.attachMouse = (_isTouch ? function (observable, eventName, targetFunction, capturePhase) {

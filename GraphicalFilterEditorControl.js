@@ -1,7 +1,7 @@
 //
 // GraphicalFilterEditor is distributed under the FreeBSD License
 //
-// Copyright (c) 2013, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2012-2014, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
