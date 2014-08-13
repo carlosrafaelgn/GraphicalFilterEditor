@@ -46,11 +46,11 @@ function $(e) {
 	return document.getElementById(e);
 }
 function cancelEvent(e) {
-	if (e.isCancelled !== undefined)
+	if ("isCancelled" in e)
 		e.isCancelled = true;
-	if (e.preventDefault)
+	if ("preventDefault" in e)
 		e.preventDefault();
-	if (e.stopPropagation)
+	if ("stopPropagation" in e)
 		e.stopPropagation();
 	return false;
 }
