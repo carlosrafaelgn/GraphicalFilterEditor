@@ -32,10 +32,10 @@
 //
 "use strict";
 
-function GraphicalFilterEditorControl(filterLength, sampleRate, audioContext) {
+function GraphicalFilterEditorControl(filterLength, audioContext) {
 	var mthis = this;
 
-	this.filter = new GraphicalFilterEditor(filterLength, sampleRate, audioContext);
+	this.filter = new GraphicalFilterEditor(filterLength, audioContext);
 	this.element = null;
 	this.canvas = null;
 	this.ctx = null;

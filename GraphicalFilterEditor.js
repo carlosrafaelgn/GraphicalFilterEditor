@@ -32,17 +32,17 @@
 //
 "use strict";
 
-function GraphicalFilterEditor(filterLength, sampleRate, audioContext) {
+function GraphicalFilterEditor(filterLength, audioContext) {
 	if (filterLength < 8 || (filterLength & (filterLength - 1))) {
 		alert("Sorry, class available only for fft sizes that are a power of 2 >= 8! :(");
 		throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 	}
 	this.filterLength = filterLength;
-	this.sampleRate = sampleRate;
+	this.sampleRate = (audioContext.sampleRate ? audioContext.sampleRate : 44100);
 	this.isNormalized = false;
 	this.binCount = (filterLength >>> 1) + 1;
 	this.audioContext = audioContext;
-	this.filterKernel = audioContext.createBuffer(2, filterLength, sampleRate);
+	this.filterKernel = audioContext.createBuffer(2, filterLength, this.sampleRate);
 	this.convolver = audioContext.createConvolver();
 	this.convolver.normalize = false;
 	this.convolver.buffer = this.filterKernel;

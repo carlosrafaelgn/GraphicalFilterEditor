@@ -36,6 +36,7 @@ function Analyzer(audioContext, graphicEqualizer) {
 	var i, mthis = this, pi = Math.PI, exp = Math.exp, cos = Math.cos, invln10 = 1 / Math.LN10;
 	//only the first 1024 samples are necessary as the last
 	//1024 samples would always be zeroed out!
+	this.sampleRate = graphicEqualizer.sampleRate;
 	this.data = new Uint8Array(1024);
 	this.analyzerL = audioContext.createAnalyser();
 	this.analyzerL.fftSize = 1024;
@@ -115,11 +116,11 @@ Analyzer.prototype = {
 	stop: function () {
 		this.alive = false;
 		(
+			window.cancelAnimationFrame ||
 			window.webkitCancelAnimationFrame ||
 			window.mozCancelAnimationFrame ||
 			window.oCancelAnimationFrame ||
 			window.msCancelAnimationFrame ||
-			window.cancelAnimationFrame ||
 			function (id) { return window.clearTimeout(id); }
 		)(this.lastRequest);
 		this.lastRequest = null;
@@ -133,7 +134,7 @@ Analyzer.prototype = {
 		//results in two lines that get drawn on the canvas.
 		var d, im, i, w = this.window, tmp = this.tmp, data = this.data, ctx = this.ctx, sqrt = Math.sqrt, ln = Math.log,
 				freq, ii, avg, avgCount,
-				valueCount = 512, bw = 44100 / 2048, //one day this value will be replaced with the actual sample rate
+				valueCount = 512, bw = this.sampleRate / 2048,
 				filterLength2 = (2048 >>> 1), cos = Math.cos, lerp = GraphicalFilterEditor.prototype.lerp,
 				visibleFrequencies = this.visibleFrequencies, colors = Analyzer.prototype.colors;
 		if (!this.alive) return false;

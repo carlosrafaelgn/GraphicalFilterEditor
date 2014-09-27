@@ -99,11 +99,11 @@ AnalyzerWL.prototype = {
 	stop: function () {
 		this.alive = false;
 		(
+			window.cancelAnimationFrame ||
 			window.webkitCancelAnimationFrame ||
 			window.mozCancelAnimationFrame ||
 			window.oCancelAnimationFrame ||
 			window.msCancelAnimationFrame ||
-			window.cancelAnimationFrame ||
 			function (id) { return window.clearTimeout(id); }
 		)(this.lastRequest);
 		this.lastRequest = null;

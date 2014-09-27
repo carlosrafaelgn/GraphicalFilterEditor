@@ -56,6 +56,7 @@
 		function fakeAudioContext() {
 		}
 		fakeAudioContext.prototype = {
+			sampleRate: 44100,
 			createChannelSplitter: function () {
 				return {};
 			},
@@ -67,7 +68,7 @@
 			},
 			createBuffer: function (channels, filterLength, sampleRate) {
 				if (sampleRate === undefined)
-					return this.createBuffer(2, 1024, 44100);
+					return this.createBuffer(2, 1024, this.sampleRate);
 				return {
 					duration: filterLength / sampleRate,
 					gain: 1,
@@ -108,7 +109,7 @@
 			$("cbFilterLength").addEventListener("change", filterLengthChanged);
 			$("cbAnalyzer").addEventListener("change", updateConnections);
 			audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
-			graphicEqualizer = new GraphicalFilterEditorControl(2048, 44100, audioContext);
+			graphicEqualizer = new GraphicalFilterEditorControl(2048, audioContext);
 			graphicEqualizer.createControl($("equalizerPlaceholder"));
 			analyzerType = null;
 			analyzer = null;
