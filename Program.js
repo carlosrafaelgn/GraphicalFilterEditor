@@ -1,4 +1,4 @@
-﻿//
+//
 // GraphicalFilterEditor is distributed under the FreeBSD License
 //
 // Copyright (c) 2012-2015, Carlos Rafael Gimenes das Neves
@@ -149,16 +149,16 @@ Program.prototype = {
 		return true;
 	},
 	getAttribsAndUniforms: function (src, attribs, uniforms, utypes) {
-		//esse é um parser bem simples, que apenas procura por linhas iniciadas por "uniform",
-		//considera apenas comentários do tipo //
+		// This is a very simple parser, which handles only lines starting with "uniform",
+		// with "attribute or lines starting with a // comment
 		var i, ii, line, lines = src.split("\n"), tokens, token, currentType, breakNow, lastChar;
 		for (i = 0; i < lines.length; i++) {
-			//remove os espaços do começo e do final da linha
+			// Remove extra spaces from the beginning and from the end of the line
 			line = lines[i].replace(/^\s+|\s+$/g, "");
 			if (line.substr(0, 7) === "uniform") {
-				//não considera os tabs (por hora)
+				// We do not consider the possibility of "\t" separating tokens (for now)
 				tokens = line.split(" ");
-				//pula o uniform e o tipo
+				// Skip the "uniform" token and store the current type to be used aftwerwards
 				currentType = tokens[1];
 				for (ii = 2; ii < tokens.length; ii++) {
 					token = tokens[ii];
@@ -173,9 +173,9 @@ Program.prototype = {
 					if (breakNow) break;
 				}
 			} else if (line.substr(0, 9) === "attribute") {
-				//não considera os tabs (por hora)
+				// We do not consider the possibility of "\t" separating tokens (for now)
 				tokens = line.split(" ");
-				//pula o attribute e o tipo
+				// Skip the "attribute" token and store the current type to be used aftwerwards
 				for (ii = 2; ii < tokens.length; ii++) {
 					token = tokens[ii];
 					if (token === ";") break;

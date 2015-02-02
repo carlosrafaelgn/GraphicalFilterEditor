@@ -474,22 +474,21 @@ or<br />
 </p>
 <div class="SEP"></div>
 <p>This is a test for a JavaScript graphical filter editor, created by me
-(Carlos Rafael Gimenes das Neves - <a href="http://twitter.com/carlosrafaelgn">@carlosrafaelgn</a>,
-<code><script type="text/javascript">//<![CDATA[
-	"use strict";
-	document.write(["c", "a", "r", "l", "o", "s", "r", "a", "f", "a", "e", "l", ".", "prog"].join(""));
-	document.write(" at ");
-	document.write([" ", "g", "m", "a", "il", " dot "].join(""));
-	document.write(["c", "o", "m"].join(""));
-	//]]></script></code>), based on my old C++ graphic equalizer.</p>
+(Carlos Rafael Gimenes das Neves - <a href="http://twitter.com/carlosrafaelgn">@carlosrafaelgn</a>, <code id="shdg3724"></code>), based on my old C++ graphic equalizer.</p>
 <p>Check out the <a href="https://github.com/carlosrafaelgn/GraphicalFilterEditor">source</a> for more information! This test uses <a href="http://www.w3.org/TR/webaudio/">Web Audio API</a>, <a href="http://www.w3.org/TR/FileAPI/">File API</a> and <a href="http://www.w3.org/TR/workers/">Web Worker API</a> and requires a <a href="http://caniuse.com/audio-api">compliant browser</a> to run properly. In <a href="https://wiki.mozilla.org/WebAudio_API_Rollout_Status">Firefox 23 and 24</a>, Web Audio API must be enabled using <code>about:config</code>.</p>
 <p>Please, load files with a sample rate of 44100Hz or 48000Hz (the filter itself supports any sample rate, this is just due to AudioContext).</p>
 <p>Check out the functions <code>main()</code> and <code>updateConnections()</code> to see how to have stereo output using two analyzers!</p>
 <p>If running this locally in Chrome, it must be started with the command-line option <code>--allow-file-access-from-files</code> otherwise you will not be able to load any files!</p>
 <p>* Playing files via streaming was tested on Chrome v29.0.1547.76 and later, and on Firefox Nightly v27.0a1 (2013-10-04). If any error happens, or you hear no difference when changing the filter, please, load the entire file into memory before playing.</p>
-<p>** Chrome v30 has apparently stopped to support loading large files into memory. If any error happens, or only a small portion of the file is played/filtered, please, use either Chrome v29/v32 or Firefox v26/v27+.</p>
+<p>** Chrome v30 has apparently stopped to support loading large files into memory. If any error happens, or only a small portion of the file is played/filtered, please, use either Chrome v29/v32+ or Firefox v26/v27+.</p>
 
 <script type="text/javascript">//<![CDATA[
-"use strict"; main(); //]]></script>
+	"use strict";
+	document.getElementById("shdg3724").appendChild(document.createTextNode(
+	["c", "a", "r", "l", "o", "s", "r", "a", "f", "a", "e", "l", ".", "prog"].join("") +
+	"\u0040" +
+	["g", "m", "a", "i", "l", "\u002e"].join("") +
+	["c", "o", "m"].join("")));
+	main(); //]]></script>
 </body>
 </html>

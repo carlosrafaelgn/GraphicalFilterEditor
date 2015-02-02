@@ -52,16 +52,16 @@ function SoundParticles(audioContext, graphicEqualizer) {
 		COLORS_B = function (A, B) { mthis.COLORS[(3 * A) + 2] = B; };
 	this.analyzerL = audioContext.createAnalyser();
 	this.analyzerL.fftSize = 1024;
-	this.analyzerL.maxDecibels = -20;
-	this.analyzerL.minDecibels = -60;
+	this.analyzerL.maxDecibels = -12;
+	this.analyzerL.minDecibels = -45;
 	this.analyzerL.smoothingTimeConstant = 0;
 	this.analyzerR = audioContext.createAnalyser();
 	this.analyzerR.fftSize = 1024;
-	this.analyzerR.maxDecibels = -20;
-	this.analyzerR.minDecibels = -60;
+	this.analyzerR.maxDecibels = -12;
+	this.analyzerR.minDecibels = -45;
 	this.analyzerR.smoothingTimeConstant = 0;
-	this.commonCoefNew = 0.0625 / 16.0;
 	this.processedData = new Uint8Array(512);
+	this.processedDataR = new Uint8Array(512);
 	this.fft = new Float32Array(256);
 	this.analyze = function () { return SoundParticles.prototype.realAnalyze.apply(mthis); };
 	this.canvas = null;
@@ -185,7 +185,7 @@ SoundParticles.prototype = {
 		if (!this.ctx) {
 			this.canvas = document.createElement("canvas");
 			this.canvas.width = 512;
-			this.canvas.height = 512;
+			this.canvas.height = 320;
 			this.canvas.style.position = "relative";
 			this.canvas.style.margin = "0px";
 			this.canvas.style.padding = "0px";
@@ -226,7 +226,7 @@ SoundParticles.prototype = {
 				"gl_FragColor = vec4(vColor.r * a, vColor.g * a, vColor.b * a, 1.0); }", false, false);
 			this.program.use();
 			this.program.texColor(0);
-			this.program.aspect(1, 1);
+			this.program.aspect(320.0 / 512.0, 1);
 
 			var gl = this.ctx, glBuf0, glBuf1, glTex, glVerticesRect, glTexCoordsRect;
 
@@ -327,21 +327,23 @@ SoundParticles.prototype = {
 	realAnalyze: function () {
 		if (!this.alive) return false;
 
-		var time = Date.now(), delta = (time - this.lastTime) * 0.001, gl = this.ctx, a,
-		avg, p = 0, c, ic, i, idx, last = 44, last2 = 116, coefNew = this.commonCoefNew * (time - this.lastTime),
-		coefOld = 1.0 - coefNew, processedData = this.processedData, fft = this.fft,
+		var time = Date.now(), delta = (time - this.lastTime), gl = this.ctx, a,
+		avg, p = 0, c, ic, i, idx, last = 44, last2 = 116, coefNew = (0.0625 / 16.0) * delta,
+		coefOld = 1.0 - coefNew, processedData = this.processedData, processedDataR = this.processedDataR, fft = this.fft,
 		BG_COLUMNS = this.BG_COLUMNS, BG_PARTICLES_BY_COLUMN = this.BG_PARTICLES_BY_COLUMN, COLORS = this.COLORS,
 		program = this.program, bgPos = this.bgPos, bgSpeedY = this.bgSpeedY, bgColor = this.bgColor,
 		bgTheta = this.bgTheta, MAX = Math.max;
 
+		delta *= 0.001;
 		this.lastTime = time;
 
 		// http://www.w3.org/TR/webaudio/
 		// http://webaudio.github.io/web-audio-api/#widl-AnalyserNode-getByteTimeDomainData-void-Uint8Array-array
 		this.analyzerL.getByteFrequencyData(processedData);
-		// Use only the first 256 amplitudes (DC to 11kHz, considering SR = 44kHz)
+		this.analyzerR.getByteFrequencyData(processedDataR);
+		// Use only the first 256 amplitudes (which convers DC to 11025Hz, considering a sample rate of 44100Hz)
 		for (i = 0; i < 256; i++) {
-			c = processedData[i];
+			c = MAX(processedData[i], processedDataR[i]);
 			ic = ((c < 8) ? 0.0 : c);
 			idx = fft[i];
 			if (ic < idx)
@@ -354,27 +356,27 @@ SoundParticles.prototype = {
 
 		i = 2;
 		for (c = 0; c < BG_COLUMNS; c++) {
-			// Increase the amplitudes in order to improve the effect
+			// Increase the amplitudes as the frequency increases, in order to improve the effect
 			if (i < 6) {
 				a = processedData[i] / 255.0;
 				i++;
 			} else if (i < 20) {
-				a = ((processedData[i] + processedData[i + 1]) >> 1) / 255.0;
+				a = 1.5 * ((processedData[i] + processedData[i + 1]) >> 1) / 255.0;
 				i += 2;
 			} else if (i < 36) {
-				a = ((processedData[i] + processedData[i + 1] + processedData[i + 2] + processedData[i + 3]) >> 2) / 255.0;
+				a = 1.5 * ((processedData[i] + processedData[i + 1] + processedData[i + 2] + processedData[i + 3]) >> 2) / 255.0;
 				i += 4;
 			} else if (i < 100) {
 				avg = 0;
 				for (; i < last; i++)
 					avg = MAX(avg, processedData[i]);
-				a = avg / 255.0;
+				a = 2.0 * avg / 255.0;
 				last += 8;
 			} else {
 				avg = 0;
 				for (; i < last2; i++)
 					avg = MAX(avg, processedData[i]);
-				a = avg / 255.0;
+				a = 2.5 * avg / 255.0;
 				last2 += 16;
 			}
 
