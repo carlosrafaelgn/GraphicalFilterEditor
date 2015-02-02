@@ -48,6 +48,8 @@
 	<script type="text/javascript" charset="utf-8" src="GraphicalFilterEditorControl.js"></script>
 	<script type="text/javascript" charset="utf-8" src="Analyzer.js"></script>
 	<script type="text/javascript" charset="utf-8" src="AnalyzerWL.js"></script>
+	<script type="text/javascript" charset="utf-8" src="Program.js"></script>
+	<script type="text/javascript" charset="utf-8" src="SoundParticles.js"></script>
 	<script type="text/javascript">
 		//<![CDATA[
 		"use strict";
@@ -207,12 +209,23 @@
 			if (!source) return false;
 			graphicEqualizer.filter.convolver.disconnect(0);
 			switch (t) {
+				case "soundParticles":
 				case "fft":
 				case "wl":
 					if (analyzerType !== t) {
 						if (analyzer) cleanUpAnalyzer();
 						analyzerType = t;
-						analyzer = ((analyzerType === "fft") ? new Analyzer(audioContext, graphicEqualizer.filter) : new AnalyzerWL(audioContext, graphicEqualizer.filter));
+						switch (t) {
+							case "soundParticles":
+								analyzer = new SoundParticles(audioContext, graphicEqualizer.filter);
+								break;
+							case "fft":
+								analyzer = new Analyzer(audioContext, graphicEqualizer.filter);
+								break;
+							case "wl":
+								analyzer = new AnalyzerWL(audioContext, graphicEqualizer.filter);
+								break;
+						}
 						analyzer.createControl($("analyzerPlaceholder"));
 					}
 
@@ -448,6 +461,7 @@ or<br />
 	<option value="8192">8192</option>
 </select> <label for="cbAnalyzer">Analyzer:</label> <select id="cbAnalyzer">
 	<option value="none" selected="selected">None</option>
+	<option value="soundParticles">Sound Particles</option>
 	<option value="fft">Frequency analyzer</option>
 	<option value="wl">Haar wavelet analyzer</option>
 </select></div></div>

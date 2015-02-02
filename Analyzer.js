@@ -1,17 +1,17 @@
 //
 // GraphicalFilterEditor is distributed under the FreeBSD License
 //
-// Copyright (c) 2012-2014, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2012-2015, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met: 
+// modification, are permitted provided that the following conditions are met:
 //
 // 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer. 
+//    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution. 
+//    and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -25,7 +25,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // The views and conclusions contained in the software and documentation are those
-// of the authors and should not be interpreted as representing official policies, 
+// of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
 //
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
@@ -34,8 +34,8 @@
 
 function Analyzer(audioContext, graphicEqualizer) {
 	var i, mthis = this, pi = Math.PI, exp = Math.exp, cos = Math.cos, invln10 = 1 / Math.LN10;
-	//only the first 1024 samples are necessary as the last
-	//1024 samples would always be zeroed out!
+	// Only the first 1024 samples are necessary as the last
+	// 1024 samples would always be zeroed out!
 	this.sampleRate = graphicEqualizer.sampleRate;
 	this.data = new Uint8Array(1024);
 	this.analyzerL = audioContext.createAnalyser();
@@ -60,18 +60,25 @@ function Analyzer(audioContext, graphicEqualizer) {
 			window.msRequestAnimationFrame ||
 			function (callback, element) { return window.setTimeout(callback, 1000 / 60); });
 	}
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = (window.webkitCancelAnimationFrame ||
+			window.mozCancelAnimationFrame ||
+			window.oCancelAnimationFrame ||
+			window.msCancelAnimationFrame ||
+			function (id) { return window.clearTimeout(id); });
+	}
 	
 	for (i = 0; i < 1024; i++) {
 		this.window[i] =
-		//adjust coefficient (the original C++ code was
-		//meant to be used with 16 bit samples)
+		// Adjust coefficient (the original C++ code was
+		// meant to be used with 16 bit samples)
 		4 *
-		//Hamming window
+		// Hamming window
 		(0.54 - (0.46 * cos(2 * pi * i / 1023)));
 	}
 	for (i = 0; i < 512; i++) {
-		//exp is to increase the gain as the frequency increases
-		//145 is just a gain to make the analyzer look good! :)
+		// exp is to increase the gain as the frequency increases
+		// 145 is just a gain to make the analyzer look good! :)
 		this.multiplier[i] = invln10 * 145 * exp(2.5 * i / 511);
 	}
 	seal$(this);
@@ -115,23 +122,16 @@ Analyzer.prototype = {
 	},
 	stop: function () {
 		this.alive = false;
-		(
-			window.cancelAnimationFrame ||
-			window.webkitCancelAnimationFrame ||
-			window.mozCancelAnimationFrame ||
-			window.oCancelAnimationFrame ||
-			window.msCancelAnimationFrame ||
-			function (id) { return window.clearTimeout(id); }
-		)(this.lastRequest);
+		window.cancelAnimationFrame(this.lastRequest);
 		this.lastRequest = null;
 		return true;
 	},
 	realAnalyze: function () {
-		//all the 0.5's here are because of this explanation:
-		//http://stackoverflow.com/questions/195262/can-i-turn-off-antialiasing-on-an-html-canvas-element
-		//"Draw your 1-pixel lines on coordinates like ctx.lineTo(10.5, 10.5). Drawing a one-pixel line
-		//over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
-		//results in two lines that get drawn on the canvas.
+		// All the 0.5's here are because of this explanation:
+		// http://stackoverflow.com/questions/195262/can-i-turn-off-antialiasing-on-an-html-canvas-element
+		// "Draw your 1-pixel lines on coordinates like ctx.lineTo(10.5, 10.5). Drawing a one-pixel line
+		// over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
+		// results in two lines that get drawn on the canvas.
 		var d, im, i, w = this.window, tmp = this.tmp, data = this.data, ctx = this.ctx, sqrt = Math.sqrt, ln = Math.log,
 				freq, ii, avg, avgCount,
 				valueCount = 512, bw = this.sampleRate / 2048,
@@ -145,7 +145,7 @@ Analyzer.prototype = {
 		for (; i < 2048; i++)
 			tmp[i] = 0;
 		FFTNR.real(tmp, 2048, 1);
-		//DC and Nyquist bins are being ignored
+		// DC and Nyquist bins are being ignored
 		tmp[0] = 0;
 		for (i = 2; i < 2048; i += 2) {
 			//0.0009765625 = 1 / (2048/2)
@@ -201,7 +201,7 @@ Analyzer.prototype = {
 			ii++;
 		}
 
-		//sorry for the copy/paste :(
+		// Sorry for the copy/paste :(
 		w = this.window;
 		data = this.data;
 		this.analyzerR.getByteTimeDomainData(data);
@@ -210,7 +210,7 @@ Analyzer.prototype = {
 		for (; i < 2048; i++)
 			tmp[i] = 0;
 		FFTNR.real(tmp, 2048, 1);
-		//DC and Nyquist bins are being ignored
+		// DC and Nyquist bins are being ignored
 		tmp[0] = 0;
 		for (i = 2; i < 2048; i += 2) {
 			//0.0009765625 = 1 / (2048/2)

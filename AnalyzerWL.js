@@ -1,17 +1,17 @@
 //
 // GraphicalFilterEditor is distributed under the FreeBSD License
 //
-// Copyright (c) 2012-2014, Carlos Rafael Gimenes das Neves
+// Copyright (c) 2012-2015, Carlos Rafael Gimenes das Neves
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met: 
+// modification, are permitted provided that the following conditions are met:
 //
 // 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer. 
+//    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution. 
+//    and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -25,7 +25,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // The views and conclusions contained in the software and documentation are those
-// of the authors and should not be interpreted as representing official policies, 
+// of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
 //
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
@@ -56,6 +56,13 @@ function AnalyzerWL(audioContext) {
 			window.oRequestAnimationFrame ||
 			window.msRequestAnimationFrame ||
 			function (callback, element) { return window.setTimeout(callback, 1000 / 60); });
+	}
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = (window.webkitCancelAnimationFrame ||
+			window.mozCancelAnimationFrame ||
+			window.oCancelAnimationFrame ||
+			window.msCancelAnimationFrame ||
+			function (id) { return window.clearTimeout(id); });
 	}
 	seal$(this);
 	return true;
@@ -98,24 +105,17 @@ AnalyzerWL.prototype = {
 	},
 	stop: function () {
 		this.alive = false;
-		(
-			window.cancelAnimationFrame ||
-			window.webkitCancelAnimationFrame ||
-			window.mozCancelAnimationFrame ||
-			window.oCancelAnimationFrame ||
-			window.msCancelAnimationFrame ||
-			function (id) { return window.clearTimeout(id); }
-		)(this.lastRequest);
+		window.cancelAnimationFrame(this.lastRequest);
 		this.lastRequest = null;
 		return true;
 	},
 	haar: function (x, n, tmp) {
-		//input:
-		//original time / previous lo pass data
-		//output:
-		//scaling = lo pass = 1st half
-		//wl coeff = hi pass = 2nd half
-		//0.70710678118654752440084436210485
+		// input:
+		// original time / previous lo pass data
+		// output:
+		// scaling = lo pass = 1st half
+		// wl coeff = hi pass = 2nd half
+		// 0.70710678118654752440084436210485
 		
 		var i, n2 = n >>> 1, xi, xi1;
 		for (i = 0; i < n; i += 2) {
@@ -139,11 +139,11 @@ AnalyzerWL.prototype = {
 		return true;
 	},
 	realAnalyze: function () {
-		//all the 0.5's here are because of this explanation:
-		//http://stackoverflow.com/questions/195262/can-i-turn-off-antialiasing-on-an-html-canvas-element
-		//"Draw your 1-pixel lines on coordinates like ctx.lineTo(10.5, 10.5). Drawing a one-pixel line
-		//over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
-		//results in two lines that get drawn on the canvas.
+		// All the 0.5's here are because of this explanation:
+		// http://stackoverflow.com/questions/195262/can-i-turn-off-antialiasing-on-an-html-canvas-element
+		// "Draw your 1-pixel lines on coordinates like ctx.lineTo(10.5, 10.5). Drawing a one-pixel line
+		// over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
+		// results in two lines that get drawn on the canvas.
 		var i, t, tot, w, x, y, y2, tmp = this.tmp, oL1, oL2, oR1, oR2,
 			data = this.data, ctx = this.ctx, colors = AnalyzerWL.prototype.colors;
 		if (!this.alive) return false;
@@ -176,14 +176,14 @@ AnalyzerWL.prototype = {
 			AnalyzerWL.prototype.haar(oR1, i, tmp);
 			i >>>= 1;
 		}
-		//128
-		//1 (1)
-		//2  .. 3 (2)
-		//4  .. 7 (4)
-		//8  .. 15 (8)
-		//16 .. 31 (16)
-		//32 .. 63 (32)
-		//64 .. 127 (64)
+		// 128
+		// 1 (1)
+		// 2  .. 3 (2)
+		// 4  .. 7 (4)
+		// 8  .. 15 (8)
+		// 16 .. 31 (16)
+		// 32 .. 63 (32)
+		// 64 .. 127 (64)
 		tot = 64;
 		w = 512 / 64;
 		y = 0;
