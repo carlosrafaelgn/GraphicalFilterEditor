@@ -356,27 +356,30 @@ SoundParticles.prototype = {
 
 		i = 2;
 		for (c = 0; c < BG_COLUMNS; c++) {
+			// Instead of dividing by 255, we are dividing by 256 (* 0.00390625f)
+			// since the difference is visually unnoticeable
+
 			// Increase the amplitudes as the frequency increases, in order to improve the effect
 			if (i < 6) {
-				a = processedData[i] / 255.0;
+				a = processedData[i] * 0.00390625;
 				i++;
 			} else if (i < 20) {
-				a = 1.5 * ((processedData[i] + processedData[i + 1]) >> 1) / 255.0;
+				a = MAX(processedData[i], processedData[i + 1]) * (1.5 * 0.00390625);
 				i += 2;
 			} else if (i < 36) {
-				a = 1.5 * ((processedData[i] + processedData[i + 1] + processedData[i + 2] + processedData[i + 3]) >> 2) / 255.0;
+				a = MAX(processedData[i], processedData[i + 1], processedData[i + 2], processedData[i + 3]) * (1.5 * 0.00390625);
 				i += 4;
 			} else if (i < 100) {
 				avg = 0;
 				for (; i < last; i++)
 					avg = MAX(avg, processedData[i]);
-				a = 2.0 * avg / 255.0;
+				a = avg * (2.0 * 0.00390625);
 				last += 8;
 			} else {
 				avg = 0;
 				for (; i < last2; i++)
 					avg = MAX(avg, processedData[i]);
-				a = 2.5 * avg / 255.0;
+				a = avg * (2.5 * 0.00390625);
 				last2 += 16;
 			}
 
