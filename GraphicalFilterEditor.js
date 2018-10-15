@@ -32,7 +32,7 @@
 //
 "use strict";
 
-function GraphicalFilterEditor(filterLength, audioContext) {
+function GraphicalFilterEditor(filterLength, audioContext, convolverCallback) {
 	if (filterLength < 8 || (filterLength & (filterLength - 1))) {
 		alert("Sorry, class available only for fft sizes that are a power of 2 >= 8! :(");
 		throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
@@ -43,9 +43,6 @@ function GraphicalFilterEditor(filterLength, audioContext) {
 	this.binCount = (filterLength >>> 1) + 1;
 	this.audioContext = audioContext;
 	this.filterKernel = audioContext.createBuffer(2, filterLength, this.sampleRate);
-	this.convolver = audioContext.createConvolver();
-	this.convolver.normalize = false;
-	this.convolver.buffer = this.filterKernel;
 	this.tmp = new Float32Array(filterLength);
 	this.channelCurves = [new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount), new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount)];
 	this.actualChannelCurve = new Int16Array(GraphicalFilterEditor.prototype.visibleBinCount);
@@ -58,6 +55,11 @@ function GraphicalFilterEditor(filterLength, audioContext) {
 
 	this.updateFilter(0, true, true);
 	this.updateActualChannelCurve(0);
+
+	this.convolver = audioContext.createConvolver();
+	this.convolver.normalize = false;
+	this.convolverCallback = convolverCallback;
+	this.convolver.buffer = this.filterKernel;
 
 	seal$(this);
 }
@@ -167,12 +169,24 @@ GraphicalFilterEditor.prototype = {
 			curve[i] = cy;
 		return true;
 	},
+	updateBuffer: function () {
+		if (this.convolverCallback) {
+			var oldConvolver = this.convolver;
+			this.convolver = audioContext.createConvolver();
+			this.convolver.normalize = false;
+			this.convolver.buffer = this.filterKernel;
+			this.convolverCallback(oldConvolver, this.convolver);
+		} else {
+			this.convolver.buffer = this.filterKernel;
+		}
+	},
 	copyFilter: function (sourceChannel, destinationChannel) {
 		var i, src = this.filterKernel.getChannelData(sourceChannel),
 		dst = this.filterKernel.getChannelData(destinationChannel);
 		for (i = (this.filterLength - 1); i >= 0; i--)
 			dst[i] = src[i];
-		this.convolver.buffer = this.filterKernel;
+		if (this.convolver)
+			this.updateBuffer();
 		return true;
 	},
 	updateFilter: function (channelIndex, isSameFilterLR, updateBothChannels) {
@@ -258,7 +272,8 @@ GraphicalFilterEditor.prototype = {
 			//update the other channel as well
 			return this.updateFilter(1 - channelIndex, false, false);
 		}
-		this.convolver.buffer = this.filterKernel;
+		if (this.convolver)
+			this.updateBuffer();
 		return true;
 	},
 	applyWindowAndComputeActualMagnitudes: function (filter, filterLength, tmp) {
@@ -363,13 +378,17 @@ GraphicalFilterEditor.prototype = {
 	},
 	changeAudioContext: function (newAudioContext, channelIndex, isSameFilterLR) {
 		if (this.audioContext !== newAudioContext) {
+			var oldConvolver = this.convolver;
 			this.convolver.disconnect(0);
 			this.audioContext = newAudioContext;
 			this.filterKernel = newAudioContext.createBuffer(2, this.filterLength, this.sampleRate);
+			this.convolver = null;
+			this.updateFilter(channelIndex, isSameFilterLR, true);
 			this.convolver = newAudioContext.createConvolver();
 			this.convolver.normalize = false;
 			this.convolver.buffer = this.filterKernel;
-			this.updateFilter(channelIndex, isSameFilterLR, true);
+			if (this.convolverCallback)
+				this.convolverCallback(oldConvolver, this.convolver);
 			return true;
 		}
 		return false;
