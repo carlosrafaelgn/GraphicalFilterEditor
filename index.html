@@ -53,7 +53,7 @@
 	<script type="text/javascript">
 		//<![CDATA[
 		"use strict";
-		var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger, pendingUrls, chkSource;
+		var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger, pendingUrls, chkSource, ignoreNextConvolverChange = false;
 		//fakeAudioContext was created only to act as a "null audio context", making at least the graph work in other browsers
 		function fakeAudioContext() {
 		}
@@ -111,7 +111,7 @@
 			$("cbFilterLength").addEventListener("change", filterLengthChanged);
 			$("cbAnalyzer").addEventListener("change", updateConnections);
 			audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
-			graphicEqualizer = new GraphicalFilterEditorControl(2048, audioContext);
+			graphicEqualizer = new GraphicalFilterEditorControl(2048, audioContext, updateConnections);
 			graphicEqualizer.createControl($("equalizerPlaceholder"));
 			analyzerType = null;
 			analyzer = null;
@@ -206,7 +206,9 @@
 		}
 		function updateConnections() {
 			var t = $("cbAnalyzer").value;
-			if (!source) return false;
+			if (!source || ignoreNextConvolverChange) return false;
+			source.disconnect(0);
+			source.connect(graphicEqualizer.filter.convolver, 0, 0);
 			graphicEqualizer.filter.convolver.disconnect(0);
 			switch (t) {
 				case "soundParticles":
@@ -260,7 +262,9 @@
 							source = offlineAudioContext.createBufferSource();
 							source.buffer = buffer;
 							source.loop = false;
+							ignoreNextConvolverChange = true;
 							graphicEqualizer.changeAudioContext(offlineAudioContext);
+							ignoreNextConvolverChange = false;
 							source.connect(graphicEqualizer.filter.convolver, 0, 0);
 							graphicEqualizer.filter.convolver.connect(offlineAudioContext.destination, 0, 0);
 							source.start(0);
@@ -297,7 +301,6 @@
 							source.buffer = buffer;
 							source.loop = true;
 							graphicEqualizer.changeAudioContext(audioContext);
-							source.connect(graphicEqualizer.filter.convolver, 0, 0);
 							updateConnections();
 							source.start(0);
 							showLoader(false);
@@ -366,7 +369,6 @@
 			source = audioContext.createMediaElementSource(sourceAudio);
 			sourceAudio.load();
 			graphicEqualizer.changeAudioContext(audioContext);
-			source.connect(graphicEqualizer.filter.convolver, 0, 0);
 			updateConnections();
 			sourceAudio.play();
 			$("btnStop").disabled = "";
