@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 	<meta charset="utf-8" />
@@ -374,6 +374,18 @@
 			$("btnStop").disabled = "";
 			return true;
 		}
+		function audioContextResumed() {
+			stop();
+			enableButtons(false);
+			try {
+				if (!chkSource[1].checked && parseInt($("cbLoadType").value))
+					loadIntoMemoryAndPlay(false);
+				else
+					prepareStreamingAndPlay();
+			} catch (e) {
+				handleError(e);
+			}
+		}
 		function play() {
 			if (chkSource[0].checked) {
 				if ($("txtFile").files.length === 0) {
@@ -390,16 +402,10 @@
 				alert("Your browser does not seem to support the Web Audio API! :(");
 				return true;
 			}
-			stop();
-			enableButtons(false);
-			try {
-				if (!chkSource[1].checked && parseInt($("cbLoadType").value))
-					loadIntoMemoryAndPlay(false);
-				else
-					prepareStreamingAndPlay();
-			} catch (e) {
-				handleError(e);
-			}
+			if (audioContext.resume)
+				audioContext.resume().then(audioContextResumed);
+			else
+				audioContextResumed();
 			return true;
 		}
 		function processAndDownload() {
