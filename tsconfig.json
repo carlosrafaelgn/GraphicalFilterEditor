@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"module": "system",
+		"target": "ES2015",
+		"lib": [ "ES2017", "DOM" ],
+		"sourceMap": false,
+		"outFile": "assets/js/graphicalFilterEditor.js",
+		"emitBOM": true,
+		"removeComments": true
+	},
+	"files": [
+		"lib/lib.ts",
+		"scripts/main.ts",
+		"scripts/ui/pointerHandler.ts",
+		"scripts/graphicalFilterEditor/graphicalFilterEditor.ts",
+		"scripts/graphicalFilterEditor/graphicalFilterEditorControl.ts",
+		"scripts/gl/program.ts",
+		"scripts/analyzer/analyzer.ts",
+		"scripts/analyzer/plainAnalyzer.ts",
+		"scripts/analyzer/soundParticlesAnalyzer.ts",
+		"scripts/analyzer/waveletAnalyzer.ts"
+	]
+}

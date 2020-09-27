@@ -1,0 +1,7 @@
+{
+	"files.associations": {
+		"*.ejs": "html",
+		"cmath": "c",
+		"cstdlib": "c"
+	}
+}

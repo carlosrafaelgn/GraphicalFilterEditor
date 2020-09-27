@@ -2,11 +2,50 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 	<meta charset="utf-8" />
-	<script type="text/javascript">//<![CDATA[
-		"use strict"; (function () { var vp = document.createElement("meta"); vp.setAttribute("name", "viewport"); vp.setAttribute("content", ((screen.availWidth >= 544) || (screen.availHeight >= 544)) ? "width=device-width, initial-scale=1" : "width=544"); document.head.appendChild(vp); })(); //]]>
-	</script>
-	<link rel="Shortcut Icon" href="/favicon.ico" />
-	<title>Graphical Filter Editor (Test)</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=800" />
+
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://carlosrafaelgn.github.io/GraphicalFilterEditor/" />
+	<meta property="og:title" content="Graphical Filter Editor" />
+	<meta property="og:site_name" content="Graphical Filter Editor" />
+	<meta property="og:description" content="A test for porting an old C++ graphic equalizer to JavaScript + HTML5 using Web Audio API" />
+	<meta property="og:image" content="https://carlosrafaelgn.github.io/GraphicalFilterEditor/assets/images/screenshot.jpg" />
+	<meta property="og:image:type" content="image/jpeg" />
+	<meta property="og:image:width" content="1280" />
+	<meta property="og:image:height" content="720" />
+	<meta name="author" content="Carlos Rafael Gimenes das Neves" />
+	<meta name="description" content="A test for porting an old C++ graphic equalizer to JavaScript + HTML5 using Web Audio API" />
+	<meta name="keywords" content="web audio, webassembly, graphical equalizer" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+	<meta name="apple-mobile-web-app-title" content="Graphical Filter Editor" />
+	<link rel="apple-touch-icon" sizes="57x57" href="assets/favicons/apple-icon-57x57.png" />
+	<link rel="apple-touch-icon" sizes="60x60" href="assets/favicons/apple-icon-60x60.png" />
+	<link rel="apple-touch-icon" sizes="72x72" href="assets/favicons/apple-icon-72x72.png" />
+	<link rel="apple-touch-icon" sizes="76x76" href="assets/favicons/apple-icon-76x76.png" />
+	<link rel="apple-touch-icon" sizes="114x114" href="assets/favicons/apple-icon-114x114.png" />
+	<link rel="apple-touch-icon" sizes="120x120" href="assets/favicons/apple-icon-120x120.png" />
+	<link rel="apple-touch-icon" sizes="144x144" href="assets/favicons/apple-icon-144x144.png" />
+	<link rel="apple-touch-icon" sizes="152x152" href="assets/favicons/apple-icon-152x152.png" />
+	<link rel="apple-touch-icon" sizes="180x180" href="assets/favicons/apple-icon-180x180.png" />
+	<link rel="icon" type="image/png" sizes="512x512" href="assets/favicons/favicon-512x512.png" />
+	<link rel="icon" type="image/png" sizes="192x192" href="assets/favicons/favicon-192x192.png" />
+	<link rel="icon" type="image/png" sizes="96x96" href="assets/favicons/favicon-96x96.png" />
+	<link rel="icon" type="image/png" sizes="48x48" href="assets/favicons/favicon-48x48.png" />
+	<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png" />
+	<link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png" />
+	<link rel="Shortcut Icon" href="assets/favicons/favicon.png" />
+	<link rel="manifest" href="assets/favicons/manifest.json" />
+	<meta name="msapplication-config" content="assets/favicons/browserconfig.xml" />
+	<meta name="theme-color" content="#222222" />
+
+	<title>Graphical Filter Editor</title>
+
+	<link rel="stylesheet" href="assets/css/graphicalFilterEditor.css" />
+
 	<style type="text/css">
 		body {
 			margin: 16px;
@@ -14,439 +53,59 @@
 			background-color: #000;
 			color: #fff;
 		}
+
 		body, input, button, select {
 			font: normal 16px 'Segoe UI', sans-serif;
 		}
+
 		p {
 			font-size: 12px;
 			color: #999;
 		}
+
 		code {
 			font-family: Consolas, monospace;
 		}
+
 		a {
 			color: #0f2;
 		}
+
 		a:active, a:visited {
 			color: #f33;
 		}
+
 		select, input, button, label, img {
 			vertical-align: middle;
 		}
+
 		.SEP {
 			margin: 8px 0px;
 			border-top: 1px solid #fff;
 		}
+
 		.HID {
 			display: none;
 		}
 	</style>
-	<link rel="stylesheet" href="GraphicalFilterEditor.css" />
-	<script type="text/javascript" charset="utf-8" src="Common.js"></script>
-	<script type="text/javascript" charset="utf-8" src="FFTNR.js"></script>
-	<script type="text/javascript" charset="utf-8" src="GraphicalFilterEditor.js"></script>
-	<script type="text/javascript" charset="utf-8" src="GraphicalFilterEditorControl.js"></script>
-	<script type="text/javascript" charset="utf-8" src="Analyzer.js"></script>
-	<script type="text/javascript" charset="utf-8" src="AnalyzerWL.js"></script>
-	<script type="text/javascript" charset="utf-8" src="Program.js"></script>
-	<script type="text/javascript" charset="utf-8" src="SoundParticles.js"></script>
-	<script type="text/javascript">
-		//<![CDATA[
-		"use strict";
-		var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger, pendingUrls, chkSource, ignoreNextConvolverChange = false;
-		//fakeAudioContext was created only to act as a "null audio context", making at least the graph work in other browsers
-		function fakeAudioContext() {
-		}
-		fakeAudioContext.prototype = {
-			sampleRate: 44100,
-			createChannelSplitter: function () {
-				return {};
-			},
-			createChannelMerger: function () {
-				return {};
-			},
-			createBufferSource: function () {
-				return {};
-			},
-			createBuffer: function (channels, filterLength, sampleRate) {
-				if (sampleRate === undefined)
-					return this.createBuffer(2, 1024, this.sampleRate);
-				return {
-					duration: filterLength / sampleRate,
-					gain: 1,
-					length: filterLength,
-					numberOfChannels: channels,
-					sampleRate: sampleRate,
-					data: (function () {
-						var a = new Array(channels), i;
-						for (i = channels - 1; i >= 0; i--)
-							a[i] = new Float32Array(filterLength);
-						return a;
-					})(),
-					getChannelData: function (index) { return this.data[index]; }
-				};
-			},
-			createConvolver: function () {
-				var mthis = this;
-				return {
-					buffer: null,
-					context: mthis,
-					normalize: true,
-					numberOfInputs: 1,
-					numberOfOutputs: 1
-				};
-			}
-		};
-		function main() {
-			pendingUrls = [];
-			attachMouse($("btnPlay"), "click", play);
-			attachMouse($("btnStop"), "click", stop);
-			attachMouse($("btnProcess"), "click", processAndDownload);
-			chkSource = [$("chkSource0"), $("chkSource1"), $("chkSource2")];
-			chkSource[0].addEventListener("change", chkSource_Change);
-			chkSource[1].addEventListener("change", chkSource_Change);
-			chkSource[2].addEventListener("change", chkSource_Change);
-			$("txtFile").addEventListener("change", txtFile_Change);
-			$("txtURL").addEventListener("change", txtURL_Change);
-			$("cbFilterLength").addEventListener("change", filterLengthChanged);
-			$("cbAnalyzer").addEventListener("change", updateConnections);
-			audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
-			graphicEqualizer = new GraphicalFilterEditorControl(2048, audioContext, updateConnections);
-			graphicEqualizer.createControl($("equalizerPlaceholder"));
-			analyzerType = null;
-			analyzer = null;
-			splitter = audioContext.createChannelSplitter();
-			merger = audioContext.createChannelMerger();
-			return true;
-		}
-		function chkSource_Change() {
-			var e = (chkSource[1].checked ? "disabled" : "");
-			$("cbLoadType").disabled = e;
-			$("btnProcess").disabled = e;
-			return true;
-		}
-		function selectSource(index) {
-			chkSource[index].checked = true;
-			return chkSource_Change();
-		}
-		function txtFile_Change() {
-			return selectSource(0);
-		}
-		function txtURL_Change() {
-			return selectSource(1);
-		}
-		function cleanUpAnalyzer() {
-			if (analyzer) {
-				analyzer.stop();
-				analyzer.destroyControl();
-			}
-			splitter.disconnect(0);
-			splitter.disconnect(1);
-			if (analyzer) {
-				analyzer.analyzerL.disconnect(0);
-				analyzer.analyzerR.disconnect(0);
-				analyzerType = null;
-				analyzer = null;
-			}
-			merger.disconnect(0);
-			return true;
-		}
-		function enableButtons(enable) {
-			var e = (enable ? "" : "disabled");
-			$("btnPlay").disabled = e;
-			$("btnProcess").disabled = e;
-			$("btnStop").disabled = e;
-			chkSource[0].disabled = e;
-			chkSource[1].disabled = e;
-			chkSource[2].disabled = e;
-			return true;
-		}
-		function showLoader(show) {
-			$("imgLoader").className = (show ? "" : "HID");
-			return true;
-		}
-		function createObjURL(obj, opts) {
-			var url = (window.URL || window.webkitURL), objurl = (opts ? url.createObjectURL(obj, opts) : url.createObjectURL(obj));
-			pendingUrls.push(objurl);
-			return objurl;
-		}
-		function freeObjURLs() {
-			if (pendingUrls.length) {
-				var i, url = (window.URL || window.webkitURL);
-				for (i = pendingUrls.length - 1; i >= 0; i--)
-					url.revokeObjectURL(pendingUrls[i]);
-				pendingUrls.splice(0, pendingUrls.length);
-			}
-			return true;
-		}
-		function stop() {
-			enableButtons(true);
-			if (sourceAudio) {
-				sourceAudio.pause();
-				sourceAudio = null;
-				source.disconnect(0);
-				source = null;
-			} else if (source) {
-				source.stop(0);
-				source.disconnect(0);
-				source = null;
-			}
-			graphicEqualizer.filter.convolver.disconnect(0);
-			//Free all created URL's only at safe moments!
-			freeObjURLs();
-			return cleanUpAnalyzer();
-		}
-		function handleError(e) {
-			showLoader(false);
-			enableButtons(true);
-			//Free all created URL's only at safe moments!
-			freeObjURLs();
-			alert(e);
-			return true;
-		}
-		function updateConnections() {
-			var t = $("cbAnalyzer").value;
-			if (!source || ignoreNextConvolverChange) return false;
-			source.disconnect(0);
-			source.connect(graphicEqualizer.filter.convolver, 0, 0);
-			graphicEqualizer.filter.convolver.disconnect(0);
-			switch (t) {
-				case "soundParticles":
-				case "fft":
-				case "wl":
-					if (analyzerType !== t) {
-						if (analyzer) cleanUpAnalyzer();
-						analyzerType = t;
-						switch (t) {
-							case "soundParticles":
-								analyzer = new SoundParticles(audioContext, graphicEqualizer.filter);
-								break;
-							case "fft":
-								analyzer = new Analyzer(audioContext, graphicEqualizer.filter);
-								break;
-							case "wl":
-								analyzer = new AnalyzerWL(audioContext, graphicEqualizer.filter);
-								break;
-						}
-						analyzer.createControl($("analyzerPlaceholder"));
-					}
-
-					graphicEqualizer.filter.convolver.connect(splitter, 0, 0);
-					splitter.connect(analyzer.analyzerL, 0, 0);
-					splitter.connect(analyzer.analyzerR, 1, 0);
-
-					analyzer.analyzerL.connect(merger, 0, 0);
-					analyzer.analyzerR.connect(merger, 0, 1);
-
-					merger.connect(audioContext.destination, 0, 0);
-					return analyzer.start();
-				default:
-					graphicEqualizer.filter.convolver.connect(audioContext.destination, 0, 0);
-					return cleanUpAnalyzer();
-			}
-		}
-		function filterLengthChanged() {
-			graphicEqualizer.changeFilterLength(parseInt($("cbFilterLength").value));
-			return true;
-		}
-		function finishLoadingIntoMemoryAndPlay(array, name, offline) {
-			try {
-				//Decode the array asynchronously
-				audioContext.decodeAudioData(array, function (buffer) {
-					try {
-						if (offline) {
-							//Start processing the decoded buffer offline
-							var offlineAudioContext = (window.OfflineAudioContext ? new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : (window.webkitOfflineAudioContext ? new webkitOfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : null));
-							if (!offlineAudioContext)
-								return handleError("Offline audio processing is not supported!");
-							source = offlineAudioContext.createBufferSource();
-							source.buffer = buffer;
-							source.loop = false;
-							ignoreNextConvolverChange = true;
-							graphicEqualizer.changeAudioContext(offlineAudioContext);
-							ignoreNextConvolverChange = false;
-							source.connect(graphicEqualizer.filter.convolver, 0, 0);
-							graphicEqualizer.filter.convolver.connect(offlineAudioContext.destination, 0, 0);
-							source.start(0);
-							offlineAudioContext.oncomplete = function (renderedData) {
-								var worker = new Worker("WaveExporterWorker.js"),
-									leftBuffer = renderedData.renderedBuffer.getChannelData(0).buffer,
-									rightBuffer = ((renderedData.renderedBuffer.numberOfChannels > 1) ? renderedData.renderedBuffer.getChannelData(1).buffer : null);
-								worker.onmessage = function (e) {
-									showLoader(false);
-									enableButtons(true);
-									//Massive workaround to save the file (simulate a click on a link)!
-									//(From: http://updates.html5rocks.com/2011/08/Saving-generated-files-on-the-client-side)
-									var a = document.createElement("a"), i = name.lastIndexOf("."), evt;
-									a.href = createObjURL(new Blob(e.data, { type: "application/octet-stream" }));
-									a.download = ((i > 0) ? (name.substring(0, i) + " - (Filtered).wav") : "FilteredFile.wav");
-									//a.click(); //Works on Chrome, but not on Firefox...
-									evt = document.createEvent("MouseEvents");
-									evt.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-									a.dispatchEvent(evt);
-									return true;
-								};
-								worker.postMessage({
-									left: leftBuffer,
-									right: rightBuffer,
-									length: renderedData.renderedBuffer.length,
-									sampleRate: (renderedData.renderedBuffer.sampleRate | 0)
-								}, [ leftBuffer, rightBuffer ]);
-								return true;
-							};
-							offlineAudioContext.startRendering();
-						} else {
-							//Play the decoded buffer
-							source = audioContext.createBufferSource();
-							source.buffer = buffer;
-							source.loop = true;
-							graphicEqualizer.changeAudioContext(audioContext);
-							updateConnections();
-							source.start(0);
-							showLoader(false);
-							$("btnStop").disabled = "";
-						}
-					} catch (e) {
-						handleError(e);
-					}
-					return true;
-				}, function () {
-					return handleError("Error decoding the file!");
-				});
-			} catch (e) {
-				handleError(e);
-			}
-			return true;
-		}
-		function loadIntoMemoryAndPlay(offline) {
-			var r, f, done = false;
-			showLoader(true);
-			if (chkSource[2].checked) {
-				//Read the sample file into memory
-				r = new XMLHttpRequest();
-				r.open("GET", "midnightride.mp3", true);
-				r.responseType = "arraybuffer";
-				r.onreadystatechange = function () {
-					if (r.readyState === 4 && !done) {
-						done = true;
-						finishLoadingIntoMemoryAndPlay(r.response, "Midnight Ride.mp3", offline);
-					}
-					return true;
-				};
-				r.send();
-			} else {
-				f = $("txtFile").files[0];
-				//Read the chosen file into memory
-				r = new FileReader();
-				r.onload = function () {
-					done = true;
-					finishLoadingIntoMemoryAndPlay(r.result, f.name, offline);
-					return true;
-				};
-				r.onerror = function () {
-					return handleError("Error reading the file!");
-				};
-				r.onloadend = function () {
-					if (!offline && !done)
-						showLoader(false);
-					return true;
-				};
-				r.readAsArrayBuffer(f);
-			}
-			return true;
-		}
-		function prepareStreamingAndPlay() {
-			//Chrome now supports processing audio played over streamings (tested with Chrome v29.0.1547.76)
-			if (chkSource[0].checked) {
-				//If chkSource[0] is checked, create a temporary URL for the chosen file
-				sourceAudio = new Audio(createObjURL($("txtFile").files[0]));
-			} else if (chkSource[1].checked) {
-				sourceAudio = new Audio($("txtURL").value);
-			} else {
-				sourceAudio = new Audio("midnightride.mp3");
-			}
-			sourceAudio.loop = true;
-			source = audioContext.createMediaElementSource(sourceAudio);
-			sourceAudio.load();
-			graphicEqualizer.changeAudioContext(audioContext);
-			updateConnections();
-			sourceAudio.play();
-			$("btnStop").disabled = "";
-			return true;
-		}
-		function audioContextResumed() {
-			stop();
-			enableButtons(false);
-			try {
-				if (!chkSource[1].checked && parseInt($("cbLoadType").value))
-					loadIntoMemoryAndPlay(false);
-				else
-					prepareStreamingAndPlay();
-			} catch (e) {
-				handleError(e);
-			}
-		}
-		function play() {
-			if (chkSource[0].checked) {
-				if ($("txtFile").files.length === 0) {
-					alert("Please, select a file to play!");
-					return true;
-				}
-			} else if (chkSource[1].checked) {
-				if ($("txtURL").value.length === 0) {
-					alert("Please, type the address of a file to be played :(");
-					return true;
-				}
-			}
-			if (!window.AudioContext && !window.webkitAudioContext) {
-				alert("Your browser does not seem to support the Web Audio API! :(");
-				return true;
-			}
-			if (audioContext.resume)
-				audioContext.resume().then(audioContextResumed);
-			else
-				audioContextResumed();
-			return true;
-		}
-		function processAndDownload() {
-			if (chkSource[0].checked) {
-				if ($("txtFile").files.length === 0) {
-					alert("Please, select a file to process!");
-					return true;
-				}
-			} else if (chkSource[1].checked) {
-				//We can't load an entire stream into memory... as far as we know, a few URL's
-				//point to infinite streams ;)
-				alert("Sorry, but that action is not available for streams :(");
-				return true;
-			}
-			if (!window.AudioContext && !window.webkitAudioContext) {
-				alert("Your browser does not seem to support the Web Audio API! :(");
-				return true;
-			}
-			if (!window.Worker) {
-				alert("Your browser does not seem to support the Web Worker API! :(");
-				return true;
-			}
-			stop();
-			enableButtons(false);
-			try {
-				loadIntoMemoryAndPlay(true);
-			} catch (e) {
-				handleError(e);
-			}
-			return true;
-		}
-		//]]>
-	</script>
 </head>
 <body>
 <div style="margin: 16px 0px;"><div style="display:inline-block; background-color: #303030; padding: 8px;">
-<input type="radio" value="0" name="chkSource" id="chkSource0" /> <label for="txtFile" onclick="return selectSource(0);">Load your own file:</label> <input type="file" id="txtFile" /><br />
-or<br />
-<input type="radio" value="1" name="chkSource" id="chkSource1" /> <label for="txtURL" onclick="return selectSource(1);">Enter the address of a file:</label> <input type="url" id="txtURL" /> <span>* Not all URL's may work, and may fail without warning :(</span><br />
-or<br />
-<input type="radio" value="2" name="chkSource" id="chkSource2" checked="checked" /> <label for="chkSource2" onclick="return selectSource(2);">Try this sample: 50 seconds from the free track Midnight Ride, created by SoundJay</label> - <a href="http://www.soundjay.com">www.soundjay.com</a><br />
+<div>
+	<label for="txtFile" onclick="return selectSource(0);"><input type="radio" value="0" name="chkSource" id="chkSource0" /> Load your own file:</label> <input type="file" id="txtFile" />
+</div>
+<div>
+	or
+</div>
+<div>
+	<label for="txtURL" onclick="return selectSource(1);"><input type="radio" value="1" name="chkSource" id="chkSource1" /> Enter the address of a file:</label> <input type="url" id="txtURL" /> <span>* Not all URL's may work, and may fail without warning :(</span>
+</div>
+<div>
+	or
+</div>
+<div>
+	<label for="chkSource2" onclick="return selectSource(2);"><input type="radio" value="2" name="chkSource" id="chkSource2" checked="checked" /> Try this sample: 50 seconds from the free track Midnight Ride, created by <a href="http://www.soundjay.com" target="_blank">SoundJay</a></label>
+</div>
 <div class="SEP"></div>
 <button id="btnPlay">Play</button>
 <button id="btnStop">Stop</button>
@@ -456,7 +115,7 @@ or<br />
 	<option value="1">Load entire file into memory before playing **</option>
 </select>
 <div class="SEP"></div>
-<button id="btnProcess">Process file offline and download the filtered version (WAVE)! **</button> <img class="HID" id="imgLoader" alt="Processing..." src="loader.gif" />
+<button id="btnProcess">Process file offline and download the filtered version (WAVE)! **</button> <img class="HID" id="imgLoader" alt="Processing..." src="assets/images/loader.gif" />
 <div class="SEP"></div>
 <label for="cbFilterLength">Filter Length:</label> <select id="cbFilterLength">
 	<option value="64">64</option>
@@ -474,11 +133,10 @@ or<br />
 	<option value="wl">Haar wavelet analyzer</option>
 </select></div></div>
 <div id="equalizerPlaceholder"></div><div id="analyzerPlaceholder" style="vertical-align: top; display: inline-block; margin-left: 16px;"></div>
-<p>This work was presented at <a href="http://www.cictem.com.ar/home.html">CICTEM 2013</a>, in Argentina! :D <img alt="CICTEM 2013" src="cictem.png" width="250" height="98" /></p>
+<p>This work was presented at <a href="http://www.cictem.com.ar/home.html">CICTEM 2013</a>, in Argentina! :D <img alt="CICTEM 2013" src="assets/images/cictem.png" width="250" height="98" /></p>
 <p>Download links for the documentation:<br />
-	<a href="presentation.pdf">Presentation</a><br />
-	<a href="paper45_ptbr.pdf">Portuguese paper</a><br />
-	English paper coming soon!
+	<a href="assets/doc/presentation.pdf" target="_blank">Presentation</a><br />
+	<a href="assets/doc/paper45_ptbr.pdf" target="_blank">Portuguese paper</a>
 </p>
 <div class="SEP"></div>
 <p>This is a test for a JavaScript graphical filter editor, created by me
@@ -490,13 +148,444 @@ or<br />
 <p>* Playing files via streaming was tested on Chrome v29.0.1547.76 and later, and on Firefox Nightly v27.0a1 (2013-10-04). If any error happens, or you hear no difference when changing the filter, please, load the entire file into memory before playing.</p>
 <p>** Chrome v30 has apparently stopped to support loading large files into memory. If any error happens, or only a small portion of the file is played/filtered, please, use either Chrome v29/v32+ or Firefox v26/v27+.</p>
 
-<script type="text/javascript">//<![CDATA[
+<script type="text/javascript">
+	//<![CDATA[
 	"use strict";
+
+	function $(e) {
+		return document.getElementById(e);
+	}
+
+	var audioContext, source, sourceAudio, graphicEqualizer, splitter, analyzer, analyzerType, merger, pendingUrls, chkSource, ignoreNextConvolverChange = false;
+
+	// fakeAudioContext was created only to act as a "null audio context", making at least the graph work in other browsers
+	function fakeAudioContext() {
+	}
+
+	fakeAudioContext.prototype = {
+		sampleRate: 44100,
+		createChannelSplitter: function () {
+			return {};
+		},
+		createChannelMerger: function () {
+			return {};
+		},
+		createBufferSource: function () {
+			return {};
+		},
+		createBuffer: function (channels, filterLength, sampleRate) {
+			if (sampleRate === undefined)
+				return this.createBuffer(2, 1024, this.sampleRate);
+			return {
+				duration: filterLength / sampleRate,
+				gain: 1,
+				length: filterLength,
+				numberOfChannels: channels,
+				sampleRate: sampleRate,
+				data: (function () {
+					var a = new Array(channels), i;
+					for (i = channels - 1; i >= 0; i--)
+						a[i] = new Float32Array(filterLength);
+					return a;
+				})(),
+				getChannelData: function (index) { return this.data[index]; },
+				copyToChannel: function (data, destinationChannel) { this.data[destinationChannel].set(data); }
+			};
+		},
+		createConvolver: function () {
+			var mthis = this;
+			return {
+				buffer: null,
+				context: mthis,
+				normalize: true,
+				numberOfInputs: 1,
+				numberOfOutputs: 1
+			};
+		}
+	};
+	function main() {
+		pendingUrls = [];
+		$("btnPlay").onclick = play;
+		$("btnStop").onclick = stop;
+		$("btnProcess").onclick = processAndDownload;
+		chkSource = [$("chkSource0"), $("chkSource1"), $("chkSource2")];
+		chkSource[0].addEventListener("change", chkSource_Change);
+		chkSource[1].addEventListener("change", chkSource_Change);
+		chkSource[2].addEventListener("change", chkSource_Change);
+		$("txtFile").addEventListener("change", txtFile_Change);
+		$("txtURL").addEventListener("change", txtURL_Change);
+		$("cbFilterLength").addEventListener("change", filterLengthChanged);
+		$("cbAnalyzer").addEventListener("change", updateConnections);
+		audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
+		graphicEqualizer = new GraphicalFilterEditorControl(2048, audioContext, updateConnections);
+		graphicEqualizer.createControl($("equalizerPlaceholder"));
+		analyzerType = null;
+		analyzer = null;
+		splitter = audioContext.createChannelSplitter();
+		merger = audioContext.createChannelMerger();
+		return true;
+	}
+	function chkSource_Change() {
+		var e = (chkSource[1].checked ? "disabled" : "");
+		$("cbLoadType").disabled = e;
+		$("btnProcess").disabled = e;
+		return true;
+	}
+	function selectSource(index) {
+		chkSource[index].checked = true;
+		return chkSource_Change();
+	}
+	function txtFile_Change() {
+		return selectSource(0);
+	}
+	function txtURL_Change() {
+		return selectSource(1);
+	}
+	function cleanUpAnalyzer() {
+		if (analyzer)
+			analyzer.stop();
+		splitter.disconnect(0);
+		splitter.disconnect(1);
+		if (analyzer) {
+			analyzer.analyzerL.disconnect(0);
+			analyzer.analyzerR.disconnect(0);
+			analyzerType = null;
+			analyzer.destroy();
+			analyzer = null;
+		}
+		merger.disconnect(0);
+		return true;
+	}
+	function enableButtons(enable) {
+		var e = (enable ? "" : "disabled");
+		$("btnPlay").disabled = e;
+		$("btnProcess").disabled = e;
+		$("btnStop").disabled = e;
+		chkSource[0].disabled = e;
+		chkSource[1].disabled = e;
+		chkSource[2].disabled = e;
+		return true;
+	}
+	function showLoader(show) {
+		$("imgLoader").className = (show ? "" : "HID");
+		return true;
+	}
+	function createObjURL(obj, opts) {
+		var url = (window.URL || window.webkitURL), objurl = (opts ? url.createObjectURL(obj, opts) : url.createObjectURL(obj));
+		pendingUrls.push(objurl);
+		return objurl;
+	}
+	function freeObjURLs() {
+		if (pendingUrls.length) {
+			var i, url = (window.URL || window.webkitURL);
+			for (i = pendingUrls.length - 1; i >= 0; i--)
+				url.revokeObjectURL(pendingUrls[i]);
+			pendingUrls.splice(0, pendingUrls.length);
+		}
+		return true;
+	}
+	function stop() {
+		enableButtons(true);
+		if (sourceAudio) {
+			sourceAudio.pause();
+			sourceAudio = null;
+			source.disconnect(0);
+			source = null;
+		} else if (source) {
+			source.stop(0);
+			source.disconnect(0);
+			source = null;
+		}
+		graphicEqualizer.filter.convolver.disconnect(0);
+		// Free all created URL's only at safe moments!
+		freeObjURLs();
+		return cleanUpAnalyzer();
+	}
+	function handleError(e) {
+		showLoader(false);
+		enableButtons(true);
+		// Free all created URL's only at safe moments!
+		freeObjURLs();
+		alert(e);
+		return true;
+	}
+	function updateConnections() {
+		var t = $("cbAnalyzer").value;
+		if (!source || ignoreNextConvolverChange) return false;
+		source.disconnect(0);
+		source.connect(graphicEqualizer.filter.convolver, 0, 0);
+		graphicEqualizer.filter.convolver.disconnect(0);
+		switch (t) {
+			case "soundParticles":
+			case "fft":
+			case "wl":
+				if (analyzerType !== t) {
+					if (analyzer) cleanUpAnalyzer();
+					analyzerType = t;
+					switch (t) {
+						case "soundParticles":
+							analyzer = new SoundParticlesAnalyzer(audioContext, $("analyzerPlaceholder"), graphicEqualizer.filter);
+							break;
+						case "fft":
+							analyzer = new PlainAnalyzer(audioContext, $("analyzerPlaceholder"), graphicEqualizer.filter);
+							break;
+						case "wl":
+							analyzer = new WaveletAnalyzer(audioContext, $("analyzerPlaceholder"), graphicEqualizer.filter);
+							break;
+					}
+				}
+
+				graphicEqualizer.filter.convolver.connect(splitter, 0, 0);
+				splitter.connect(analyzer.analyzerL, 0, 0);
+				splitter.connect(analyzer.analyzerR, 1, 0);
+
+				analyzer.analyzerL.connect(merger, 0, 0);
+				analyzer.analyzerR.connect(merger, 0, 1);
+
+				merger.connect(audioContext.destination, 0, 0);
+				return analyzer.start();
+			default:
+				graphicEqualizer.filter.convolver.connect(audioContext.destination, 0, 0);
+				return cleanUpAnalyzer();
+		}
+	}
+	function filterLengthChanged() {
+		graphicEqualizer.changeFilterLength(parseInt($("cbFilterLength").value));
+		return true;
+	}
+	function finishLoadingIntoMemoryAndPlay(array, name, offline) {
+		try {
+			// Decode the array asynchronously
+			audioContext.decodeAudioData(array, function (buffer) {
+				try {
+					if (offline) {
+						// Start processing the decoded buffer offline
+						var offlineAudioContext = (window.OfflineAudioContext ? new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : (window.webkitOfflineAudioContext ? new webkitOfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate) : null));
+						if (!offlineAudioContext)
+							return handleError("Offline audio processing is not supported!");
+						source = offlineAudioContext.createBufferSource();
+						source.buffer = buffer;
+						source.loop = false;
+						ignoreNextConvolverChange = true;
+						graphicEqualizer.changeAudioContext(offlineAudioContext);
+						ignoreNextConvolverChange = false;
+						source.connect(graphicEqualizer.filter.convolver, 0, 0);
+						graphicEqualizer.filter.convolver.connect(offlineAudioContext.destination, 0, 0);
+						source.start(0);
+						offlineAudioContext.oncomplete = function (renderedData) {
+							var worker = new Worker("assets/js/waveExporterWorker.js"),
+								leftBuffer = renderedData.renderedBuffer.getChannelData(0).buffer,
+								rightBuffer = ((renderedData.renderedBuffer.numberOfChannels > 1) ? renderedData.renderedBuffer.getChannelData(1).buffer : null);
+							worker.onmessage = function (e) {
+								showLoader(false);
+								enableButtons(true);
+								// Massive workaround to save the file (simulate a click on a link)!
+								// (From: http://updates.html5rocks.com/2011/08/Saving-generated-files-on-the-client-side)
+								var a = document.createElement("a"), i = name.lastIndexOf("."), evt;
+								a.href = createObjURL(new Blob(e.data, { type: "application/octet-stream" }));
+								a.download = ((i > 0) ? (name.substring(0, i) + " - (Filtered).wav") : "FilteredFile.wav");
+								//a.click(); // Works on Chrome, but not on Firefox...
+								evt = document.createEvent("MouseEvents");
+								evt.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+								a.dispatchEvent(evt);
+								return true;
+							};
+							worker.postMessage({
+								left: leftBuffer,
+								right: rightBuffer,
+								length: renderedData.renderedBuffer.length,
+								sampleRate: (renderedData.renderedBuffer.sampleRate | 0)
+							}, [ leftBuffer, rightBuffer ]);
+							return true;
+						};
+						offlineAudioContext.startRendering();
+					} else {
+						// Play the decoded buffer
+						source = audioContext.createBufferSource();
+						source.buffer = buffer;
+						source.loop = true;
+						graphicEqualizer.changeAudioContext(audioContext);
+						updateConnections();
+						source.start(0);
+						showLoader(false);
+						$("btnStop").disabled = "";
+					}
+				} catch (e) {
+					handleError(e);
+				}
+				return true;
+			}, function () {
+				return handleError("Error decoding the file!");
+			});
+		} catch (e) {
+			handleError(e);
+		}
+		return true;
+	}
+	function loadIntoMemoryAndPlay(offline) {
+		var r, f, done = false;
+		showLoader(true);
+		if (chkSource[2].checked) {
+			// Read the sample file into memory
+			r = new XMLHttpRequest();
+			r.open("GET", "assets/audio/midnightride.mp3", true);
+			r.responseType = "arraybuffer";
+			r.onreadystatechange = function () {
+				if (r.readyState === 4 && !done) {
+					done = true;
+					finishLoadingIntoMemoryAndPlay(r.response, "midnightride.mp3", offline);
+				}
+				return true;
+			};
+			r.send();
+		} else {
+			f = $("txtFile").files[0];
+			// Read the chosen file into memory
+			r = new FileReader();
+			r.onload = function () {
+				done = true;
+				finishLoadingIntoMemoryAndPlay(r.result, f.name, offline);
+				return true;
+			};
+			r.onerror = function () {
+				return handleError("Error reading the file!");
+			};
+			r.onloadend = function () {
+				if (!offline && !done)
+					showLoader(false);
+				return true;
+			};
+			r.readAsArrayBuffer(f);
+		}
+		return true;
+	}
+	function prepareStreamingAndPlay() {
+		// Chrome now supports processing audio played over streamings (tested with Chrome v29.0.1547.76)
+		if (chkSource[0].checked) {
+			// If chkSource[0] is checked, create a temporary URL for the chosen file
+			sourceAudio = new Audio(createObjURL($("txtFile").files[0]));
+		} else if (chkSource[1].checked) {
+			sourceAudio = new Audio($("txtURL").value);
+		} else {
+			sourceAudio = new Audio("assets/audio/midnightride.mp3");
+		}
+		sourceAudio.loop = true;
+		source = audioContext.createMediaElementSource(sourceAudio);
+		sourceAudio.load();
+		graphicEqualizer.changeAudioContext(audioContext);
+		updateConnections();
+		// Listen to a possible pause command sent directly from the browser
+		sourceAudio.onpause = stop;
+		sourceAudio.play();
+		$("btnStop").disabled = "";
+		return true;
+	}
+	function audioContextResumed() {
+		stop();
+		enableButtons(false);
+		try {
+			if (!chkSource[1].checked && parseInt($("cbLoadType").value))
+				loadIntoMemoryAndPlay(false);
+			else
+				prepareStreamingAndPlay();
+		} catch (e) {
+			handleError(e);
+		}
+	}
+	function play() {
+		if (chkSource[0].checked) {
+			if ($("txtFile").files.length === 0) {
+				alert("Please, select a file to play!");
+				return true;
+			}
+		} else if (chkSource[1].checked) {
+			if ($("txtURL").value.length === 0) {
+				alert("Please, type the address of a file to be played :(");
+				return true;
+			}
+		}
+		if (!window.AudioContext && !window.webkitAudioContext) {
+			alert("Your browser does not seem to support the Web Audio API! :(");
+			return true;
+		}
+		if (audioContext.resume)
+			audioContext.resume().then(audioContextResumed);
+		else
+			audioContextResumed();
+		return true;
+	}
+	function processAndDownload() {
+		if (chkSource[0].checked) {
+			if ($("txtFile").files.length === 0) {
+				alert("Please, select a file to process!");
+				return true;
+			}
+		} else if (chkSource[1].checked) {
+			// We can't load an entire stream into memory... as far as we know, a few URL's
+			// point to infinite streams ;)
+			alert("Sorry, but that action is not available for streams :(");
+			return true;
+		}
+		if (!window.AudioContext && !window.webkitAudioContext) {
+			alert("Your browser does not seem to support the Web Audio API! :(");
+			return true;
+		}
+		if (!window.Worker) {
+			alert("Your browser does not seem to support the Web Worker API! :(");
+			return true;
+		}
+		stop();
+		enableButtons(false);
+		try {
+			loadIntoMemoryAndPlay(true);
+		} catch (e) {
+			handleError(e);
+		}
+		return true;
+	}
+
 	document.getElementById("shdg3724").appendChild(document.createTextNode(
 	["c", "a", "r", "l", "o", "s", "r", "a", "f", "a", "e", "l", ".", "prog"].join("") +
 	"\u0040" +
 	["g", "m", "a", "i", "l", "\u002e"].join("") +
 	["c", "o", "m"].join("")));
-	main(); //]]></script>
+
+	//]]>
+</script>
+
+<!--
+	Unfortunately, as of September 2020, emscripten does not automaticaly loads
+	the pure JS version of the compiled code, even when specifying the flag WASM=2
+
+	Tested using the following command line:
+	chrome --disable-features="WebAssembly,AsmJsToWebAssembly,WebAssemblyStreaming" --js-flags="--noexpose-wasm"
+
+	https://github.com/emscripten-core/emscripten/blob/master/src/settings.js
+	https://github.com/emscripten-core/emscripten/pull/10118
+	https://github.com/emscripten-core/emscripten/issues/11357
+-->
+<script type="text/javascript">
+	//<![CDATA[
+	"use strict";
+
+	(function () {
+		var script = document.createElement("script");
+		script.setAttribute("type", "text/javascript");
+		script.setAttribute("charset", "utf-8");
+		script.setAttribute("src", ("WebAssembly" in window) ? "lib/lib.js": "lib/lib-nowasm.js");
+		script.onload = function () {
+			var script = document.createElement("script");
+			script.setAttribute("type", "text/javascript");
+			script.setAttribute("charset", "utf-8");
+			// All TS files are being concatenated into a single file according to the
+			// order specified in the files array, inside tsconfig.json
+			script.setAttribute("src", "assets/js/graphicalFilterEditor.min.js");
+			document.body.appendChild(script);
+		};
+		document.body.appendChild(script);
+	})();
+
+	//]]>
+</script>
 </body>
 </html>

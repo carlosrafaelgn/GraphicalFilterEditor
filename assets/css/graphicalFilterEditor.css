@@ -1,3 +1,18 @@
+.GE, .GECV, .GELBL, .GEBTN, .GEMNU, .GEMNUIT, .GEMNUSEP, .GEMNULBL {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	-moz-backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+	-webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+.GE, .GECV {
+	touch-action: none;
+}
+
 .GE {
 	vertical-align: top;
 	font: normal 12px 'Segoe UI', sans-serif;
@@ -7,10 +22,18 @@
 	position: relative;
 	cursor: default;
 }
+
+.GECV {
+	display: block;
+	margin: 0;
+	cursor: crosshair;
+}
+
 .GELBL {
 	display: inline-block;
 	padding: 4px;
 }
+
 .GEBTN {
 	display: inline-block;
 	padding: 4px;
@@ -20,6 +43,7 @@
 	text-align: center;
 	border-left: solid 1px #fff;
 }
+
 .GEMNU {
 	background-color: #1c1c1c;
 	color: #fff;
@@ -27,20 +51,29 @@
 	right: 0px;
 	padding: 2px;
 }
+
 .GEMNUIT {
 	margin: 2px;
 	padding: 2px;
 }
+
 .GEMNUSEP {
 	margin: 4px;
 	border-top: solid 1px #fff;
 	height: 1px;
 }
+
 .GEMNULBL {
 	margin: 4px;
 	font-size: 14px;
 	color: #0f2;
 }
+
 .GECLK {
 	cursor: pointer;
+}
+
+.GECLK:hover {
+	color: #1c1c1c;
+	background-color: #fff;
 }

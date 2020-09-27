@@ -1,16 +1,1 @@
 Misc/
-Properties/
-bin/
-obj/
-*.lnk
-*.mp3
-*.pdf
-*.png
-*.gif
-indexTest.html
-indexTest2.html
-GraphicEqualizer.csproj
-GraphicEqualizer.csproj.user
-Web.config
-Web.Debug.config
-Web.Release.config
