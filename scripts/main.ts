@@ -47,6 +47,8 @@ function lerp(x0: number, y0: number, x1: number, y1: number, x: number): number
 function zeroObject(o: any): void {
 	for (let p in o) {
 		switch (typeof o[p]) {
+			case "function":
+				break;
 			case "boolean":
 				o[p] = false;
 				break;
