@@ -72,7 +72,7 @@ class PointerHandler {
 			element.onpointerdown = this.pointerDown.bind(this);
 		} else if ("ontouchstart" in element) {
 			this.documentMoveEvent = "touchmove";
-			this.documentUpEvent = "touchup";
+			this.documentUpEvent = "touchend";
 			this.documentCancelEvent = "touchcancel";
 
 			this.boundDocumentUp = this.touchEnd.bind(this);
