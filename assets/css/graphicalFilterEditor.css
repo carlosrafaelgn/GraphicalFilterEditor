@@ -35,10 +35,8 @@
 }
 
 .GEBTN {
-	display: inline-block;
 	padding: 4px;
-	position: absolute;
-	right: 0px;
+	float: right;
 	width: 1.5em;
 	text-align: center;
 	border-left: solid 1px #fff;
