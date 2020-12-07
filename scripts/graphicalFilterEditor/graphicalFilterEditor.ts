@@ -201,15 +201,37 @@ class GraphicalFilterEditor {
 		}
 	}
 
+	private copyToChannel(source: Float32Array, channelNumber: number): void {
+		// Safari and Safari for iOS do no support AudioBuffer.copyToChannel()
+		if (this.filterKernel["copyToChannel"]) {
+			this.filterKernel.copyToChannel(source, channelNumber);
+		} else {
+			const dst = this.filterKernel.getChannelData(channelNumber);
+			for (let i = (this.filterLength - 1); i >= 0; i--)
+				dst[i] = source[i];	
+		}
+	}
+
+	private copyFromChannel(destination: Float32Array, channelNumber: number): void {
+		// Safari and Safari for iOS do no support AudioBuffer.copyFromChannel()
+		if (this.filterKernel["copyToChannel"]) {
+			this.filterKernel.copyFromChannel(destination, channelNumber);
+		} else {
+			const src = this.filterKernel.getChannelData(channelNumber);
+			for (let i = (this.filterLength - 1); i >= 0; i--)
+				destination[i] = src[i];	
+		}
+	}
+
 	public copyFilter(sourceChannel: number, destinationChannel: number): void {
-		this.filterKernel.copyToChannel(this.filterKernel.getChannelData(sourceChannel), destinationChannel);
+		this.copyToChannel(this.filterKernel.getChannelData(sourceChannel), destinationChannel);
 		if (this._convolver)
 			this.updateBuffer();
 	}
 
 	public updateFilter(channelIndex: number, isSameFilterLR: boolean, updateBothChannels: boolean): void {
 		cLib._graphicalFilterEditorUpdateFilter(this.editorPtr, channelIndex, this._isNormalized);
-		this.filterKernel.copyToChannel(this.filterKernelBuffer, channelIndex);
+		this.copyToChannel(this.filterKernelBuffer, channelIndex);
 
 		if (isSameFilterLR) {
 			// Copy the filter to the other channel
@@ -223,7 +245,7 @@ class GraphicalFilterEditor {
 	}
 
 	public updateActualChannelCurve(channelIndex: number): void {
-		this.filterKernel.copyFromChannel(this.filterKernelBuffer, channelIndex);
+		this.copyFromChannel(this.filterKernelBuffer, channelIndex);
 		cLib._graphicalFilterEditorUpdateActualChannelCurve(this.editorPtr, channelIndex);
 	}
 
