@@ -30,10 +30,10 @@ class GraphicalFilterEditorControl {
 	public static readonly ControlWidth = GraphicalFilterEditor.VisibleBinCount;
 	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 5;
 
-	private readonly filter: GraphicalFilterEditor;
+	public readonly filter: GraphicalFilterEditor;
+	public readonly element: HTMLDivElement;
 
 	private readonly pointerHandler: PointerHandler;
-	private readonly element: HTMLDivElement;
 	private readonly canvas: HTMLCanvasElement;
 	private readonly ctx: CanvasRenderingContext2D;
 	private readonly rangeImage: CanvasGradient;
@@ -152,7 +152,6 @@ class GraphicalFilterEditorControl {
 		element.appendChild(this.btnMnu);
 
 		this.mnu = document.createElement("div");
-		this.mnu.style.bottom = (element.clientHeight - 260) + "px";
 		this.mnu.className = "GEMNU";
 		this.mnu.style.display = "none";
 		this.mnu.appendChild(createMenuLabel("Same curve for both channels"));
@@ -211,6 +210,7 @@ class GraphicalFilterEditorControl {
 	private btnMnu_Click(e: MouseEvent): boolean {
 		if (!e.button) {
 			if (this.mnu.style.display === "none") {
+				this.mnu.style.bottom = (this.element.clientHeight - 260) + "px";
 				this.mnu.style.display = "inline-block";
 				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, "\u25BC");
 			} else {

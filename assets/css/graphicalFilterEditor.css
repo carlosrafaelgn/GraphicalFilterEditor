@@ -15,7 +15,10 @@
 
 .GE {
 	vertical-align: top;
-	font: normal 12px 'Segoe UI', sans-serif;
+	font-style: normal;
+	font-size: 12px;
+	font-family: inherit;
+	line-height: 16px;
 	display: inline-block;
 	background-color: #1c1c1c;
 	color: #fff;
