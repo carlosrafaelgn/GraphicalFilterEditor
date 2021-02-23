@@ -26,6 +26,17 @@
 
 "use strict";
 
+interface GraphicalFilterEditorSettings {
+	showZones?: boolean;
+	editZones?: boolean;
+	isActualChannelCurveNeeded?: boolean;
+	currentChannelIndex?: number;
+	isSameFilterLR?: boolean;
+	isNormalized?: boolean;
+	leftCurve?: number[];
+	rightCurve?: number[];
+}
+
 class GraphicalFilterEditorControl {
 	public static readonly ControlWidth = GraphicalFilterEditor.VisibleBinCount;
 	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 5;
@@ -65,7 +76,7 @@ class GraphicalFilterEditorControl {
 
 	private boundMouseMove: any;
 
-	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback) {
+	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback, settings?: GraphicalFilterEditorSettings | null) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
@@ -169,6 +180,9 @@ class GraphicalFilterEditorControl {
 		this.mnu.appendChild(this.mnuShowActual = createMenuItem("Show actual response", true, true, false, this.mnuShowActual_Click.bind(this)));
 		element.appendChild(this.mnu);
 
+		if (settings)
+			this.loadSettings(settings);
+
 		this.rangeImage = this.ctx.createLinearGradient(0, 0, 1, this.canvas.height);
 		this.rangeImage.addColorStop(0, "#ff0000");
 		this.rangeImage.addColorStop(0.1875, "#ffff00");
@@ -191,6 +205,112 @@ class GraphicalFilterEditorControl {
 			this.pointerHandler.destroy();
 
 		zeroObject(this);
+	}
+
+	public loadSettings(settings?: GraphicalFilterEditorSettings | null): void {
+		if (!settings)
+			return;
+
+		const filter = this.filter;
+
+		if (settings.showZones === false || settings.showZones === true)
+			this.showZones = settings.showZones;
+
+		if (settings.editZones === false || settings.editZones === true)
+			this.editZones = settings.editZones;
+
+		if (settings.isActualChannelCurveNeeded === false || settings.isActualChannelCurveNeeded === true)
+			this.isActualChannelCurveNeeded = settings.isActualChannelCurveNeeded;
+
+		if (settings.currentChannelIndex === 0 || settings.currentChannelIndex === 1)
+			this.currentChannelIndex = settings.currentChannelIndex;
+
+		if (settings.isSameFilterLR === false || settings.isSameFilterLR === true)
+			this.isSameFilterLR = settings.isSameFilterLR;
+
+		let leftCurve: number[] | null = null,
+			rightCurve: number[] | null = null;
+
+		if (settings.leftCurve && settings.leftCurve.length === GraphicalFilterEditor.VisibleBinCount)
+			leftCurve = settings.leftCurve;
+
+		if (settings.rightCurve && settings.rightCurve.length === GraphicalFilterEditor.VisibleBinCount)
+			rightCurve = settings.rightCurve;
+
+		if (leftCurve && !rightCurve)
+			rightCurve = leftCurve;
+		else if (rightCurve && !leftCurve)
+			leftCurve = rightCurve;
+
+		if (leftCurve) {
+			const curve = filter.channelCurves[0];
+			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+				curve[i] = filter.clampY(leftCurve[i]);
+		}
+
+		if (rightCurve) {
+			const curve = filter.channelCurves[1];
+			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+				curve[i] = filter.clampY(rightCurve[i]);
+		}
+
+		if (this.isSameFilterLR) {
+			this.checkMenu(this.mnuChBL, (this.currentChannelIndex === 0));
+			this.checkMenu(this.mnuChL, false);
+			this.checkMenu(this.mnuChBR, (this.currentChannelIndex === 1));
+			this.checkMenu(this.mnuChR, false);
+		} else {
+			this.checkMenu(this.mnuChBL, false);
+			this.checkMenu(this.mnuChL, (this.currentChannelIndex === 0));
+			this.checkMenu(this.mnuChBR, false);
+			this.checkMenu(this.mnuChR, (this.currentChannelIndex === 1));
+		}
+
+		const isNormalized = ((settings.isNormalized === false || settings.isNormalized === true) ? settings.isNormalized : filter.isNormalized);
+
+		if (isNormalized === filter.isNormalized)
+			filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, true);
+		else
+			filter.changeIsNormalized(isNormalized, this.currentChannelIndex, this.isSameFilterLR);
+
+		if (this.isActualChannelCurveNeeded)
+			this.filter.updateActualChannelCurve(this.currentChannelIndex);
+
+		this.checkMenu(this.mnuShowZones, this.showZones);
+		this.checkMenu(this.mnuEditZones, this.editZones);
+		this.checkMenu(this.mnuNormalizeCurves, this.filter.isNormalized);
+		this.checkMenu(this.mnuShowActual, this.isActualChannelCurveNeeded);
+
+		this.drawCurve();
+	}
+
+	public saveSettings(): GraphicalFilterEditorSettings {
+		const settings: GraphicalFilterEditorSettings = {
+			showZones: this.showZones,
+			editZones: this.editZones,
+			isActualChannelCurveNeeded: this.isActualChannelCurveNeeded,
+			currentChannelIndex: this.currentChannelIndex,
+			isSameFilterLR: this.isSameFilterLR,
+			isNormalized: this.filter.isNormalized
+		};
+
+		const leftCurve = new Array(GraphicalFilterEditor.VisibleBinCount);
+		settings.leftCurve = leftCurve;
+
+		let curve = this.filter.channelCurves[0];
+		for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+			leftCurve[i] = curve[i];
+
+		if (!this.isSameFilterLR) {
+			const rightCurve = new Array(GraphicalFilterEditor.VisibleBinCount);
+			settings.rightCurve = rightCurve;
+
+			curve = this.filter.channelCurves[1];
+			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+				rightCurve[i] = curve[i];
+		}
+
+		return settings;
 	}
 
 	private static formatDB(dB: number): string {
