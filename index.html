@@ -217,8 +217,7 @@
 		$("cbFilterLength").addEventListener("change", filterLengthChanged);
 		$("cbAnalyzer").addEventListener("change", updateConnections);
 		audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
-		graphicEqualizer = new GraphicalFilterEditorControl(2048, audioContext, updateConnections);
-		graphicEqualizer.createControl($("equalizerPlaceholder"));
+		graphicEqualizer = new GraphicalFilterEditorControl($("equalizerPlaceholder"), 2048, audioContext, updateConnections);
 		analyzerType = null;
 		analyzer = null;
 		splitter = audioContext.createChannelSplitter();

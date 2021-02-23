@@ -126,7 +126,7 @@ class PlainAnalyzer extends Analyzer {
 
 		const multiplier = this.multiplier,
 			tmp = this.tmp,
-			ctx = this.ctx,
+			ctx = this.ctx as CanvasRenderingContext2D, // ctx is null only with WebGL analyzers
 			sqrt = Math.sqrt,
 			ln = Math.log,
 			valueCount = 512, bw = this.sampleRate / 2048,

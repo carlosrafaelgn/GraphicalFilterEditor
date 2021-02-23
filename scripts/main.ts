@@ -26,7 +26,7 @@
 
 "use strict";
 
-let cLib: CLib = null;
+let cLib: CLib = null as any;
 
 function cancelEvent(e: Event): boolean {
 	if (e) {
@@ -58,7 +58,7 @@ function zeroObject(o: any): void {
 			default:
 				const v = o[p];
 				if (Array.isArray(v))
-					(v as Array<Object>).fill(null);
+					v.fill(null);
 				o[p] = null;
 				break;
 		}
@@ -66,10 +66,10 @@ function zeroObject(o: any): void {
 }
 
 function setup(): void {
-	(window["CLib"]() as Promise<CLib>).then((value) => {
+	((window as any)["CLib"]() as Promise<CLib>).then((value) => {
 		cLib = value;
-		if (window["main"])
-			window["main"]();
+		if ((window as any)["main"])
+			(window as any)["main"]();
 	}, (reason) => {
 		alert(reason);
 		throw reason;

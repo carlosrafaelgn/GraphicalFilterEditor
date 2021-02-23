@@ -6,6 +6,7 @@
 		"sourceMap": false,
 		"outFile": "assets/js/graphicalFilterEditor.js",
 		"emitBOM": true,
+		"strict": true,
 		"removeComments": true
 	},
 	"files": [

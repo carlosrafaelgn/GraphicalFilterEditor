@@ -183,7 +183,7 @@ void main() {
 				this.fillBgParticle(i, -1.2 + (0.01953125 * (SoundParticlesAnalyzer.rand() & 127)));
 		}
 
-		this.program = Program.create(this.canvas, {
+		const program = Program.create(this.canvas, {
 			alpha: false,
 			depth: false,
 			stencil: false,
@@ -191,13 +191,18 @@ void main() {
 			premultipliedAlpha: true
 		}, SoundParticlesAnalyzer.VertexShaderSource, SoundParticlesAnalyzer.FragmentShaderSource);
 
-		if (!this.program)
+		if (!program) {
 			this.err("Apparently your browser does not support WebGL");
-	
+			// TypeScript does not understand this.err() does not return...
+			throw new Error();
+		}
+
+		this.program = program;
+
 		this.program.use();
 		this.program["texColor"](0);
 		this.program["aspect"](320.0 / 512.0, 1);
-	
+
 		const gl = this.program.gl,
 			glVerticesRect = new Float32Array([
 				-1, -1, 0, 1,

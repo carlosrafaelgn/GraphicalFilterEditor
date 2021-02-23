@@ -32,25 +32,25 @@ class GraphicalFilterEditorControl {
 
 	private readonly filter: GraphicalFilterEditor;
 
-	private pointerHandler: PointerHandler = null;
-	private element: HTMLDivElement = null;
-	private canvas: HTMLCanvasElement = null;
-	private ctx: CanvasRenderingContext2D = null;
-	private rangeImage: CanvasGradient = null;
-	private labelImage: HTMLImageElement = null;
-	private btnMnu: HTMLDivElement = null;
-	private mnu: HTMLDivElement = null;
-	private mnuChBL: HTMLDivElement = null;
-	private mnuChL: HTMLDivElement = null;
-	private mnuChBR: HTMLDivElement = null;
-	private mnuChR: HTMLDivElement = null;
-	private mnuShowZones: HTMLDivElement = null;
-	private mnuEditZones: HTMLDivElement = null;
-	private mnuNormalizeCurves: HTMLDivElement = null;
-	private mnuShowActual: HTMLDivElement = null;
-	private lblCursor: HTMLSpanElement = null;
-	private lblCurve: HTMLSpanElement = null;
-	private lblFrequency: HTMLSpanElement = null;
+	private readonly pointerHandler: PointerHandler;
+	private readonly element: HTMLDivElement;
+	private readonly canvas: HTMLCanvasElement;
+	private readonly ctx: CanvasRenderingContext2D;
+	private readonly rangeImage: CanvasGradient;
+	private readonly labelImage: HTMLImageElement;
+	private readonly btnMnu: HTMLDivElement;
+	private readonly mnu: HTMLDivElement;
+	private readonly mnuChBL: HTMLDivElement;
+	private readonly mnuChL: HTMLDivElement;
+	private readonly mnuChBR: HTMLDivElement;
+	private readonly mnuChR: HTMLDivElement;
+	private readonly mnuShowZones: HTMLDivElement;
+	private readonly mnuEditZones: HTMLDivElement;
+	private readonly mnuNormalizeCurves: HTMLDivElement;
+	private readonly mnuShowActual: HTMLDivElement;
+	private readonly lblCursor: HTMLSpanElement;
+	private readonly lblCurve: HTMLSpanElement;
+	private readonly lblFrequency: HTMLSpanElement;
 
 	private showZones = false;
 	private editZones = false;
@@ -65,34 +65,11 @@ class GraphicalFilterEditorControl {
 
 	private boundMouseMove: any;
 
-	public constructor(filterLength: number, audioContext: AudioContext, convolverCallback: (oldConvolver: ConvolverNode, newConvolver: ConvolverNode) => void) {
+	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
 		this.filter = new GraphicalFilterEditor(filterLength, audioContext, convolverCallback);
-	}
-
-	public destroy() : void {
-		this.destroyControl();
-
-		if (this.filter) {
-			this.filter.destroy();
-			zeroObject(this);
-		}
-	}
-
-	private formatDB(dB: number): string {
-		if (dB < -40) return "-Inf.";
-		return ((dB < 0) ? dB.toFixed(2) : ((dB === 0) ? "-" + dB.toFixed(2) : "+" + dB.toFixed(2)));
-	}
-
-	private formatFrequency(frequencyAndEquivalent: number[]): string {
-		return frequencyAndEquivalent[0] + " Hz (" + ((frequencyAndEquivalent[1] < 1000) ? (frequencyAndEquivalent[1] + " Hz") : ((frequencyAndEquivalent[1] / 1000) + " kHz")) + ")";
-	}
-
-	public createControl(element: HTMLDivElement): boolean {
-		if (this.ctx)
-			return false;
 
 		const createMenuSep = () => {
 				const s = document.createElement("div");
@@ -105,7 +82,7 @@ class GraphicalFilterEditorControl {
 				l.appendChild(document.createTextNode(text));
 				return l;
 			},
-			createMenuItem = (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: () => void) => {
+			createMenuItem = (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (ev: MouseEvent) => any) => {
 				const i = document.createElement("div");
 				i.className = "GEMNUIT GECLK";
 				if (checkable) {
@@ -133,7 +110,10 @@ class GraphicalFilterEditorControl {
 		this.canvas.addEventListener("mousemove", this.boundMouseMove);
 		element.appendChild(this.canvas);
 
-		this.ctx = this.canvas.getContext("2d", { alpha: false });
+		const ctx = this.canvas.getContext("2d", { alpha: false });
+		if (!ctx)
+			throw new Error("Null canvas context");
+		this.ctx = ctx;
 
 		this.pointerHandler = new PointerHandler(this.canvas, this.mouseDown.bind(this), this.mouseMove.bind(this), this.mouseUp.bind(this));
 
@@ -202,45 +182,40 @@ class GraphicalFilterEditorControl {
 		this.labelImage.addEventListener("load", boundDrawCurve);
 		this.labelImage.addEventListener("error", boundDrawCurve);
 		this.labelImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAgCAYAAABpRpp6AAAAAXNSR0IArs4c6QAAAphJREFUWMPtl0tIVGEUx38zvdYZjVBEYBC1kB4EKa3auLEHtND4R6vaBC6MyVaVE0KWFlZE1qogOlEwgVQEgUKSVERFRhFEj4WLyESMFlKN0+YIl2HS6zyYgnvg8r+c73W+77vn+34XIovs3zBJWUnZubabX+SgDUAKWOeuV8BRM+svZAI5ringOzAEHDKzdwDxIoKtA+4Bv4FV/kwB9yVtLrRfM4t5XFVAJ9AIpEuxwklvnzKzLz6J48ADL2sKTG4L0AHUA5PAwCxBZ4EJSeeAU8CKUgRc7zoc8L10rcvZiQFgBNgKPAeWA7tm2L04sBg44K4ToQLOlxS+ZQAJ1/FA8fR7dcDXASwEWszsifs+Swo75jDwKFTAgeDCWr7606s9GPYblhTz2Ko9qR9KajKzdDGfxCiwzJNj1H1Vrl8D9Ra4/pxD4mWBX8CIpCSwD7gApONFBPzUdUPAtzGnDOCt6+oCx1nkmik26bqB7UBK0mv3HfOOewL1zgNXgC5J+33MMyGOzbhPsiuQC4Wfw2b22M/IGPDBnziwzcyGAvWuAq1ALfARuAhcC3EDZoBnntx7zOxyxAeRRRbxcJl5uNQTKCsPl8tKxsOSdvtNVgO8B46YWZ/DejewyZmi08wu5bQtGQ/HQwa7E7jht1k10A7cktQK9PsNlvA/kF5JzXl4eKXzcMIBf8ZrWdISoO2vPDwL+x52TZnZBHBbUq8zwySQNLMfknocupPAzbLy8Czsu971TcD3wvWOmY35+yfX2krz8DzX4OwbXe/mYd9MpXl4Gh9rfNuWAjtyVh9gbc6/XcV4uAe4DrRIavNTIQMcBE5KGvTka/f6pyvKw2ZmQIsD+5h31GBmZ4Fm7+wbsAbYa2Z9EQ//r/YHCOoe6W9/vj4AAAAASUVORK5CYII=";
-
-		return true;
 	}
 
-	public destroyControl(): void {
-		if (this.ctx) {
+	public destroy() : void {
+		if (this.filter)
+			this.filter.destroy();
+
+		if (this.pointerHandler)
 			this.pointerHandler.destroy();
-			this.pointerHandler = null;
-			this.canvas = null;
-			this.lblCursor = null;
-			this.lblCurve = null;
-			this.lblFrequency = null;
-			this.btnMnu = null;
-			this.mnu = null;
-			this.mnuChBL = null;
-			this.mnuChL = null;
-			this.mnuChBR = null;
-			this.mnuChR = null;
-			this.mnuShowZones = null;
-			this.mnuEditZones = null;
-			this.mnuNormalizeCurves = null;
-			this.mnuShowActual = null;
-			this.ctx = null;
-			this.rangeImage = null;
-			this.labelImage = null;
-			this.element.parentNode.removeChild(this.element);
-			this.element = null;
-			this.boundMouseMove = null;
-		}
+
+		zeroObject(this);
+	}
+
+	private static formatDB(dB: number): string {
+		if (dB < -40) return "-Inf.";
+		return ((dB < 0) ? dB.toFixed(2) : ((dB === 0) ? "-" + dB.toFixed(2) : "+" + dB.toFixed(2)));
+	}
+
+	private static formatFrequency(frequencyAndEquivalent: number[]): string {
+		return frequencyAndEquivalent[0] + " Hz (" + ((frequencyAndEquivalent[1] < 1000) ? (frequencyAndEquivalent[1] + " Hz") : ((frequencyAndEquivalent[1] / 1000) + " kHz")) + ")";
+	}
+
+	private static setFirstNodeText(element: HTMLElement, text: string): void {
+		if (element.firstChild)
+			element.firstChild.nodeValue = text;
 	}
 
 	private btnMnu_Click(e: MouseEvent): boolean {
 		if (!e.button) {
 			if (this.mnu.style.display === "none") {
 				this.mnu.style.display = "inline-block";
-				this.btnMnu.replaceChild(document.createTextNode("\u25BC"), this.btnMnu.firstChild);
+				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, "\u25BC");
 			} else {
 				this.mnu.style.display = "none";
-				this.btnMnu.replaceChild(document.createTextNode("\u25B2"), this.btnMnu.firstChild);
+				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, "\u25B2");
 			}
 		}
 		return true;
@@ -404,9 +379,9 @@ class GraphicalFilterEditorControl {
 				curve = this.filter.actualChannelCurve;
 			}
 
-			this.lblCursor.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatDB(this.filter.yToDB(y))), this.lblCursor.firstChild);
-			this.lblCurve.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatDB(this.filter.yToDB(curve[x]))), this.lblCurve.firstChild);
-			this.lblFrequency.replaceChild(document.createTextNode(GraphicalFilterEditorControl.prototype.formatFrequency(this.filter.visibleBinToFrequency(x, true) as number[])), this.lblFrequency.firstChild);
+			GraphicalFilterEditorControl.setFirstNodeText(this.lblCursor, GraphicalFilterEditorControl.formatDB(this.filter.yToDB(y)));
+			GraphicalFilterEditorControl.setFirstNodeText(this.lblCurve, GraphicalFilterEditorControl.formatDB(this.filter.yToDB(curve[x])));
+			GraphicalFilterEditorControl.setFirstNodeText(this.lblFrequency, GraphicalFilterEditorControl.formatFrequency(this.filter.visibleBinToFrequency(x, true) as number[]));
 		}
 	}
 

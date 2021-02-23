@@ -27,7 +27,7 @@
 "use strict";
 
 interface ConvolverCallback {
-	(oldConvolver: ConvolverNode, newConvolver: ConvolverNode): void;
+	(oldConvolver: ConvolverNode | null, newConvolver: ConvolverNode): void;
 }
 
 class GraphicalFilterEditor {
@@ -52,7 +52,7 @@ class GraphicalFilterEditor {
 	private binCount: number;
 	private audioContext: AudioContext;
 	private filterKernel: AudioBuffer;
-	private _convolver: ConvolverNode;
+	private _convolver: ConvolverNode | null;
 	private convolverCallback: ConvolverCallback;
 
 	private readonly filterKernelBuffer: Float32Array;
@@ -104,7 +104,7 @@ class GraphicalFilterEditor {
 		return this._isNormalized;
 	}
 
-	public get convolver(): ConvolverNode {
+	public get convolver(): ConvolverNode | null {
 		return this._convolver;
 	}
 
@@ -196,7 +196,7 @@ class GraphicalFilterEditor {
 			this._convolver.normalize = false;
 			this._convolver.buffer = this.filterKernel;
 			this.convolverCallback(oldConvolver, this._convolver);
-		} else {
+		} else if (this._convolver) {
 			this._convolver.buffer = this.filterKernel;
 		}
 	}

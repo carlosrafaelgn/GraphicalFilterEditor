@@ -32,7 +32,9 @@ class Program {
 	private readonly vs: WebGLShader;
 	private readonly fs: WebGLShader;
 
-	public static create(canvas: HTMLCanvasElement, options: any, vertexShaderSource: string, fragmentShaderSource: string): Program {
+	[uniformName: string]: any;
+
+	public static create(canvas: HTMLCanvasElement, options: any, vertexShaderSource: string, fragmentShaderSource: string): Program | null {
 		const ctxName = ["webkit-3d", "moz-webgl", "webgl", "experimental-webgl"];
 
 		for (let i = 0; i < ctxName.length; i++) {
@@ -52,9 +54,20 @@ class Program {
 			utypes: string[] = [];
 
 		this.gl = gl;
-		this.program = gl.createProgram();
-		this.vs = gl.createShader(gl.VERTEX_SHADER);
-		this.fs = gl.createShader(gl.FRAGMENT_SHADER);
+		const program = gl.createProgram();
+		if (!program)
+			throw new Error("Null program");
+		this.program = program;
+
+		const vs = gl.createShader(gl.VERTEX_SHADER);
+		if (!vs)
+			throw new Error("Null vertex shader");
+		this.vs = vs;
+
+		const fs = gl.createShader(gl.FRAGMENT_SHADER);
+		if (!fs)
+			throw new Error("Null fragment shader");
+		this.fs = fs;
 
 		gl.shaderSource(this.vs, vertexShaderSource);
 		gl.compileShader(this.vs);
