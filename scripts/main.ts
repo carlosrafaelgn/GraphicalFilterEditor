@@ -26,7 +26,7 @@
 
 "use strict";
 
-let cLib: CLib = null as any;
+let cLib: CLib;
 
 function cancelEvent(e: Event): boolean {
 	if (e) {
