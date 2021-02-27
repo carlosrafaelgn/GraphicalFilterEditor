@@ -3,9 +3,10 @@
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
-	-moz-backface-visibility: hidden;
+	/* Let's prevent the creation of extra render layers by removing these */
+	/*-moz-backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
-	backface-visibility: hidden;
+	backface-visibility: hidden;*/
 	-webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 
