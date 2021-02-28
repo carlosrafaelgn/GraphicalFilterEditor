@@ -33,8 +33,8 @@ interface GraphicalFilterEditorSettings {
 	currentChannelIndex?: number;
 	isSameFilterLR?: boolean;
 	isNormalized?: boolean;
-	leftCurve?: number[];
-	rightCurve?: number[];
+	leftCurve?: string;
+	rightCurve?: string;
 }
 
 class GraphicalFilterEditorControl {
@@ -168,20 +168,16 @@ class GraphicalFilterEditorControl {
 		this.mnu.appendChild(createMenuLabel("Same curve for both channels"));
 		this.mnu.appendChild(this.mnuChBL = createMenuItem("Use left curve", true, true, true, this.mnuChB_Click.bind(this, 0)));
 		this.mnu.appendChild(this.mnuChBR = createMenuItem("Use right curve", true, false, true, this.mnuChB_Click.bind(this, 1)));
-		this.mnu.appendChild(createMenuSep());
 		this.mnu.appendChild(createMenuLabel("One curve for each channel"));
 		this.mnu.appendChild(this.mnuChL = createMenuItem("Show left curve", true, false, true, this.mnuChLR_Click.bind(this, 0)));
 		this.mnu.appendChild(this.mnuChR = createMenuItem("Show right curve", true, false, true, this.mnuChLR_Click.bind(this, 1)));
 		this.mnu.appendChild(createMenuSep());
+		this.mnu.appendChild(createMenuItem("Reset curve", false, false, false, this.mnuResetCurve_Click.bind(this)));
 		this.mnu.appendChild(this.mnuShowZones = createMenuItem("Show zones", true, false, false, this.mnuShowZones_Click.bind(this)));
 		this.mnu.appendChild(this.mnuEditZones = createMenuItem("Edit by zones", true, false, false, this.mnuEditZones_Click.bind(this)));
-		this.mnu.appendChild(createMenuSep());
 		this.mnu.appendChild(this.mnuNormalizeCurves = createMenuItem("Normalize curves", true, false, false, this.mnuNormalizeCurves_Click.bind(this)));
 		this.mnu.appendChild(this.mnuShowActual = createMenuItem("Show actual response", true, true, false, this.mnuShowActual_Click.bind(this)));
 		element.appendChild(this.mnu);
-
-		if (settings)
-			this.loadSettings(settings);
 
 		this.rangeImage = this.ctx.createLinearGradient(0, 0, 1, this.canvas.height);
 		this.rangeImage.addColorStop(0, "#ff0000");
@@ -195,6 +191,9 @@ class GraphicalFilterEditorControl {
 		this.labelImage.addEventListener("load", boundDrawCurve);
 		this.labelImage.addEventListener("error", boundDrawCurve);
 		this.labelImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAgCAYAAABpRpp6AAAAAXNSR0IArs4c6QAAAphJREFUWMPtl0tIVGEUx38zvdYZjVBEYBC1kB4EKa3auLEHtND4R6vaBC6MyVaVE0KWFlZE1qogOlEwgVQEgUKSVERFRhFEj4WLyESMFlKN0+YIl2HS6zyYgnvg8r+c73W+77vn+34XIovs3zBJWUnZubabX+SgDUAKWOeuV8BRM+svZAI5ringOzAEHDKzdwDxIoKtA+4Bv4FV/kwB9yVtLrRfM4t5XFVAJ9AIpEuxwklvnzKzLz6J48ADL2sKTG4L0AHUA5PAwCxBZ4EJSeeAU8CKUgRc7zoc8L10rcvZiQFgBNgKPAeWA7tm2L04sBg44K4ToQLOlxS+ZQAJ1/FA8fR7dcDXASwEWszsifs+Swo75jDwKFTAgeDCWr7606s9GPYblhTz2Ko9qR9KajKzdDGfxCiwzJNj1H1Vrl8D9Ra4/pxD4mWBX8CIpCSwD7gApONFBPzUdUPAtzGnDOCt6+oCx1nkmik26bqB7UBK0mv3HfOOewL1zgNXgC5J+33MMyGOzbhPsiuQC4Wfw2b22M/IGPDBnziwzcyGAvWuAq1ALfARuAhcC3EDZoBnntx7zOxyxAeRRRbxcJl5uNQTKCsPl8tKxsOSdvtNVgO8B46YWZ/DejewyZmi08wu5bQtGQ/HQwa7E7jht1k10A7cktQK9PsNlvA/kF5JzXl4eKXzcMIBf8ZrWdISoO2vPDwL+x52TZnZBHBbUq8zwySQNLMfknocupPAzbLy8Czsu971TcD3wvWOmY35+yfX2krz8DzX4OwbXe/mYd9MpXl4Gh9rfNuWAjtyVh9gbc6/XcV4uAe4DrRIavNTIQMcBE5KGvTka/f6pyvKw2ZmQIsD+5h31GBmZ4Fm7+wbsAbYa2Z9EQ//r/YHCOoe6W9/vj4AAAAASUVORK5CYII=";
+
+		if (settings)
+			this.loadSettings(settings);
 	}
 
 	public destroy() : void {
@@ -228,14 +227,20 @@ class GraphicalFilterEditorControl {
 		if (settings.isSameFilterLR === false || settings.isSameFilterLR === true)
 			this.isSameFilterLR = settings.isSameFilterLR;
 
-		let leftCurve: number[] | null = null,
-			rightCurve: number[] | null = null;
+		let leftCurve: string | null = null,
+			rightCurve: string | null = null;
 
-		if (settings.leftCurve && settings.leftCurve.length === GraphicalFilterEditor.VisibleBinCount)
-			leftCurve = settings.leftCurve;
+		if (settings.leftCurve && settings.leftCurve.length >= (GraphicalFilterEditor.VisibleBinCount * 4 / 3)) {
+			leftCurve = atob(settings.leftCurve);
+			if (leftCurve.length !== GraphicalFilterEditor.VisibleBinCount)
+				leftCurve = null;
+		}
 
-		if (settings.rightCurve && settings.rightCurve.length === GraphicalFilterEditor.VisibleBinCount)
-			rightCurve = settings.rightCurve;
+		if (settings.rightCurve && settings.rightCurve.length >= (GraphicalFilterEditor.VisibleBinCount * 4 / 3)) {
+			rightCurve = atob(settings.rightCurve);
+			if (rightCurve.length !== GraphicalFilterEditor.VisibleBinCount)
+				rightCurve = null;
+		}
 
 		if (leftCurve && !rightCurve)
 			rightCurve = leftCurve;
@@ -245,13 +250,13 @@ class GraphicalFilterEditorControl {
 		if (leftCurve) {
 			const curve = filter.channelCurves[0];
 			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-				curve[i] = filter.clampY(leftCurve[i]);
+				curve[i] = filter.clampY(leftCurve.charCodeAt(i));
 		}
 
 		if (rightCurve) {
 			const curve = filter.channelCurves[1];
 			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-				curve[i] = filter.clampY(rightCurve[i]);
+				curve[i] = filter.clampY(rightCurve.charCodeAt(i));
 		}
 
 		if (this.isSameFilterLR) {
@@ -294,21 +299,21 @@ class GraphicalFilterEditorControl {
 			isNormalized: this.filter.isNormalized
 		};
 
-		const leftCurve = new Array(GraphicalFilterEditor.VisibleBinCount);
-		settings.leftCurve = leftCurve;
+		const leftCurve: number[] = new Array(GraphicalFilterEditor.VisibleBinCount);
 
 		let curve = this.filter.channelCurves[0];
 		for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
 			leftCurve[i] = curve[i];
 
-		if (!this.isSameFilterLR) {
-			const rightCurve = new Array(GraphicalFilterEditor.VisibleBinCount);
-			settings.rightCurve = rightCurve;
+		settings.leftCurve = btoa(String.fromCharCode(... leftCurve));
 
-			curve = this.filter.channelCurves[1];
-			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-				rightCurve[i] = curve[i];
-		}
+		const rightCurve: number[] = new Array(GraphicalFilterEditor.VisibleBinCount);
+
+		curve = this.filter.channelCurves[1];
+		for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+			rightCurve[i] = curve[i];
+
+		settings.rightCurve = btoa(String.fromCharCode(... rightCurve));
 
 		return settings;
 	}
@@ -371,7 +376,7 @@ class GraphicalFilterEditorControl {
 				this.checkMenu(this.mnuChR, false);
 			}
 		}
-		return true;
+		return this.btnMnu_Click(e);
 	}
 
 	private mnuChLR_Click(channelIndex: number, e: MouseEvent): boolean {
@@ -393,7 +398,21 @@ class GraphicalFilterEditorControl {
 				this.checkMenu(this.mnuChR, (channelIndex === 1));
 			}
 		}
-		return true;
+		return this.btnMnu_Click(e);
+	}
+
+	private mnuResetCurve_Click(e: MouseEvent): boolean {
+		if (!e.button) {
+			const curve = this.filter.channelCurves[this.currentChannelIndex];
+			for (let i = curve.length - 1; i >= 0; i--)
+				curve[i] = GraphicalFilterEditor.ZeroChannelValueY;
+
+			this.filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, false);
+			if (this.isActualChannelCurveNeeded)
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
+			this.drawCurve();
+		}
+		return this.btnMnu_Click(e);
 	}
 
 	private mnuShowZones_Click(e: MouseEvent): boolean {
@@ -402,7 +421,7 @@ class GraphicalFilterEditorControl {
 			this.checkMenu(this.mnuShowZones, this.showZones);
 			this.drawCurve();
 		}
-		return true;
+		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditZones_Click(e: MouseEvent): boolean {
@@ -410,7 +429,7 @@ class GraphicalFilterEditorControl {
 			this.editZones = !this.editZones;
 			this.checkMenu(this.mnuEditZones, this.editZones);
 		}
-		return true;
+		return this.btnMnu_Click(e);
 	}
 
 	private mnuNormalizeCurves_Click(e: MouseEvent): boolean {
@@ -422,7 +441,7 @@ class GraphicalFilterEditorControl {
 				this.drawCurve();
 			}
 		}
-		return true;
+		return this.btnMnu_Click(e);
 	}
 
 	private mnuShowActual_Click(e: MouseEvent): boolean {
@@ -433,7 +452,7 @@ class GraphicalFilterEditorControl {
 				this.filter.updateActualChannelCurve(this.currentChannelIndex);
 			this.drawCurve();
 		}
-		return true;
+		return this.btnMnu_Click(e);
 	}
 
 	private mouseDown(e: MouseEvent): boolean {
