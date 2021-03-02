@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 interface CLib {
 	HEAP8: Uint8Array;
 	HEAPF32: Float32Array;

@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 abstract class Analyzer {
 	public static readonly ControlWidth = 512;
 	public static readonly ControlHeight = 512;

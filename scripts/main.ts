@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 let cLib: CLib;
 
 function cancelEvent(e: Event): boolean {

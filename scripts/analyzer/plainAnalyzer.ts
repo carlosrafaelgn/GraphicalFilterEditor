@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 class PlainAnalyzer extends Analyzer {
 	private readonly sampleRate: number;
 	private readonly analyzerL: AnalyserNode;

@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 class Program {
 	public readonly gl: WebGLRenderingContext;
 	private readonly program: WebGLProgram;

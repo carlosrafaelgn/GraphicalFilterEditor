@@ -33,8 +33,6 @@
 // https://github.com/carlosrafaelgn/FPlayAndroid/blob/master/jni/GLSoundParticle.h
 //
 
-"use strict";
-
 class SoundParticlesAnalyzer extends Analyzer {
 	// Vertex shader (one attribute and one uniform per line)
 	private static readonly VertexShaderSource = `precision mediump float;

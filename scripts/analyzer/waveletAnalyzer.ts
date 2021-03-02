@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 class WaveletAnalyzer extends Analyzer {
 	private readonly analyzerL: AnalyserNode;
 	private readonly analyzerR: AnalyserNode;

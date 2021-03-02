@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 interface GraphicalFilterEditorSettings {
 	showZones?: boolean;
 	editZones?: boolean;

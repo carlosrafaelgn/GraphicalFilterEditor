@@ -28,8 +28,6 @@
 // This file came from my other project: https://github.com/carlosrafaelgn/pixel
 //
 
-"use strict";
-
 interface BooleanPointerHandler {
 	(event: MouseEvent): boolean;
 }

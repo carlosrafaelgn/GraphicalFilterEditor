@@ -24,8 +24,6 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-"use strict";
-
 interface ConvolverCallback {
 	(oldConvolver: ConvolverNode | null, newConvolver: ConvolverNode): void;
 }
