@@ -51,7 +51,7 @@ class GraphicalFilterEditor {
 	private audioContext: AudioContext;
 	private filterKernel: AudioBuffer;
 	private _convolver: ConvolverNode | null;
-	private convolverCallback: ConvolverCallback;
+	private convolverCallback: ConvolverCallback | null | undefined;
 
 	private readonly filterKernelBuffer: Float32Array;
 	public readonly channelCurves: Int32Array[];
@@ -60,7 +60,7 @@ class GraphicalFilterEditor {
 	public readonly equivalentZones: Int32Array;
 	public readonly equivalentZonesFrequencyCount: Int32Array;
 
-	public constructor(filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback) {
+	public constructor(filterLength: number, audioContext: AudioContext, convolverCallback?: ConvolverCallback | null) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
@@ -85,13 +85,13 @@ class GraphicalFilterEditor {
 		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount);
 		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount + 1);
 
-		this._convolver = audioContext.createConvolver();
-		this._convolver.normalize = false;
-		this.convolverCallback = convolverCallback;
-		this._convolver.buffer = this.filterKernel;
+		this._convolver = null;
 
 		this.updateFilter(0, true, true);
 		this.updateActualChannelCurve(0);
+		this.updateBuffer();
+
+		this.convolverCallback = convolverCallback;
 	}
 
 	public get sampleRate(): number {
@@ -188,15 +188,20 @@ class GraphicalFilterEditor {
 	}
 
 	private updateBuffer(): void {
-		if (this.convolverCallback) {
-			const oldConvolver = this._convolver;
+		const oldConvolver = this._convolver;
+		if (!this._convolver) {
 			this._convolver = this.audioContext.createConvolver();
 			this._convolver.normalize = false;
-			this._convolver.buffer = this.filterKernel;
-			this.convolverCallback(oldConvolver, this._convolver);
-		} else if (this._convolver) {
-			this._convolver.buffer = this.filterKernel;
 		}
+		// Even though this._convolver.buffer === this.filterKernel, changing
+		// this.filterKernel's contents does not change the actual convolver
+		// response. Apparently, as of march/2021, it is not necessary to create
+		// a new convolver to force the changes to take effect. Just assigning
+		// the audio buffer to this._convolver.buffer, even if it is the same
+		// audio buffer, makes the convolver update its internal state.
+		this._convolver.buffer = this.filterKernel;
+		if (!oldConvolver && this.convolverCallback)
+			this.convolverCallback(oldConvolver, this._convolver);
 	}
 
 	private copyToChannel(source: Float32Array, channelNumber: number): void {
@@ -281,17 +286,14 @@ class GraphicalFilterEditor {
 	public changeAudioContext(newAudioContext: AudioContext, channelIndex: number, isSameFilterLR: boolean): boolean {
 		if (this.audioContext !== newAudioContext) {
 			var oldConvolver = this._convolver;
-			if (oldConvolver)
-				oldConvolver.disconnect(0);
+			if (oldConvolver) {
+				oldConvolver.disconnect();
+				this._convolver = null; // Just to prevent intermediate calls to this.updateBuffer() during this.updateFilter()
+			}
 			this.audioContext = newAudioContext;
 			this.filterKernel = newAudioContext.createBuffer(2, this.filterLength, this._sampleRate);
-			this._convolver = null;
 			this.updateFilter(channelIndex, isSameFilterLR, true);
-			this._convolver = newAudioContext.createConvolver();
-			this._convolver.normalize = false;
-			this._convolver.buffer = this.filterKernel;
-			if (this.convolverCallback)
-				this.convolverCallback(oldConvolver, this._convolver);
+			this.updateBuffer();
 			return true;
 		}
 		return false;
