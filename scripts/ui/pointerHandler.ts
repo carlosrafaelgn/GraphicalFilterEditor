@@ -27,6 +27,9 @@
 //
 // This file came from my other project: https://github.com/carlosrafaelgn/pixel
 //
+interface OutsidePointerHandler {
+	(event: Event): boolean;
+}
 
 interface BooleanPointerHandler {
 	(event: MouseEvent): boolean;
@@ -48,16 +51,20 @@ class PointerHandler {
 	private readonly documentMoveEvent: string;
 	private readonly documentUpEvent: string;
 	private readonly documentCancelEvent: string | null;
-	private readonly elementHasExtraTouchStartHandler: boolean;
 
 	private readonly boundDocumentDown: any;
 	private readonly boundDocumentMove: any;
 	private readonly boundDocumentUp: any;
+	private readonly boundExtraTouchStart: any;
+
+	private readonly lazy: boolean;
+
+	private readonly outsidePointerHandler: OutsidePointerHandler | null;
 
 	private captured: boolean;
 	private pointerId: number;
 
-	public constructor(element: HTMLElement, downCallback: BooleanPointerHandler | null = null, moveCallback: VoidPointerHandler | null = null, upCallback: VoidPointerHandler | null = null) {
+	public constructor(element: HTMLElement, downCallback: BooleanPointerHandler | null = null, moveCallback: VoidPointerHandler | null = null, upCallback: VoidPointerHandler | null = null, lazy: boolean = true, outsidePointerHandler: OutsidePointerHandler | null = null) {
 		this.documentTarget = (document.documentElement || document.body);
 		this.element = element;
 
@@ -65,7 +72,7 @@ class PointerHandler {
 		this.moveCallback = moveCallback;
 		this.upCallback = upCallback;
 
-		this.elementHasExtraTouchStartHandler = false;
+		this.boundExtraTouchStart = null;
 
 		if ("onpointerdown" in element) {
 			this.documentDownEvent = "pointerdown";
@@ -79,10 +86,8 @@ class PointerHandler {
 
 			// Firefox mobile and a few iOS devices cause a buggy behavior if trying to handle
 			// pointerdown/move/up but not touchstart/end/cancel...
-			if ("ontouchstart" in element) {
-				this.elementHasExtraTouchStartHandler = true;
-				element.addEventListener("touchstart", cancelEvent);
-			}
+			if ("ontouchstart" in element)
+				this.boundExtraTouchStart = this.extraTouchStart.bind(this);
 		} else if ("ontouchstart" in element) {
 			this.documentDownEvent = "touchstart";
 			this.documentMoveEvent = "touchmove";
@@ -103,14 +108,16 @@ class PointerHandler {
 			this.boundDocumentMove = this.mouseMove.bind(this);
 		}
 
+		this.lazy = lazy;
+
+		this.outsidePointerHandler = outsidePointerHandler;
+
+		if (this.boundExtraTouchStart)
+			element.addEventListener("touchstart", this.boundExtraTouchStart);
 		element.addEventListener(this.documentDownEvent, this.boundDocumentDown);
-		// Firefox mobile and a few iOS devices treat a few events on the root element as passive by default
-		// https://stackoverflow.com/a/49853392/3569421
-		// https://stackoverflow.com/a/57076149/3569421
-		this.documentTarget.addEventListener(this.documentMoveEvent, this.boundDocumentMove, { capture: true, passive: false });
-		this.documentTarget.addEventListener(this.documentUpEvent, this.boundDocumentUp, true);
-		if (this.documentCancelEvent)
-			this.documentTarget.addEventListener(this.documentCancelEvent, this.boundDocumentUp, true);
+
+		if (!lazy)
+			this.addSecondaryHandlers();
 
 		this.captured = false;
 		this.pointerId = -1;
@@ -118,26 +125,49 @@ class PointerHandler {
 
 	public destroy(): void {
 		if (this.element) {
+			if (this.boundExtraTouchStart)
+				this.element.removeEventListener("touchstart", this.boundExtraTouchStart);
 			if (this.boundDocumentDown)
 				this.element.removeEventListener(this.documentDownEvent, this.boundDocumentDown);
-			if (this.elementHasExtraTouchStartHandler)
-				this.element.removeEventListener("touchstart", cancelEvent);
 		}
 
-		if (this.documentTarget) {
-			if (this.boundDocumentUp) {
-				this.documentTarget.removeEventListener(this.documentUpEvent, this.boundDocumentUp, true);
-				if (this.documentCancelEvent)
-					this.documentTarget.removeEventListener(this.documentCancelEvent, this.boundDocumentUp, true);
-			}
-
-			if (this.boundDocumentMove)
-				this.documentTarget.removeEventListener(this.documentMoveEvent, this.boundDocumentMove, true);
-		}
+		this.removeSecondaryHandlers();
 
 		this.mouseUp({} as MouseEvent);
 
 		zeroObject(this);
+	}
+
+	private addSecondaryHandlers(): void {
+		if (!this.documentTarget)
+			return;
+
+		// Firefox mobile and a few iOS devices treat a few events on the root element as passive by default
+		// https://stackoverflow.com/a/49853392/3569421
+		// https://stackoverflow.com/a/57076149/3569421
+		this.documentTarget.addEventListener(this.documentMoveEvent, this.boundDocumentMove, { capture: true, passive: false });
+		this.documentTarget.addEventListener(this.documentUpEvent, this.boundDocumentUp, true);
+		if (this.documentCancelEvent)
+			this.documentTarget.addEventListener(this.documentCancelEvent, this.boundDocumentUp, true);
+	}
+
+	private removeSecondaryHandlers(): void {
+		if (!this.documentTarget)
+			return;
+
+		if (this.boundDocumentUp) {
+			this.documentTarget.removeEventListener(this.documentUpEvent, this.boundDocumentUp, true);
+			if (this.documentCancelEvent)
+				this.documentTarget.removeEventListener(this.documentCancelEvent, this.boundDocumentUp, true);
+		}
+
+		if (this.boundDocumentMove)
+			this.documentTarget.removeEventListener(this.documentMoveEvent, this.boundDocumentMove, true);
+	}
+
+	private extraTouchStart(e: TouchEvent): boolean | undefined {
+		if (e.target === this.element || (this.outsidePointerHandler && this.outsidePointerHandler(e)))
+			return cancelEvent(e);
 	}
 
 	private pointerDown(e: PointerEvent): boolean | undefined {
@@ -209,13 +239,15 @@ class PointerHandler {
 	private mouseDown(e: MouseEvent): boolean | undefined {
 		this.mouseUp(e);
 
-		if (e.button || (e.target && e.target !== this.element))
+		if (e.button || (e.target && e.target !== this.element && (!this.outsidePointerHandler || !this.outsidePointerHandler(e))))
 			return;
 
 		if (this.downCallback && !this.downCallback(e))
 			return cancelEvent(e);
 
 		this.captured = true;
+		if (this.lazy)
+			this.addSecondaryHandlers();
 
 		return cancelEvent(e);
 	}
@@ -235,6 +267,8 @@ class PointerHandler {
 			return;
 
 		this.captured = false;
+		if (this.lazy)
+			this.removeSecondaryHandlers();
 
 		if (this.upCallback)
 			this.upCallback(e);
