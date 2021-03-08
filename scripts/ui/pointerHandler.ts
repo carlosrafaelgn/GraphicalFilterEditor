@@ -61,7 +61,7 @@ class PointerHandler {
 
 	private readonly outsidePointerHandler: OutsidePointerHandler | null;
 
-	private captured: boolean;
+	private _captured: boolean;
 	private pointerId: number;
 
 	public constructor(element: HTMLElement, downCallback: BooleanPointerHandler | null = null, moveCallback: VoidPointerHandler | null = null, upCallback: VoidPointerHandler | null = null, lazy: boolean = true, outsidePointerHandler: OutsidePointerHandler | null = null) {
@@ -119,7 +119,7 @@ class PointerHandler {
 		if (!lazy)
 			this.addSecondaryHandlers();
 
-		this.captured = false;
+		this._captured = false;
 		this.pointerId = -1;
 	}
 
@@ -136,6 +136,10 @@ class PointerHandler {
 		this.mouseUp({} as MouseEvent);
 
 		zeroObject(this);
+	}
+
+	public get captured(): boolean {
+		return this._captured;
 	}
 
 	private addSecondaryHandlers(): void {
@@ -176,21 +180,21 @@ class PointerHandler {
 
 		const ret = this.mouseDown(e);
 
-		if (this.captured)
+		if (this._captured)
 			this.pointerId = e.pointerId;
 
 		return ret;
 	}
 
 	private pointerMove(e: PointerEvent): boolean | undefined {
-		if (!this.captured || e.pointerId !== this.pointerId)
+		if (!this._captured || e.pointerId !== this.pointerId)
 			return;
 
 		return this.mouseMove(e);
 	}
 
 	private pointerUp(e: PointerEvent): boolean | undefined {
-		if (!this.captured || e.pointerId !== this.pointerId)
+		if (!this._captured || e.pointerId !== this.pointerId)
 			return;
 
 		this.pointerId = -1;
@@ -218,7 +222,7 @@ class PointerHandler {
 	}
 
 	private touchMove(e: TouchEvent): boolean | undefined {
-		if (!this.captured || e.touches.length > 1)
+		if (!this._captured || e.touches.length > 1)
 			return;
 
 		(e as any).clientX = e.touches[0].clientX;
@@ -228,7 +232,7 @@ class PointerHandler {
 	}
 
 	private touchEnd(e: TouchEvent): boolean | undefined {
-		if (!this.captured || this.pointerId < 0)
+		if (!this._captured || this.pointerId < 0)
 			return;
 
 		this.pointerId = -1;
@@ -245,7 +249,7 @@ class PointerHandler {
 		if (this.downCallback && !this.downCallback(e))
 			return cancelEvent(e);
 
-		this.captured = true;
+		this._captured = true;
 		if (this.lazy)
 			this.addSecondaryHandlers();
 
@@ -253,7 +257,7 @@ class PointerHandler {
 	}
 
 	private mouseMove(e: MouseEvent): boolean | undefined {
-		if (!this.captured)
+		if (!this._captured)
 			return;
 
 		if (this.moveCallback)
@@ -263,10 +267,10 @@ class PointerHandler {
 	}
 
 	private mouseUp(e: MouseEvent): boolean | undefined {
-		if (!this.captured)
+		if (!this._captured)
 			return;
 
-		this.captured = false;
+		this._captured = false;
 		if (this.lazy)
 			this.removeSecondaryHandlers();
 
