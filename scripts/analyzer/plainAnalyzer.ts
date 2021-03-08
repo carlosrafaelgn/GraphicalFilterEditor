@@ -131,7 +131,7 @@ class PlainAnalyzer extends Analyzer {
 			filterLength2 = (2048 >>> 1),
 			cos = Math.cos,
 			visibleFrequencies = this.visibleFrequencies,
-			colors = Analyzer.colors;
+			colors = Analyzer.Colors;
 
 		let d = 0, im = 0, i = 0, freq = 0, ii = 0, avg = 0, avgCount = 0;
 

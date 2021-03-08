@@ -80,7 +80,7 @@ class WaveletAnalyzer extends Analyzer {
 		// over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
 		// results in two lines that get drawn on the canvas.
 		const ctx = this.ctx as CanvasRenderingContext2D, // ctx is null only with WebGL analyzers
-			colors = Analyzer.colors,
+			colors = Analyzer.Colors,
 			oL1 = this.oL1,
 			oR1 = this.oR1;
 
