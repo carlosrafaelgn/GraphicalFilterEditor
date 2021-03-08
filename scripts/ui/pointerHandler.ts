@@ -42,11 +42,11 @@ interface VoidPointerHandler {
 class PointerHandler {
 	private readonly documentTarget: HTMLElement;
 	private readonly element: HTMLElement;
-	
+
 	private readonly downCallback: BooleanPointerHandler | null;
 	private readonly moveCallback: VoidPointerHandler | null;
 	private readonly upCallback: VoidPointerHandler | null;
-	
+
 	private readonly documentDownEvent: string;
 	private readonly documentMoveEvent: string;
 	private readonly documentUpEvent: string;
