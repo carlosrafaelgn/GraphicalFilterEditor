@@ -101,7 +101,7 @@ void main() {
 	private lastTime = 0;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
-		super(audioContext, parent, id, true, 512, 320);
+		super(audioContext, parent, id, true, Analyzer.ControlWidth, 320);
 
 		this.analyzerL = audioContext.createAnalyser();
 		this.analyzerL.fftSize = 1024;
@@ -290,15 +290,7 @@ void main() {
 		const gl = this.program.gl,
 			sqrtf = Math.sqrt,
 			TEXTURE_SIZE = 64,
-			tex = new Uint8Array(TEXTURE_SIZE * TEXTURE_SIZE),
-			smoothStep = function (edge0: number, edge1: number, x: number): number {
-				const t = (x - edge0) / (edge1 - edge0);
-				return ((t <= 0.0) ? 0.0 :
-					((t >= 1.0) ? 1.0 :
-						(t * t * (3.0 - (2.0 * t)))
-					)
-				);
-			};
+			tex = new Uint8Array(TEXTURE_SIZE * TEXTURE_SIZE);
 
 		for (let y = 0; y < TEXTURE_SIZE; y++) {
 			let yf = (y - (TEXTURE_SIZE >> 1));

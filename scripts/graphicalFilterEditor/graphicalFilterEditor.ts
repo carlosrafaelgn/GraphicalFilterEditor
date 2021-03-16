@@ -31,17 +31,63 @@ interface ConvolverCallback {
 class GraphicalFilterEditor {
 	// Must be in sync with c/common.h
 	// Sorry, but due to the frequency mapping I created, this class will only work with
-	// 512 visible bins... in order to change this, a new frequency mapping must be created...
-	public static readonly VisibleBinCount = 512;
-	public static readonly ValidYRangeHeight = 255;
-	public static readonly ZeroChannelValueY = 255 >>> 1;
-	public static readonly MaximumChannelValue = 127;
-	public static readonly MinimumChannelValue = -127;
-	public static readonly MinusInfiniteChannelValue = -128;
+	// 500 visible bins... in order to change this, a new frequency mapping must be created...
+	public static readonly VisibleBinCount = 500;
+	public static readonly ValidYRangeHeight = 321;
+	public static readonly ZeroChannelValueY = GraphicalFilterEditor.ValidYRangeHeight >>> 1;
+	public static readonly MaximumChannelValue = GraphicalFilterEditor.ZeroChannelValueY;
+	public static readonly MinimumChannelValue = -GraphicalFilterEditor.ZeroChannelValueY;
+	public static readonly MinusInfiniteChannelValue = GraphicalFilterEditor.MinimumChannelValue - 1;
 	public static readonly MaximumChannelValueY = 0;
-	public static readonly MinimumChannelValueY = 255 - 1;
+	public static readonly MinimumChannelValueY = GraphicalFilterEditor.ValidYRangeHeight - 1;
 	public static readonly MaximumFilterLength = 8192;
 	public static readonly EquivalentZoneCount = 10;
+
+	public static encodeCurve(curve: Int32Array): string {
+		const min = GraphicalFilterEditor.MinimumChannelValueY,
+			range = GraphicalFilterEditor.ValidYRangeHeight,
+			length = curve.length,
+			array: number[] = new Array(length << 1);
+		let actualLength = 0;
+		for (let i = 0; i < length; i++) {
+			let v = curve[i];
+			v = ((v > min) ? 0 : (range - v));
+			if (v <= 254) {
+				array[actualLength++] = v;
+			} else {
+				array[actualLength++] = 255;
+				array[actualLength++] = v - 254;
+			}
+		}
+		array.splice(actualLength);
+		return btoa(String.fromCharCode(...array));
+	}
+
+	public static decodeCurve(str?: string | null): number[] | null {
+		if (!str || str.length < (GraphicalFilterEditor.VisibleBinCount * 4 / 3))
+			return null;
+		try {
+			str = atob(str);
+		} catch (ex) {
+			return null;
+		}
+		if (str.length < GraphicalFilterEditor.VisibleBinCount)
+			return null;
+		const range = GraphicalFilterEditor.ValidYRangeHeight,
+			length = str.length,
+			array: number[] = new Array(GraphicalFilterEditor.VisibleBinCount);
+		let actualLength = 0;
+		for (let i = 0; i < length; i++) {
+			const v = str.charCodeAt(i);
+			if (v <= 254) {
+				array[actualLength++] = range - v;
+			} else if (i < length - 1) {
+				i++;
+				array[actualLength++] = range - (str.charCodeAt(i) + 254);
+			}
+		}
+		return array;
+	}
 
 	private editorPtr: number;
 	private filterLength: number;
@@ -52,6 +98,7 @@ class GraphicalFilterEditor {
 	private filterKernel: AudioBuffer;
 	private _convolver: ConvolverNode | null;
 	private convolverCallback: ConvolverCallback | null | undefined;
+	private curveSnapshot: Int32Array | null;
 
 	private readonly filterKernelBuffer: Float32Array;
 	public readonly channelCurves: Int32Array[];
@@ -86,6 +133,7 @@ class GraphicalFilterEditor {
 		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount + 1);
 
 		this._convolver = null;
+		this.curveSnapshot = null;
 
 		this.updateFilter(0, true, true);
 		this.updateActualChannelCurve(0);
@@ -111,6 +159,12 @@ class GraphicalFilterEditor {
 			cLib._graphicalFilterEditorFree(this.editorPtr);
 			zeroObject(this);
 		}
+	}
+
+	public clampX(x: number): number {
+		return ((x <= 0) ? 0 :
+			((x >= GraphicalFilterEditor.VisibleBinCount) ? (GraphicalFilterEditor.VisibleBinCount - 1) :
+				x));
 	}
 
 	public clampY(y: number): number {
@@ -139,9 +193,9 @@ class GraphicalFilterEditor {
 
 	public magnitudeToY(magnitude: number): number {
 		// 40dB = 100
-		// -40dB = 0.01
+		// -40dB = 0.01 (we are using 0.009 due to float point errors)
 		return ((magnitude >= 100) ? GraphicalFilterEditor.MaximumChannelValueY :
-			((magnitude < 0.01) ? (GraphicalFilterEditor.ValidYRangeHeight + 1) :
+			((magnitude < 0.009) ? (GraphicalFilterEditor.ValidYRangeHeight + 1) :
 				Math.round((GraphicalFilterEditor.ZeroChannelValueY - (GraphicalFilterEditor.ZeroChannelValueY * Math.log(magnitude) / Math.LN10 * 0.5)) - 0.4)));
 	}
 
@@ -185,6 +239,31 @@ class GraphicalFilterEditor {
 			curve = this.channelCurves[channelIndex];
 		for (i = this.equivalentZonesFrequencyCount[i]; i < ii; i++)
 			curve[i] = cy;
+	}
+
+	public startSmoothEdition(channelIndex: number): void {
+		if (!this.curveSnapshot)
+			this.curveSnapshot = new Int32Array(GraphicalFilterEditor.VisibleBinCount);
+		this.curveSnapshot.set(this.channelCurves[channelIndex]);
+	}
+
+	public changeSmoothY(channelIndex: number, x: number, y: number, width: number): void {
+		const curveSnapshot = this.curveSnapshot;
+		if (!curveSnapshot)
+			return;
+		const count = GraphicalFilterEditor.VisibleBinCount,
+			cy = this.clampY(y),
+			curve = this.channelCurves[channelIndex];
+		curve.set(curveSnapshot);
+		width >>= 1;
+		for (let start = x - width, maxI = Math.min(x, count), i = Math.max(0, start); i < maxI; i++) {
+			const s = (512 * smoothStep(start, x, i)) | 0;
+			curve[i] = this.clampY(Math.round(((cy * s) + (curve[i] * (512 - s))) / 512));
+		}
+		for (let end = x + width, maxI = Math.min(end, count), i = Math.max(0, x); i < maxI; i++) {
+			const s = (512 * smoothStep(end, x, i)) | 0;
+			curve[i] = this.clampY(Math.round(((cy * s) + (curve[i] * (512 - s))) / 512));
+		}
 	}
 
 	private updateBuffer(): void {

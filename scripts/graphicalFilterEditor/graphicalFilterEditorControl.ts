@@ -26,7 +26,7 @@
 
 interface GraphicalFilterEditorSettings {
 	showZones?: boolean;
-	editZones?: boolean;
+	editMode?: number;
 	isActualChannelCurveNeeded?: boolean;
 	currentChannelIndex?: number;
 	isSameFilterLR?: boolean;
@@ -35,15 +35,39 @@ interface GraphicalFilterEditorSettings {
 	rightCurve?: string;
 }
 
+interface GraphicalFilterEditorUISettings {
+	checkFontFamily?: string;
+	checkFontSize?: string;
+	radioCharacter?: string;
+	radioMargin?: string;
+	checkCharacter?: string;
+	checkMargin?: string;
+
+	menuFontFamily?: string;
+	menuFontSize?: string;
+	menuWidth?: string;
+	menuPadding?: string;
+	openMenuCharacter?: string;
+	closeMenuCharacter?: string;
+}
+
 class GraphicalFilterEditorControl {
-	public static readonly ControlWidth = GraphicalFilterEditor.VisibleBinCount;
-	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 5;
+	public static readonly ControlWidth = Math.max(512, GraphicalFilterEditor.VisibleBinCount);
+	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 4;
+
+	private static readonly EditModeRegular = 0;
+	private static readonly EditModeZones = 1;
+	private static readonly EditModeSmoothNarrow = 2;
+	private static readonly EditModeSmoothWide = 3;
+	private static readonly EditModeFirst = 0;
+	private static readonly EditModeLast = 3;
 
 	public readonly filter: GraphicalFilterEditor;
 	public readonly element: HTMLDivElement;
 
 	private readonly pointerHandler: PointerHandler;
 	private readonly canvas: HTMLCanvasElement;
+	private readonly canvasLeftMargin: number;
 	private readonly ctx: CanvasRenderingContext2D;
 	private readonly rangeImage: CanvasGradient;
 	private readonly labelImage: HTMLImageElement;
@@ -54,15 +78,21 @@ class GraphicalFilterEditorControl {
 	private readonly mnuChBR: HTMLDivElement;
 	private readonly mnuChR: HTMLDivElement;
 	private readonly mnuShowZones: HTMLDivElement;
+	private readonly mnuEditRegular: HTMLDivElement;
 	private readonly mnuEditZones: HTMLDivElement;
+	private readonly mnuEditSmoothNarrow: HTMLDivElement;
+	private readonly mnuEditSmoothWide: HTMLDivElement;
 	private readonly mnuNormalizeCurves: HTMLDivElement;
 	private readonly mnuShowActual: HTMLDivElement;
 	private readonly lblCursor: HTMLSpanElement;
 	private readonly lblCurve: HTMLSpanElement;
 	private readonly lblFrequency: HTMLSpanElement;
 
+	private readonly openMenuCharacter: string;
+	private readonly closeMenuCharacter: string;
+
 	private showZones = false;
-	private editZones = false;
+	private editMode = GraphicalFilterEditorControl.EditModeRegular;
 	private isActualChannelCurveNeeded = true;
 	private currentChannelIndex = 0;
 	private isSameFilterLR = true;
@@ -74,7 +104,7 @@ class GraphicalFilterEditorControl {
 
 	private boundMouseMove: any;
 
-	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback, settings?: GraphicalFilterEditorSettings | null) {
+	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback, settings?: GraphicalFilterEditorSettings | null, uiSettings?: GraphicalFilterEditorUISettings | null) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
@@ -96,7 +126,31 @@ class GraphicalFilterEditorControl {
 				i.className = "GEMNUIT GECLK";
 				if (checkable) {
 					const s = document.createElement("span");
-					s.appendChild(document.createTextNode(radio ? "\u25CF " : "\u25A0 "));
+					let checkCharacter = (radio ? "\u25CF " : "\u25A0 "),
+						margin: string | null = null;
+					if (uiSettings) {
+						let checkCharacterOK = false;
+						if (radio) {
+							if (uiSettings.radioCharacter) {
+								checkCharacterOK = true;
+								checkCharacter = uiSettings.radioCharacter;
+								margin = (uiSettings.radioMargin || "2px");
+							}
+						} else if (uiSettings.checkCharacter) {
+							checkCharacterOK = true;
+							checkCharacter = uiSettings.checkCharacter;
+							margin = (uiSettings.checkMargin || "2px");
+						}
+						if (checkCharacterOK) {
+							if (uiSettings.checkFontFamily)
+								s.style.fontFamily = uiSettings.checkFontFamily;
+							if (uiSettings.checkFontSize)
+								s.style.fontSize = uiSettings.checkFontSize;
+						}
+					}
+					if (margin)
+						s.style.marginRight = margin;
+					s.appendChild(document.createTextNode(checkCharacter));
 					if (!checked)
 						s.style.visibility = "hidden";
 					i.appendChild(s);
@@ -118,6 +172,8 @@ class GraphicalFilterEditorControl {
 		this.canvas.height = GraphicalFilterEditorControl.ControlHeight;
 		this.canvas.addEventListener("mousemove", this.boundMouseMove);
 		element.appendChild(this.canvas);
+
+		this.canvasLeftMargin = Math.abs(GraphicalFilterEditorControl.ControlWidth - GraphicalFilterEditor.VisibleBinCount) >> 1;
 
 		const ctx = this.canvas.getContext("2d", { alpha: false });
 		if (!ctx)
@@ -156,25 +212,64 @@ class GraphicalFilterEditorControl {
 
 		this.btnMnu = document.createElement("div");
 		this.btnMnu.className = "GEBTN GECLK";
-		this.btnMnu.appendChild(document.createTextNode("\u25B2"));
+		this.openMenuCharacter = "\u25B2";
+		this.closeMenuCharacter = "\u25BC";
+		if (uiSettings) {
+			let menuCharacterOK = false;
+			if (uiSettings.openMenuCharacter) {
+				menuCharacterOK = true;
+				this.openMenuCharacter = uiSettings.openMenuCharacter;
+				this.closeMenuCharacter = (uiSettings.closeMenuCharacter || this.openMenuCharacter);
+			} else if (uiSettings.closeMenuCharacter) {
+				menuCharacterOK = true;
+				this.openMenuCharacter = uiSettings.closeMenuCharacter;
+				this.closeMenuCharacter = this.openMenuCharacter;
+			}
+			if (menuCharacterOK) {
+				if (uiSettings.menuFontFamily)
+					this.btnMnu.style.fontFamily = uiSettings.menuFontFamily;
+				if (uiSettings.menuFontSize)
+					this.btnMnu.style.fontSize = uiSettings.menuFontSize;
+				if (uiSettings.menuWidth)
+					this.btnMnu.style.width = uiSettings.menuWidth;
+				if (uiSettings.menuPadding)
+					this.btnMnu.style.padding = uiSettings.menuPadding;
+			}
+		}
+		this.btnMnu.appendChild(document.createTextNode(this.openMenuCharacter));
 		this.btnMnu.onclick = this.btnMnu_Click.bind(this);
 		element.appendChild(this.btnMnu);
 
 		this.mnu = document.createElement("div");
 		this.mnu.className = "GEMNU";
 		this.mnu.style.display = "none";
-		this.mnu.appendChild(createMenuLabel("Same curve for both channels"));
-		this.mnu.appendChild(this.mnuChBL = createMenuItem("Use left curve", true, true, true, this.mnuChB_Click.bind(this, 0)));
-		this.mnu.appendChild(this.mnuChBR = createMenuItem("Use right curve", true, false, true, this.mnuChB_Click.bind(this, 1)));
-		this.mnu.appendChild(createMenuLabel("One curve for each channel"));
-		this.mnu.appendChild(this.mnuChL = createMenuItem("Show left curve", true, false, true, this.mnuChLR_Click.bind(this, 0)));
-		this.mnu.appendChild(this.mnuChR = createMenuItem("Show right curve", true, false, true, this.mnuChLR_Click.bind(this, 1)));
-		this.mnu.appendChild(createMenuSep());
-		this.mnu.appendChild(createMenuItem("Reset curve", false, false, false, this.mnuResetCurve_Click.bind(this)));
-		this.mnu.appendChild(this.mnuShowZones = createMenuItem("Show zones", true, false, false, this.mnuShowZones_Click.bind(this)));
-		this.mnu.appendChild(this.mnuEditZones = createMenuItem("Edit by zones", true, false, false, this.mnuEditZones_Click.bind(this)));
-		this.mnu.appendChild(this.mnuNormalizeCurves = createMenuItem("Normalize curves", true, false, false, this.mnuNormalizeCurves_Click.bind(this)));
-		this.mnu.appendChild(this.mnuShowActual = createMenuItem("Show actual response", true, true, false, this.mnuShowActual_Click.bind(this)));
+
+		let mnuh = document.createElement("div");
+		mnuh.className = "GEMNUH";
+		mnuh.appendChild(createMenuLabel("Same curve for both channels"));
+		mnuh.appendChild(this.mnuChBL = createMenuItem("Use left curve", true, true, true, this.mnuChB_Click.bind(this, 0)));
+		mnuh.appendChild(this.mnuChBR = createMenuItem("Use right curve", true, false, true, this.mnuChB_Click.bind(this, 1)));
+		mnuh.appendChild(createMenuSep());
+		mnuh.appendChild(createMenuLabel("One curve for each channel"));
+		mnuh.appendChild(this.mnuChL = createMenuItem("Show left curve", true, false, true, this.mnuChLR_Click.bind(this, 0)));
+		mnuh.appendChild(this.mnuChR = createMenuItem("Show right curve", true, false, true, this.mnuChLR_Click.bind(this, 1)));
+		this.mnu.appendChild(mnuh);
+
+		mnuh = document.createElement("div");
+		mnuh.className = "GEMNUH GEMNUSEPH";
+		mnuh.appendChild(createMenuItem("Reset curve", false, false, false, this.mnuResetCurve_Click.bind(this)));
+		mnuh.appendChild(createMenuSep());
+		mnuh.appendChild(createMenuLabel("Edit mode"));
+		mnuh.appendChild(this.mnuEditRegular = createMenuItem("Regular", true, true, true, this.mnuEditRegular_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditZones = createMenuItem("Zones", true, false, true, this.mnuEditZones_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditSmoothNarrow = createMenuItem("Smooth (narrow)", true, false, true, this.mnuEditSmoothNarrow_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditSmoothWide = createMenuItem("Smooth (wide)", true, false, true, this.mnuEditSmoothWide_Click.bind(this)));
+		mnuh.appendChild(createMenuSep());
+		mnuh.appendChild(this.mnuNormalizeCurves = createMenuItem("Normalize curves", true, false, false, this.mnuNormalizeCurves_Click.bind(this)));
+		mnuh.appendChild(this.mnuShowZones = createMenuItem("Show zones", true, false, false, this.mnuShowZones_Click.bind(this)));
+		mnuh.appendChild(this.mnuShowActual = createMenuItem("Show actual response", true, true, false, this.mnuShowActual_Click.bind(this)));
+		this.mnu.appendChild(mnuh);
+
 		element.appendChild(this.mnu);
 
 		this.rangeImage = this.ctx.createLinearGradient(0, 0, 1, this.canvas.height);
@@ -213,8 +308,8 @@ class GraphicalFilterEditorControl {
 		if (settings.showZones === false || settings.showZones === true)
 			this.showZones = settings.showZones;
 
-		if (settings.editZones === false || settings.editZones === true)
-			this.editZones = settings.editZones;
+		if (settings.editMode && settings.editMode >= GraphicalFilterEditorControl.EditModeFirst && settings.editMode <= GraphicalFilterEditorControl.EditModeLast)
+			this.editMode = settings.editMode;
 
 		if (settings.isActualChannelCurveNeeded === false || settings.isActualChannelCurveNeeded === true)
 			this.isActualChannelCurveNeeded = settings.isActualChannelCurveNeeded;
@@ -225,20 +320,8 @@ class GraphicalFilterEditorControl {
 		if (settings.isSameFilterLR === false || settings.isSameFilterLR === true)
 			this.isSameFilterLR = settings.isSameFilterLR;
 
-		let leftCurve: string | null = null,
-			rightCurve: string | null = null;
-
-		if (settings.leftCurve && settings.leftCurve.length >= (GraphicalFilterEditor.VisibleBinCount * 4 / 3)) {
-			leftCurve = atob(settings.leftCurve);
-			if (leftCurve.length !== GraphicalFilterEditor.VisibleBinCount)
-				leftCurve = null;
-		}
-
-		if (settings.rightCurve && settings.rightCurve.length >= (GraphicalFilterEditor.VisibleBinCount * 4 / 3)) {
-			rightCurve = atob(settings.rightCurve);
-			if (rightCurve.length !== GraphicalFilterEditor.VisibleBinCount)
-				rightCurve = null;
-		}
+		let leftCurve = GraphicalFilterEditor.decodeCurve(settings.leftCurve),
+			rightCurve = GraphicalFilterEditor.decodeCurve(settings.rightCurve);
 
 		if (leftCurve && !rightCurve)
 			rightCurve = leftCurve;
@@ -248,13 +331,13 @@ class GraphicalFilterEditorControl {
 		if (leftCurve) {
 			const curve = filter.channelCurves[0];
 			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-				curve[i] = filter.clampY(leftCurve.charCodeAt(i));
+				curve[i] = filter.clampY(leftCurve[i]);
 		}
 
 		if (rightCurve) {
 			const curve = filter.channelCurves[1];
 			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-				curve[i] = filter.clampY(rightCurve.charCodeAt(i));
+				curve[i] = filter.clampY(rightCurve[i]);
 		}
 
 		if (this.isSameFilterLR) {
@@ -280,7 +363,7 @@ class GraphicalFilterEditorControl {
 			this.filter.updateActualChannelCurve(this.currentChannelIndex);
 
 		this.checkMenu(this.mnuShowZones, this.showZones);
-		this.checkMenu(this.mnuEditZones, this.editZones);
+		this.changeEditMode(this.editMode);
 		this.checkMenu(this.mnuNormalizeCurves, this.filter.isNormalized);
 		this.checkMenu(this.mnuShowActual, this.isActualChannelCurveNeeded);
 
@@ -288,32 +371,16 @@ class GraphicalFilterEditorControl {
 	}
 
 	public saveSettings(): GraphicalFilterEditorSettings {
-		const settings: GraphicalFilterEditorSettings = {
+		return {
 			showZones: this.showZones,
-			editZones: this.editZones,
+			editMode: this.editMode,
 			isActualChannelCurveNeeded: this.isActualChannelCurveNeeded,
 			currentChannelIndex: this.currentChannelIndex,
 			isSameFilterLR: this.isSameFilterLR,
-			isNormalized: this.filter.isNormalized
+			isNormalized: this.filter.isNormalized,
+			leftCurve: GraphicalFilterEditor.encodeCurve(this.filter.channelCurves[0]),
+			rightCurve: GraphicalFilterEditor.encodeCurve(this.filter.channelCurves[1])
 		};
-
-		const leftCurve: number[] = new Array(GraphicalFilterEditor.VisibleBinCount);
-
-		let curve = this.filter.channelCurves[0];
-		for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-			leftCurve[i] = curve[i];
-
-		settings.leftCurve = btoa(String.fromCharCode(... leftCurve));
-
-		const rightCurve: number[] = new Array(GraphicalFilterEditor.VisibleBinCount);
-
-		curve = this.filter.channelCurves[1];
-		for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
-			rightCurve[i] = curve[i];
-
-		settings.rightCurve = btoa(String.fromCharCode(... rightCurve));
-
-		return settings;
 	}
 
 	private static formatDB(dB: number): string {
@@ -333,12 +400,12 @@ class GraphicalFilterEditorControl {
 	private btnMnu_Click(e: MouseEvent): boolean {
 		if (!e.button) {
 			if (this.mnu.style.display === "none") {
-				this.mnu.style.bottom = (this.element.clientHeight - 260) + "px";
+				this.mnu.style.bottom = (this.element.clientHeight - GraphicalFilterEditorControl.ControlHeight) + "px";
 				this.mnu.style.display = "inline-block";
-				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, "\u25BC");
+				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.closeMenuCharacter);
 			} else {
 				this.mnu.style.display = "none";
-				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, "\u25B2");
+				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.openMenuCharacter);
 			}
 		}
 		return true;
@@ -422,11 +489,37 @@ class GraphicalFilterEditorControl {
 		return this.btnMnu_Click(e);
 	}
 
+	private changeEditMode(editMode: number): void {
+		if (editMode < GraphicalFilterEditorControl.EditModeFirst || editMode > GraphicalFilterEditorControl.EditModeLast)
+			return;
+		this.editMode = editMode;
+		this.checkMenu(this.mnuEditRegular, editMode === GraphicalFilterEditorControl.EditModeRegular);
+		this.checkMenu(this.mnuEditZones, editMode === GraphicalFilterEditorControl.EditModeZones);
+		this.checkMenu(this.mnuEditSmoothNarrow, editMode === GraphicalFilterEditorControl.EditModeSmoothNarrow);
+		this.checkMenu(this.mnuEditSmoothWide, editMode === GraphicalFilterEditorControl.EditModeSmoothWide);
+	}
+
+	private mnuEditRegular_Click(e: MouseEvent): boolean {
+		if (!e.button)
+			this.changeEditMode(GraphicalFilterEditorControl.EditModeRegular);
+		return this.btnMnu_Click(e);
+	}
+
 	private mnuEditZones_Click(e: MouseEvent): boolean {
-		if (!e.button) {
-			this.editZones = !this.editZones;
-			this.checkMenu(this.mnuEditZones, this.editZones);
-		}
+		if (!e.button)
+			this.changeEditMode(GraphicalFilterEditorControl.EditModeZones);
+		return this.btnMnu_Click(e);
+	}
+
+	private mnuEditSmoothNarrow_Click(e: MouseEvent): boolean {
+		if (!e.button)
+			this.changeEditMode(GraphicalFilterEditorControl.EditModeSmoothNarrow);
+		return this.btnMnu_Click(e);
+	}
+
+	private mnuEditSmoothWide_Click(e: MouseEvent): boolean {
+		if (!e.button)
+			this.changeEditMode(GraphicalFilterEditorControl.EditModeSmoothWide);
 		return this.btnMnu_Click(e);
 	}
 
@@ -456,70 +549,82 @@ class GraphicalFilterEditorControl {
 	private mouseDown(e: MouseEvent): boolean {
 		if (!e.button && !this.drawingMode) {
 			const rect = this.canvas.getBoundingClientRect(),
-				x = (e.clientX - rect.left) | 0,
+				x = (e.clientX - rect.left - this.canvasLeftMargin) | 0,
 				y = (e.clientY - rect.top) | 0;
 
-			if (x >= 0 && x < GraphicalFilterEditorControl.ControlWidth) {
-				this.canvas.removeEventListener("mousemove", this.boundMouseMove);
+			this.canvas.removeEventListener("mousemove", this.boundMouseMove);
 
-				this.drawingMode = 1;
+			this.drawingMode = 1;
 
-				if (this.editZones) {
+			switch (this.editMode) {
+				case GraphicalFilterEditorControl.EditModeZones:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
-				} else {
-					this.filter.channelCurves[this.currentChannelIndex][x] = this.filter.clampY(y);
+					break;
+				case GraphicalFilterEditorControl.EditModeSmoothNarrow:
+					this.filter.startSmoothEdition(this.currentChannelIndex);
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 3);
+					break;
+				case GraphicalFilterEditorControl.EditModeSmoothWide:
+					this.filter.startSmoothEdition(this.currentChannelIndex);
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 1);
+					break;
+				default:
+					this.filter.channelCurves[this.currentChannelIndex][this.filter.clampX(x)] = this.filter.clampY(y);
 					this.lastDrawX = x;
 					this.lastDrawY = y;
-				}
-
-				this.drawCurve();
-
-				return true;
+					break;
 			}
+
+			this.drawCurve();
+
+			return true;
 		}
 		return false;
 	}
 
 	private mouseMove(e: MouseEvent): void {
 		const rect = this.canvas.getBoundingClientRect();
-		let x = (e.clientX - rect.left) | 0,
+		let x = (e.clientX - rect.left - this.canvasLeftMargin) | 0,
 			y = (e.clientY - rect.top) | 0;
 
-		if (this.drawingMode || (x >= 0 && x < this.canvas.width && y >= 0 && y < this.canvas.height)) {
-			let curve = this.filter.channelCurves[this.currentChannelIndex];
+		let curve = this.filter.channelCurves[this.currentChannelIndex];
 
-			if (x < 0)
-				x = 0;
-			else if (x >= GraphicalFilterEditorControl.ControlWidth)
-				x = GraphicalFilterEditorControl.ControlWidth - 1;
-
-			if (this.drawingMode) {
-				if (this.editZones) {
+		if (this.drawingMode) {
+			switch (this.editMode) {
+				case GraphicalFilterEditorControl.EditModeZones:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
-				} else {
+					break;
+				case GraphicalFilterEditorControl.EditModeSmoothNarrow:
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 3);
+					break;
+				case GraphicalFilterEditorControl.EditModeSmoothWide:
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 1);
+					break;
+				default:
 					if (Math.abs(x - this.lastDrawX) > 1) {
 						const delta = (y - this.lastDrawY) / Math.abs(x - this.lastDrawX),
 							inc = ((x < this.lastDrawX) ? -1 : 1);
 						let count = Math.abs(x - this.lastDrawX) - 1;
 						y = this.lastDrawY + delta;
 						for (x = this.lastDrawX + inc; count > 0; x += inc, count--) {
-							curve[x] = this.filter.clampY(y);
+							curve[this.filter.clampX(x)] = this.filter.clampY(y);
 							y += delta;
 						}
 					}
-					curve[x] = this.filter.clampY(y);
+					curve[this.filter.clampX(x)] = this.filter.clampY(y);
 					this.lastDrawX = x;
 					this.lastDrawY = y;
-				}
-				this.drawCurve();
-			} else if (this.isActualChannelCurveNeeded) {
-				curve = this.filter.actualChannelCurve;
+					break;
 			}
-
-			GraphicalFilterEditorControl.setFirstNodeText(this.lblCursor, GraphicalFilterEditorControl.formatDB(this.filter.yToDB(y)));
-			GraphicalFilterEditorControl.setFirstNodeText(this.lblCurve, GraphicalFilterEditorControl.formatDB(this.filter.yToDB(curve[x])));
-			GraphicalFilterEditorControl.setFirstNodeText(this.lblFrequency, GraphicalFilterEditorControl.formatFrequency(this.filter.visibleBinToFrequency(x, true) as number[]));
+			this.drawCurve();
+		} else if (this.isActualChannelCurveNeeded) {
+			curve = this.filter.actualChannelCurve;
 		}
+
+		x = this.filter.clampX(x);
+		GraphicalFilterEditorControl.setFirstNodeText(this.lblCursor, GraphicalFilterEditorControl.formatDB(this.filter.yToDB(y)));
+		GraphicalFilterEditorControl.setFirstNodeText(this.lblCurve, GraphicalFilterEditorControl.formatDB(this.filter.yToDB(curve[x])));
+		GraphicalFilterEditorControl.setFirstNodeText(this.lblFrequency, GraphicalFilterEditorControl.formatFrequency(this.filter.visibleBinToFrequency(x, true) as number[]));
 	}
 
 	private mouseUp(e: MouseEvent): void {
@@ -570,7 +675,9 @@ class GraphicalFilterEditorControl {
 			return;
 
 		const canvas = this.canvas,
-			widthMinus1 = GraphicalFilterEditorControl.ControlWidth - 1;
+			canvasLeftMargin = this.canvasLeftMargin,
+			widthPlusMarginMinus1 = canvasLeftMargin + GraphicalFilterEditor.VisibleBinCount - 1,
+			dashCount = Math.round((widthPlusMarginMinus1 - canvasLeftMargin + 1) / 10);
 		let curve = this.filter.channelCurves[this.currentChannelIndex];
 
 		ctx.fillStyle = "#303030";
@@ -579,39 +686,39 @@ class GraphicalFilterEditorControl {
 		ctx.strokeStyle = "#5a5a5a";
 		ctx.beginPath();
 
-		let x = canvas.width + 1.5,
+		let x = widthPlusMarginMinus1 + 1,
 			y = GraphicalFilterEditor.ZeroChannelValueY + 0.5;
 		ctx.moveTo(x, y);
-		while (x > 0) {
+		for (let i = dashCount - 1; i >= 0; i--) {
 			ctx.lineTo(x - 4, y);
 			x -= 10;
 			ctx.moveTo(x, y);
 		}
 		ctx.stroke();
 
-		ctx.drawImage(this.labelImage, 0, 0, 44, 16, canvas.width - 44, GraphicalFilterEditor.ZeroChannelValueY - 16, 44, 16);
+		ctx.drawImage(this.labelImage, 0, 0, 44, 16, widthPlusMarginMinus1 - 42, GraphicalFilterEditor.ZeroChannelValueY - 16, 44, 16);
 
 		ctx.beginPath();
-		x = canvas.width - 1.5;
+		x = widthPlusMarginMinus1 + 1;
 		y = GraphicalFilterEditor.ValidYRangeHeight + 0.5;
 		ctx.moveTo(x, y);
-		while (x > 0) {
+		for (let i = dashCount - 1; i >= 0; i--) {
 			ctx.lineTo(x - 4, y);
 			x -= 10;
 			ctx.moveTo(x, y);
 		}
 		ctx.stroke();
 
-		ctx.drawImage(this.labelImage, 0, 16, 44, 16, canvas.width - 44, GraphicalFilterEditor.ValidYRangeHeight - 16, 44, 16);
+		ctx.drawImage(this.labelImage, 0, 16, 44, 16, widthPlusMarginMinus1 - 42, GraphicalFilterEditor.ValidYRangeHeight - 16, 44, 16);
 
 		if (this.showZones) {
 			for (let i = this.filter.equivalentZonesFrequencyCount.length - 2; i > 0; i--) {
-				x = this.filter.equivalentZonesFrequencyCount[i] + 0.5;
-				y = GraphicalFilterEditor.MaximumChannelValueY + 0.5;
+				x = this.filter.equivalentZonesFrequencyCount[i] + canvasLeftMargin + 0.5;
+				y = GraphicalFilterEditor.MaximumChannelValueY;
 
 				ctx.beginPath();
 				ctx.moveTo(x, y);
-				while (y < GraphicalFilterEditor.MinimumChannelValueY) {
+				while (y <= GraphicalFilterEditor.MinimumChannelValueY) {
 					ctx.lineTo(x, y + 4);
 					y += 10;
 					ctx.moveTo(x, y);
@@ -620,24 +727,26 @@ class GraphicalFilterEditorControl {
 			}
 		}
 
+		const visibleBinCountMinus1 = GraphicalFilterEditor.VisibleBinCount - 1;
+
 		ctx.strokeStyle = ((this.isActualChannelCurveNeeded && !this.drawingMode) ? "#707070" : this.rangeImage);
 		ctx.beginPath();
-		ctx.moveTo(0.5, curve[0] + 0.5);
-		for (x = 1; x < widthMinus1; x++)
-			ctx.lineTo(x + 0.5, curve[x] + 0.5);
+		ctx.moveTo(canvasLeftMargin, curve[0] + 0.5);
+		for (x = 1; x < visibleBinCountMinus1; x++)
+			ctx.lineTo(canvasLeftMargin + x, curve[x] + 0.5);
 		// Just to fill up the last pixel!
-		ctx.lineTo(x + 1, curve[x] + 0.5);
+		ctx.lineTo(canvasLeftMargin + x + 1, curve[x] + 0.5);
 		ctx.stroke();
 
 		if (this.isActualChannelCurveNeeded && !this.drawingMode) {
 			curve = this.filter.actualChannelCurve;
 			ctx.strokeStyle = this.rangeImage;
 			ctx.beginPath();
-			ctx.moveTo(0.5, curve[0] + 0.5);
-			for (x = 1; x < widthMinus1; x++)
-				ctx.lineTo(x + 0.5, curve[x] + 0.5);
+			ctx.moveTo(canvasLeftMargin, curve[0] + 0.5);
+			for (x = 1; x < visibleBinCountMinus1; x++)
+				ctx.lineTo(canvasLeftMargin + x, curve[x] + 0.5);
 			// Just to fill up the last pixel!
-			ctx.lineTo(x + 1, curve[x] + 0.5);
+			ctx.lineTo(canvasLeftMargin + x + 1, curve[x] + 0.5);
 			ctx.stroke();
 		}
 	}

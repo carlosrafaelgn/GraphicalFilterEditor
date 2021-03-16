@@ -42,6 +42,15 @@ function lerp(x0: number, y0: number, x1: number, y1: number, x: number): number
 	return ((x - x0) * (y1 - y0) / (x1 - x0)) + y0;
 }
 
+function smoothStep(edge0: number, edge1: number, x: number): number {
+	const t = (x - edge0) / (edge1 - edge0);
+	return ((t <= 0.0) ? 0.0 :
+		((t >= 1.0) ? 1.0 :
+			(t * t * (3.0 - (2.0 * t)))
+		)
+	);
+}
+
 function zeroObject(o: any): void {
 	for (let p in o) {
 		switch (typeof o[p]) {

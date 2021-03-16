@@ -43,7 +43,8 @@
 	float: right;
 	width: 1.5em;
 	text-align: center;
-	border-left: solid 1px #fff;
+	box-sizing: content-box;
+	/*border-left: solid 1px #fff;*/
 }
 
 .GEMNU {
@@ -51,23 +52,35 @@
 	color: #fff;
 	position: absolute;
 	right: 0px;
-	padding: 2px;
+	padding: 4px;
 }
 
-.GEMNUIT {
-	margin: 2px;
-	padding: 2px;
+.GEMNUH {
+	display: inline-block;
+	vertical-align: top;
+	min-width: 175px;
+	box-sizing: content-box;
+}
+
+.GEMNUIT, .GEMNULBL {
+	padding: 0 4px;
+	line-height: 24px;
 }
 
 .GEMNUSEP {
-	margin: 4px;
+	margin: 4px 0;
 	border-top: solid 1px #fff;
-	height: 1px;
+	height: 0px;
+	box-sizing: content-box;
+}
+
+.GEMNUSEPH {
+	margin-left: 4px;
+	padding-left: 4px;
+	border-left: solid 1px #fff;
 }
 
 .GEMNULBL {
-	margin: 4px;
-	font-size: 14px;
 	color: #0f2;
 }
 

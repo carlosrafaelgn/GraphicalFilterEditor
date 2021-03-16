@@ -26,15 +26,15 @@
 
 // Must be in sync with scripts/graphicalFilterEditor/graphicalFilterEditor.ts
 // Sorry, but due to the frequency mapping I created, this class will only work with
-// 512 visible bins... in order to change this, a new frequency mapping must be created...
-#define VisibleBinCount 512
-#define ValidYRangeHeight 255
-#define ZeroChannelValueY (255 >> 1)
-#define MaximumChannelValue 127
-#define MinimumChannelValue -127
-#define MinusInfiniteChannelValue -128
+// 500 visible bins... in order to change this, a new frequency mapping must be created...
+#define VisibleBinCount 500
+#define ValidYRangeHeight 321
+#define ZeroChannelValueY (ValidYRangeHeight >> 1)
+#define MaximumChannelValue ZeroChannelValueY
+#define MinimumChannelValue -ZeroChannelValueY
+#define MinusInfiniteChannelValue (MinimumChannelValue - 1)
 #define MaximumChannelValueY 0
-#define MinimumChannelValueY (255 - 1)
+#define MinimumChannelValueY (ValidYRangeHeight - 1)
 #define MaximumFilterLength 8192
 #define EquivalentZoneCount 10
 

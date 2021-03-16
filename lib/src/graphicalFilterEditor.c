@@ -74,17 +74,29 @@ GraphicalFilterEditor* graphicalFilterEditorAlloc(int filterLength, int sampleRa
 	editor->sampleRate = sampleRate;
 	editor->binCount = (filterLength >> 1) + 1;
 
-	const int freqSteps[] = { 5, 5, 5, 5, 10, 10, 20, 40, 80, 89};
-	const int firstFreqs[] = { 5, 50, 95, 185, 360, 720, 1420, 2860, 5740, 11498 };
+	// Old frequency mapping (512 bins)
+	// const int freqSteps[] = { 5, 5, 5, 5, 10, 10, 20, 40, 80, 89 };
+	// const int firstFreqs[] = { 5, 50, 95, 185, 360, 720, 1420, 2860, 5740, 11498 };
+	// const int equivalentZones[] = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
+	// const int equivalentZonesFrequencyCount[] = { 0, 9, 9 + 9, 18 + 9 + 9, 35 + 18 + 9 + 9, 36 + 35 + 18 + 9 + 9, 70 + 36 + 35 + 18 + 9 + 9, 72 + 70 + 36 + 35 + 18 + 9 + 9, 72 + 72 + 70 + 36 + 35 + 18 + 9 + 9, 72 + 72 + 72 + 70 + 36 + 35 + 18 + 9 + 9, VisibleBinCount };
+	//
+	// New frequency mapping (500 bins)
+	// Equivalent zone 31.25  | 62.5   | 125   | 250   | 500 | 1000 | 2000 | 4000 | 8000  | 16000
+	// First frequency 0      | 46.875 | 93.75 | 187.5 | 375 | 750  | 1500 | 3000 | 6000  | 12000
+	// Last frequency  46.875 | 93.75  | 187.5 | 375   | 750 | 1500 | 3000 | 6000 | 12000 | 24000
+	// Steps           50     | 50     | 50    | 50    | 50  | 50   | 50   | 50   | 50    | 50
+	const float freqSteps[] = { 0.9375f, 0.9375f, 1.875f, 3.75f, 7.5f, 15.0f, 30.0f, 60.0f, 120.0f, 240.0f };
+	const float firstFreqs[] = { 0.0f, 46.875f, 93.75f, 187.5f, 375.0f, 750.0f, 1500.0f, 3000.0f, 6000.0f, 12000.0f };
 	const int equivalentZones[] = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
-	const int equivalentZonesFrequencyCount[] = { 0, 9, 9 + 9, 18 + 9 + 9, 35 + 18 + 9 + 9, 36 + 35 + 18 + 9 + 9, 70 + 36 + 35 + 18 + 9 + 9, 72 + 70 + 36 + 35 + 18 + 9 + 9, 72 + 72 + 70 + 36 + 35 + 18 + 9 + 9, 72 + 72 + 72 + 70 + 36 + 35 + 18 + 9 + 9, VisibleBinCount };
+	const int equivalentZonesFrequencyCount[] = { 0, 50, 100, 150, 200, 250, 300, 350, 400, 450, VisibleBinCount };
 
-	int i, s, f = firstFreqs[0];
+	int i, s;
+	float f = firstFreqs[0];
 
 	memcpy(editor->equivalentZones, equivalentZones, sizeof(int) * EquivalentZoneCount);
 	memcpy(editor->equivalentZonesFrequencyCount, equivalentZonesFrequencyCount, sizeof(int) * (EquivalentZoneCount + 1));
 	for (i = 0, s = 0; i < VisibleBinCount; i++) {
-		editor->visibleFrequencies[i] = f;
+		editor->visibleFrequencies[i] = (int)f;
 		if (s != EquivalentZoneCount && (i + 1) >= equivalentZonesFrequencyCount[s + 1]) {
 			s++;
 			f = firstFreqs[s];
@@ -142,9 +154,9 @@ double yToMagnitude(int y) {
 
 int magnitudeToY(double magnitude) {
 	// 40dB = 100
-	// -40dB = 0.01
+	// -40dB = 0.01 (we are using 0.009 due to float point errors)
 	return ((magnitude >= 100.0) ? MaximumChannelValueY :
-		((magnitude < 0.01) ? (ValidYRangeHeight + 1) :
+		((magnitude < 0.009) ? (ValidYRangeHeight + 1) :
 			// 2.302585092994046 = LN10
 			(int)round((ZeroChannelValueY - (ZeroChannelValueY * log(magnitude) / 2.302585092994046 * 0.5)) - 0.4)));
 }
