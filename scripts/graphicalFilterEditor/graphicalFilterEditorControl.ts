@@ -55,12 +55,12 @@ class GraphicalFilterEditorControl {
 	public static readonly ControlWidth = Math.max(512, GraphicalFilterEditor.VisibleBinCount);
 	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 4;
 
-	private static readonly EditModeRegular = 0;
-	private static readonly EditModeZones = 1;
-	private static readonly EditModeSmoothNarrow = 2;
-	private static readonly EditModeSmoothWide = 3;
-	private static readonly EditModeFirst = 0;
-	private static readonly EditModeLast = 3;
+	public static readonly EditModeRegular = 0;
+	public static readonly EditModeZones = 1;
+	public static readonly EditModeSmoothNarrow = 2;
+	public static readonly EditModeSmoothWide = 3;
+	public static readonly EditModeFirst = 0;
+	public static readonly EditModeLast = 3;
 
 	public readonly filter: GraphicalFilterEditor;
 	public readonly element: HTMLDivElement;
