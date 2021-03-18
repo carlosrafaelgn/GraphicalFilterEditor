@@ -351,7 +351,8 @@ void graphicalFilterEditorUpdateActualChannelCurve(GraphicalFilterEditor* editor
 		ii++;
 	}
 
-	i = (((editor->sampleRate >> 1) >= visibleFrequencies[VisibleBinCount - 1]) ? curve[ii - 1] : (ValidYRangeHeight + 1));
+	// Just to avoid displaying the last few pixels as -Inf. dB on devices with a sample rate of 44100Hz
+	i = (((editor->sampleRate >> 1) >= 22050) ? curve[ii - 1] : (ValidYRangeHeight + 1));
 
 	for (; ii < VisibleBinCount; ii++)
 		curve[ii] = i;
