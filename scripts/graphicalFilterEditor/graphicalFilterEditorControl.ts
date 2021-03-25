@@ -36,6 +36,9 @@ interface GraphicalFilterEditorSettings {
 }
 
 interface GraphicalFilterEditorUISettings {
+	svgRenderer?: boolean;
+	scale?: number;
+
 	checkFontFamily?: string;
 	checkFontSize?: string;
 	radioCharacter?: string;
@@ -53,7 +56,7 @@ interface GraphicalFilterEditorUISettings {
 
 class GraphicalFilterEditorControl {
 	public static readonly ControlWidth = Math.max(512, GraphicalFilterEditor.VisibleBinCount);
-	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 4;
+	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 3;
 
 	public static readonly EditModeRegular = 0;
 	public static readonly EditModeZones = 1;
@@ -66,11 +69,7 @@ class GraphicalFilterEditorControl {
 	public readonly element: HTMLDivElement;
 
 	private readonly pointerHandler: PointerHandler;
-	private readonly canvas: HTMLCanvasElement;
-	private readonly canvasLeftMargin: number;
-	private readonly ctx: CanvasRenderingContext2D;
-	private readonly rangeImage: CanvasGradient;
-	private readonly labelImage: HTMLImageElement;
+	private readonly renderer: GraphicalFilterEditorRenderer<HTMLElement>;
 	private readonly btnMnu: HTMLDivElement;
 	private readonly mnu: HTMLDivElement;
 	private readonly mnuChBL: HTMLDivElement;
@@ -101,6 +100,7 @@ class GraphicalFilterEditorControl {
 	private lastDrawY = 0;
 	private drawOffsetX = 0;
 	private drawOffsetY = 0;
+	private _scale: number;
 
 	private boundMouseMove: any;
 
@@ -166,24 +166,17 @@ class GraphicalFilterEditorControl {
 
 		this.boundMouseMove = this.mouseMove.bind(this);
 
-		this.canvas = document.createElement("canvas");
-		this.canvas.className = "GECV";
-		this.canvas.width = GraphicalFilterEditorControl.ControlWidth;
-		this.canvas.height = GraphicalFilterEditorControl.ControlHeight;
-		this.canvas.addEventListener("mousemove", this.boundMouseMove);
-		element.appendChild(this.canvas);
+		this._scale = 0;
+		this.scale = ((uiSettings && uiSettings.scale && uiSettings.scale > 0) ? uiSettings.scale : 1);
 
-		this.canvasLeftMargin = Math.abs(GraphicalFilterEditorControl.ControlWidth - GraphicalFilterEditor.VisibleBinCount) >> 1;
+		this.renderer = ((uiSettings && uiSettings.svgRenderer) ? new GraphicalFilterEditorSVGRenderer(this) : new GraphicalFilterEditorCanvasRenderer(this));
+		this.renderer.element.addEventListener("mousemove", this.boundMouseMove);
+		this.renderer.element.oncontextmenu = cancelEvent;
+		element.appendChild(this.renderer.element);
 
-		const ctx = this.canvas.getContext("2d", { alpha: false });
-		if (!ctx)
-			throw new Error("Null canvas context");
-		this.ctx = ctx;
-
-		this.pointerHandler = new PointerHandler(this.canvas, this.mouseDown.bind(this), this.mouseMove.bind(this), this.mouseUp.bind(this));
+		this.pointerHandler = new PointerHandler(this.renderer.element, this.mouseDown.bind(this), this.mouseMove.bind(this), this.mouseUp.bind(this));
 
 		element.oncontextmenu = cancelEvent;
-		this.canvas.oncontextmenu = cancelEvent;
 
 		let lbl = document.createElement("div");
 		lbl.className = "GELBL";
@@ -272,21 +265,10 @@ class GraphicalFilterEditorControl {
 
 		element.appendChild(this.mnu);
 
-		this.rangeImage = this.ctx.createLinearGradient(0, 0, 1, this.canvas.height);
-		this.rangeImage.addColorStop(0, "#ff0000");
-		this.rangeImage.addColorStop(0.1875, "#ffff00");
-		this.rangeImage.addColorStop(0.39453125, "#00ff00");
-		this.rangeImage.addColorStop(0.60546875, "#00ffff");
-		this.rangeImage.addColorStop(0.796875, "#0000ff");
-		this.rangeImage.addColorStop(1, "#ff00ff");
-		const boundDrawCurve = this.drawCurve.bind(this);
-		this.labelImage = new Image();
-		this.labelImage.addEventListener("load", boundDrawCurve);
-		this.labelImage.addEventListener("error", boundDrawCurve);
-		this.labelImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAgCAYAAABpRpp6AAAAAXNSR0IArs4c6QAAAphJREFUWMPtl0tIVGEUx38zvdYZjVBEYBC1kB4EKa3auLEHtND4R6vaBC6MyVaVE0KWFlZE1qogOlEwgVQEgUKSVERFRhFEj4WLyESMFlKN0+YIl2HS6zyYgnvg8r+c73W+77vn+34XIovs3zBJWUnZubabX+SgDUAKWOeuV8BRM+svZAI5ringOzAEHDKzdwDxIoKtA+4Bv4FV/kwB9yVtLrRfM4t5XFVAJ9AIpEuxwklvnzKzLz6J48ADL2sKTG4L0AHUA5PAwCxBZ4EJSeeAU8CKUgRc7zoc8L10rcvZiQFgBNgKPAeWA7tm2L04sBg44K4ToQLOlxS+ZQAJ1/FA8fR7dcDXASwEWszsifs+Swo75jDwKFTAgeDCWr7606s9GPYblhTz2Ko9qR9KajKzdDGfxCiwzJNj1H1Vrl8D9Ra4/pxD4mWBX8CIpCSwD7gApONFBPzUdUPAtzGnDOCt6+oCx1nkmik26bqB7UBK0mv3HfOOewL1zgNXgC5J+33MMyGOzbhPsiuQC4Wfw2b22M/IGPDBnziwzcyGAvWuAq1ALfARuAhcC3EDZoBnntx7zOxyxAeRRRbxcJl5uNQTKCsPl8tKxsOSdvtNVgO8B46YWZ/DejewyZmi08wu5bQtGQ/HQwa7E7jht1k10A7cktQK9PsNlvA/kF5JzXl4eKXzcMIBf8ZrWdISoO2vPDwL+x52TZnZBHBbUq8zwySQNLMfknocupPAzbLy8Czsu971TcD3wvWOmY35+yfX2krz8DzX4OwbXe/mYd9MpXl4Gh9rfNuWAjtyVh9gbc6/XcV4uAe4DrRIavNTIQMcBE5KGvTka/f6pyvKw2ZmQIsD+5h31GBmZ4Fm7+wbsAbYa2Z9EQ//r/YHCOoe6W9/vj4AAAAASUVORK5CYII=";
-
 		if (settings)
 			this.loadSettings(settings);
+
+		this.drawCurve();
 	}
 
 	public destroy() : void {
@@ -295,6 +277,9 @@ class GraphicalFilterEditorControl {
 
 		if (this.pointerHandler)
 			this.pointerHandler.destroy();
+
+		if (this.renderer)
+			this.renderer.destroy();
 
 		zeroObject(this);
 	}
@@ -383,6 +368,24 @@ class GraphicalFilterEditorControl {
 		};
 	}
 
+	public get scale(): number {
+		return this._scale;
+	}
+
+	public set scale(scale: number) {
+		if (scale <= 0 || this._scale === scale || !this.element)
+			return;
+
+		this._scale = scale;
+		this.element.style.fontSize = (12 * scale) + "px";
+		this.element.style.lineHeight = (16 * scale) + "px";
+
+		if (this.renderer) {
+			this.renderer.scaleChanged();
+			this.drawCurve();
+		}
+	}
+
 	private static formatDB(dB: number): string {
 		if (dB < -40) return "-Inf.";
 		return ((dB < 0) ? dB.toFixed(2) : ((dB === 0) ? "-" + dB.toFixed(2) : "+" + dB.toFixed(2)));
@@ -400,7 +403,7 @@ class GraphicalFilterEditorControl {
 	private btnMnu_Click(e: MouseEvent): boolean {
 		if (!e.button) {
 			if (this.mnu.style.display === "none") {
-				this.mnu.style.bottom = (this.element.clientHeight - GraphicalFilterEditorControl.ControlHeight) + "px";
+				this.mnu.style.bottom = (this.element.clientHeight - this.renderer.element.clientHeight) + "px";
 				this.mnu.style.display = "inline-block";
 				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.closeMenuCharacter);
 			} else {
@@ -548,11 +551,11 @@ class GraphicalFilterEditorControl {
 
 	private mouseDown(e: MouseEvent): boolean {
 		if (!e.button && !this.drawingMode) {
-			const rect = this.canvas.getBoundingClientRect(),
-				x = (e.clientX - rect.left - this.canvasLeftMargin) | 0,
-				y = (e.clientY - rect.top) | 0;
+			const rect = this.renderer.element.getBoundingClientRect(),
+				x = (((e.clientX - rect.left) / this._scale) | 0) - this.renderer.leftMargin,
+				y = (((e.clientY - rect.top) / this._scale) | 0);
 
-			this.canvas.removeEventListener("mousemove", this.boundMouseMove);
+			this.renderer.element.removeEventListener("mousemove", this.boundMouseMove);
 
 			this.drawingMode = 1;
 
@@ -583,9 +586,9 @@ class GraphicalFilterEditorControl {
 	}
 
 	private mouseMove(e: MouseEvent): void {
-		const rect = this.canvas.getBoundingClientRect();
-		let x = (e.clientX - rect.left - this.canvasLeftMargin) | 0,
-			y = (e.clientY - rect.top) | 0;
+		const rect = this.renderer.element.getBoundingClientRect();
+		let x = (((e.clientX - rect.left) / this._scale) | 0) - this.renderer.leftMargin,
+			y = (((e.clientY - rect.top) / this._scale) | 0);
 
 		let curve = this.filter.channelCurves[this.currentChannelIndex];
 
@@ -629,7 +632,7 @@ class GraphicalFilterEditorControl {
 
 	private mouseUp(e: MouseEvent): void {
 		if (this.drawingMode) {
-			this.canvas.addEventListener("mousemove", this.boundMouseMove);
+			this.renderer.element.addEventListener("mousemove", this.boundMouseMove);
 			this.drawingMode = 0;
 			this.filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, false);
 			if (this.isActualChannelCurveNeeded)
@@ -662,92 +665,8 @@ class GraphicalFilterEditorControl {
 		return this.filter.changeAudioContext(newAudioContext, this.currentChannelIndex, this.isSameFilterLR);
 	}
 
-	private drawCurve(): void {
-		// All the 0.5's here are because of this explanation:
-		// http://stackoverflow.com/questions/195262/can-i-turn-off-antialiasing-on-an-html-canvas-element
-		// "Draw your 1-pixel lines on coordinates like ctx.lineTo(10.5, 10.5). Drawing a one-pixel line
-		// over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
-		// results in two lines that get drawn on the canvas.
-
-		const ctx = this.ctx
-
-		if (!ctx)
-			return;
-
-		const canvas = this.canvas,
-			canvasLeftMargin = this.canvasLeftMargin,
-			widthPlusMarginMinus1 = canvasLeftMargin + GraphicalFilterEditor.VisibleBinCount - 1,
-			dashCount = Math.round((widthPlusMarginMinus1 - canvasLeftMargin + 1) / 10);
-		let curve = this.filter.channelCurves[this.currentChannelIndex];
-
-		ctx.fillStyle = "#303030";
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.lineWidth = 1;
-		ctx.strokeStyle = "#5a5a5a";
-		ctx.beginPath();
-
-		let x = widthPlusMarginMinus1 + 1,
-			y = GraphicalFilterEditor.ZeroChannelValueY + 0.5;
-		ctx.moveTo(x, y);
-		for (let i = dashCount - 1; i >= 0; i--) {
-			ctx.lineTo(x - 4, y);
-			x -= 10;
-			ctx.moveTo(x, y);
-		}
-		ctx.stroke();
-
-		ctx.drawImage(this.labelImage, 0, 0, 44, 16, widthPlusMarginMinus1 - 42, GraphicalFilterEditor.ZeroChannelValueY - 16, 44, 16);
-
-		ctx.beginPath();
-		x = widthPlusMarginMinus1 + 1;
-		y = GraphicalFilterEditor.ValidYRangeHeight + 0.5;
-		ctx.moveTo(x, y);
-		for (let i = dashCount - 1; i >= 0; i--) {
-			ctx.lineTo(x - 4, y);
-			x -= 10;
-			ctx.moveTo(x, y);
-		}
-		ctx.stroke();
-
-		ctx.drawImage(this.labelImage, 0, 16, 44, 16, widthPlusMarginMinus1 - 42, GraphicalFilterEditor.ValidYRangeHeight - 16, 44, 16);
-
-		if (this.showZones) {
-			for (let i = this.filter.equivalentZonesFrequencyCount.length - 2; i > 0; i--) {
-				x = this.filter.equivalentZonesFrequencyCount[i] + canvasLeftMargin + 0.5;
-				y = GraphicalFilterEditor.MaximumChannelValueY;
-
-				ctx.beginPath();
-				ctx.moveTo(x, y);
-				while (y <= GraphicalFilterEditor.MinimumChannelValueY) {
-					ctx.lineTo(x, y + 4);
-					y += 10;
-					ctx.moveTo(x, y);
-				}
-				ctx.stroke();
-			}
-		}
-
-		const visibleBinCountMinus1 = GraphicalFilterEditor.VisibleBinCount - 1;
-
-		ctx.strokeStyle = ((this.isActualChannelCurveNeeded && !this.drawingMode) ? "#707070" : this.rangeImage);
-		ctx.beginPath();
-		ctx.moveTo(canvasLeftMargin, curve[0] + 0.5);
-		for (x = 1; x < visibleBinCountMinus1; x++)
-			ctx.lineTo(canvasLeftMargin + x, curve[x] + 0.5);
-		// Just to fill up the last pixel!
-		ctx.lineTo(canvasLeftMargin + x + 1, curve[x] + 0.5);
-		ctx.stroke();
-
-		if (this.isActualChannelCurveNeeded && !this.drawingMode) {
-			curve = this.filter.actualChannelCurve;
-			ctx.strokeStyle = this.rangeImage;
-			ctx.beginPath();
-			ctx.moveTo(canvasLeftMargin, curve[0] + 0.5);
-			for (x = 1; x < visibleBinCountMinus1; x++)
-				ctx.lineTo(canvasLeftMargin + x, curve[x] + 0.5);
-			// Just to fill up the last pixel!
-			ctx.lineTo(canvasLeftMargin + x + 1, curve[x] + 0.5);
-			ctx.stroke();
-		}
+	public drawCurve(): void {
+		if (this.renderer)
+			this.renderer.drawCurve(this.showZones, this.isActualChannelCurveNeeded && !this.drawingMode, this.currentChannelIndex);
 	}
 }
