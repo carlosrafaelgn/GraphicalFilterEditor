@@ -7,8 +7,6 @@ With this editor you can graphically edit an equalizer filter and apply it to so
 
 https://carlosrafaelgn.github.io/GraphicalFilterEditor/
 
-https://carlosrafaelgn.com.br/GraphicalFilterEditor/
-
 The code in index.html can be used as a demo on how to load and generate files during runtime in client-side JavaScript.
 
 This project uses [Web Audio API][1], [File API][2] and [Web Worker API][3] and requires a [compliant browser][4] to run properly. In [Firefox 23 and 24][5], Web Audio API must be enabled using about:config.
