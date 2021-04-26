@@ -24,8 +24,8 @@
 // https://github.com/carlosrafaelgn/GraphicalFilterEditor
 //
 
-interface ConvolverCallback {
-	(oldConvolver: ConvolverNode | null, newConvolver: ConvolverNode): void;
+interface FilterChangedCallback {
+	(): void;
 }
 
 class GraphicalFilterEditor {
@@ -97,7 +97,7 @@ class GraphicalFilterEditor {
 	private audioContext: AudioContext;
 	private filterKernel: AudioBuffer;
 	private _convolver: ConvolverNode | null;
-	private convolverCallback: ConvolverCallback | null | undefined;
+	private filterChangedCallback: FilterChangedCallback | null | undefined;
 	private curveSnapshot: Int32Array | null;
 
 	private readonly filterKernelBuffer: Float32Array;
@@ -107,7 +107,7 @@ class GraphicalFilterEditor {
 	public readonly equivalentZones: Int32Array;
 	public readonly equivalentZonesFrequencyCount: Int32Array;
 
-	public constructor(filterLength: number, audioContext: AudioContext, convolverCallback?: ConvolverCallback | null) {
+	public constructor(filterLength: number, audioContext: AudioContext, filterChangedCallback?: FilterChangedCallback | null) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
@@ -139,7 +139,7 @@ class GraphicalFilterEditor {
 		this.updateActualChannelCurve(0);
 		this.updateBuffer();
 
-		this.convolverCallback = convolverCallback;
+		this.filterChangedCallback = filterChangedCallback;
 	}
 
 	public get sampleRate(): number {
@@ -154,8 +154,54 @@ class GraphicalFilterEditor {
 		return this._convolver;
 	}
 
-	public destroy() : void {
+	public get inputNode(): AudioNode | null {
+		return this._convolver;
+	}
+
+	public get outputNode(): AudioNode | null {
+		return this._convolver;
+	}
+
+	public connectSourceAndDestination(source: AudioNode | null, destination: AudioNode | null): boolean {
+		const s = this.connectSourceToInput(source);
+		return this.connectOutputToDestination(destination) && s;
+	}
+
+	public connectSourceToInput(source: AudioNode | null): boolean {
+		if (source) {
+			source.disconnect();
+			const inputNode = this.inputNode;
+			if (inputNode) {
+				source.connect(inputNode, 0, 0);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public connectOutputToDestination(destination: AudioNode | null): boolean {
+		const outputNode = this.outputNode;
+		if (this.outputNode) {
+			this.outputNode.disconnect();
+			if (destination)
+				this.outputNode.connect(destination, 0, 0);
+			return true;
+		}
+		return false;
+	}
+
+	public disconnectOutputFromDestination(): boolean {
+		const outputNode = this.outputNode;
+		if (this.outputNode) {
+			this.outputNode.disconnect();
+			return true;
+		}
+		return false;
+	}
+
+	public destroy(): void {
 		if (this.editorPtr) {
+			this.disconnectOutputFromDestination();
 			cLib._graphicalFilterEditorFree(this.editorPtr);
 			zeroObject(this);
 		}
@@ -279,8 +325,8 @@ class GraphicalFilterEditor {
 		// the audio buffer to this._convolver.buffer, even if it is the same
 		// audio buffer, makes the convolver update its internal state.
 		this._convolver.buffer = this.filterKernel;
-		if (!oldConvolver && this.convolverCallback)
-			this.convolverCallback(oldConvolver, this._convolver);
+		if (!oldConvolver && this.filterChangedCallback)
+			this.filterChangedCallback();
 	}
 
 	private copyToChannel(source: Float32Array, channelNumber: number): void {

@@ -104,11 +104,11 @@ class GraphicalFilterEditorControl {
 
 	private boundMouseMove: any;
 
-	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, convolverCallback: ConvolverCallback, settings?: GraphicalFilterEditorSettings | null, uiSettings?: GraphicalFilterEditorUISettings | null) {
+	public constructor(element: HTMLDivElement, filterLength: number, audioContext: AudioContext, filterChangedCallback: FilterChangedCallback, settings?: GraphicalFilterEditorSettings | null, uiSettings?: GraphicalFilterEditorUISettings | null) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
-		this.filter = new GraphicalFilterEditor(filterLength, audioContext, convolverCallback);
+		this.filter = new GraphicalFilterEditor(filterLength, audioContext, filterChangedCallback);
 
 		const createMenuSep = () => {
 				const s = document.createElement("div");
