@@ -25,6 +25,7 @@
 //
 
 class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<HTMLCanvasElement> {
+	private pixelRatio: number;
 	private ctx: CanvasRenderingContext2D;
 	private rangeImage: CanvasGradient;
 
@@ -33,22 +34,11 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 
 		this.element.className = "GECV";
 
-		this.element.width = (GraphicalFilterEditorControl.ControlWidth * editor.scale) | 0;
-		this.element.height = (GraphicalFilterEditorControl.ControlHeight * editor.scale) | 0;
+		this.pixelRatio = 1;
+		this.ctx = null as any;
+		this.rangeImage = null as any;
 
-		const ctx = this.element.getContext("2d", { alpha: false });
-		if (!ctx)
-			throw new Error("Null canvas context");
-		this.ctx = ctx;
-
-		const rangeImage = ctx.createLinearGradient(0, 0, 1, this.element.height);
-		rangeImage.addColorStop(0, "#ff0000");
-		rangeImage.addColorStop(0.1875, "#ffff00");
-		rangeImage.addColorStop(0.39453125, "#00ff00");
-		rangeImage.addColorStop(0.60546875, "#00ffff");
-		rangeImage.addColorStop(0.796875, "#0000ff");
-		rangeImage.addColorStop(1, "#ff00ff");
-		this.rangeImage = rangeImage;
+		this.scaleChanged();
 	}
 
 	public scaleChanged(): void {
@@ -58,23 +48,31 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		if (!element || !editor)
 			return;
 
-		const scale = editor.scale;
+		const controlWidth = GraphicalFilterEditorControl.ControlWidth,
+			controlHeight = GraphicalFilterEditorControl.ControlHeight,
+			pixelRatio = (devicePixelRatio > 1 ? devicePixelRatio : 1),
+			editorScale = editor.scale,
+			scale = editorScale * pixelRatio;
 
-		element.width = (GraphicalFilterEditorControl.ControlWidth * scale) | 0;
-		element.height = (GraphicalFilterEditorControl.ControlHeight * scale) | 0;
+		element.width = (controlWidth * scale) | 0;
+		element.height = (controlHeight * scale) | 0;
+		element.style.width = ((controlWidth * editorScale) | 0) + "px";
+		element.style.height = ((controlHeight * editorScale) | 0) + "px";
 
 		const ctx = this.element.getContext("2d", { alpha: false });
 		if (!ctx)
 			throw new Error("Null canvas context");
-		this.ctx = ctx;
 
-		const rangeImage = ctx.createLinearGradient(0, 0, 1, this.element.height);
+		const rangeImage = ctx.createLinearGradient(0, 0, 1, element.height);
 		rangeImage.addColorStop(0, "#ff0000");
 		rangeImage.addColorStop(0.1875, "#ffff00");
 		rangeImage.addColorStop(0.39453125, "#00ff00");
 		rangeImage.addColorStop(0.60546875, "#00ffff");
 		rangeImage.addColorStop(0.796875, "#0000ff");
 		rangeImage.addColorStop(1, "#ff00ff");
+
+		this.pixelRatio = pixelRatio;
+		this.ctx = ctx;
 		this.rangeImage = rangeImage;
 	}
 
@@ -90,9 +88,15 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		if (!ctx)
 			return;
 
+		let pixelRatio = (devicePixelRatio > 1 ? devicePixelRatio : 1);
+		if (pixelRatio !== this.pixelRatio) {
+			this.scaleChanged();
+			pixelRatio = this.pixelRatio;
+		}
+
 		const editor = this.editor,
 			filter = editor.filter,
-			scale = editor.scale,
+			scale = editor.scale * pixelRatio,
 			canvas = this.element,
 			canvasLeftMargin = this.leftMargin,
 			canvasWidth = canvas.width,
@@ -101,11 +105,10 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 			dashGap = Math.round(8 * scale),
 			dashLength = Math.round(4 * scale),
 			dashCount = ((canvasWidth / dashGap) | 0) + 1,
-			maximumChannelValueY = (GraphicalFilterEditor.MaximumChannelValueY * scale) | 0,
-			minimumChannelValueY = (GraphicalFilterEditor.MinimumChannelValueY * scale) | 0,
-			lineWidth = (scale < 1 ? scale : (scale | 0)),
+			maximumChannelValueY = (GraphicalFilterEditor.MaximumChannelValueY * scale) | 0;
+
+		let lineWidth = (scale < 1 ? scale : (scale | 0)),
 			halfLineWidth = lineWidth * 0.5;
-		let curve = filter.channelCurves[currentChannelIndex];
 
 		ctx.fillStyle = "#303030";
 		ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -141,33 +144,34 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 
 				ctx.beginPath();
 				ctx.moveTo(x, y);
+
 				while (y < canvasHeight) {
 					ctx.lineTo(x, y + dashLength);
 					y += dashGap;
 					ctx.moveTo(x, y);
 				}
+
 				ctx.stroke();
 			}
 		}
 
+		lineWidth = (scale < 1 ? (scale * 2) : ((scale * 2) | 0));
+		halfLineWidth = lineWidth * 0.5;
+
+		ctx.lineWidth = lineWidth;
+
 		const visibleBinCountMinus1 = GraphicalFilterEditor.VisibleBinCount - 1;
 
-		ctx.strokeStyle = (isActualChannelCurveNeeded ? "#707070" : this.rangeImage);
-		ctx.beginPath();
-		ctx.moveTo((canvasLeftMargin * scale) | 0, (curve[0] * scale) + halfLineWidth);
-		for (x = 1; x < visibleBinCountMinus1; x++)
-			ctx.lineTo(((canvasLeftMargin + x) * scale) | 0, (curve[x] * scale) + halfLineWidth);
-		// Just to fill up the last pixel!
-		ctx.lineTo(((canvasLeftMargin + x + 1) * scale) | 0, (curve[x] * scale) + halfLineWidth);
-		ctx.stroke();
+		for (let turn = (isActualChannelCurveNeeded ? 1 : 0); turn >= 0; turn--) {
+			const curve = ((turn || !isActualChannelCurveNeeded) ? filter.channelCurves[currentChannelIndex] : filter.actualChannelCurve);
 
-		if (isActualChannelCurveNeeded) {
-			curve = filter.actualChannelCurve;
-			ctx.strokeStyle = this.rangeImage;
+			ctx.strokeStyle = (turn ? "#707070" : this.rangeImage);
 			ctx.beginPath();
 			ctx.moveTo((canvasLeftMargin * scale) | 0, (curve[0] * scale) + halfLineWidth);
+
 			for (x = 1; x < visibleBinCountMinus1; x++)
 				ctx.lineTo(((canvasLeftMargin + x) * scale) | 0, (curve[x] * scale) + halfLineWidth);
+
 			// Just to fill up the last pixel!
 			ctx.lineTo(((canvasLeftMargin + x + 1) * scale) | 0, (curve[x] * scale) + halfLineWidth);
 			ctx.stroke();
