@@ -41,8 +41,10 @@ interface GraphicalFilterEditorUISettings {
 
 	checkFontFamily?: string;
 	checkFontSize?: string;
+	radioHTML?: string;
 	radioCharacter?: string;
 	radioMargin?: string;
+	checkHTML?: string;
 	checkCharacter?: string;
 	checkMargin?: string;
 
@@ -50,7 +52,9 @@ interface GraphicalFilterEditorUISettings {
 	menuFontSize?: string;
 	menuWidth?: string;
 	menuPadding?: string;
+	openMenuHTML?: string;
 	openMenuCharacter?: string;
+	closeMenuHTML?: string;
 	closeMenuCharacter?: string;
 }
 
@@ -87,7 +91,9 @@ class GraphicalFilterEditorControl {
 	private readonly lblCurve: HTMLSpanElement;
 	private readonly lblFrequency: HTMLSpanElement;
 
+	private readonly openMenuElement: HTMLElement | null;
 	private readonly openMenuCharacter: string;
+	private readonly closeMenuElement: HTMLElement | null;
 	private readonly closeMenuCharacter: string;
 
 	private showZones = false;
@@ -125,35 +131,46 @@ class GraphicalFilterEditorControl {
 				const i = document.createElement("div");
 				i.className = "GEMNUIT GECLK";
 				if (checkable) {
-					const s = document.createElement("span");
-					let checkCharacter = (radio ? "\u25CF " : "\u25A0 "),
-						margin: string | null = null;
-					if (uiSettings) {
-						let checkCharacterOK = false;
-						if (radio) {
-							if (uiSettings.radioCharacter) {
+					if (uiSettings && ((radio && uiSettings.radioHTML) || (!radio && uiSettings.checkHTML))) {
+						i.innerHTML = (radio ? uiSettings.radioHTML : uiSettings.checkHTML) as string;
+						const s = i.firstChild as HTMLElement;
+						if (radio)
+							s.style.marginRight = (uiSettings.radioMargin || "2px");
+						else
+							s.style.marginRight = (uiSettings.checkMargin || "2px");
+						if (!checked)
+							s.style.visibility = "hidden";
+					} else {
+						const s = document.createElement("span");
+						let checkCharacter = (radio ? "\u25CF " : "\u25A0 "),
+							margin: string | null = null;
+						if (uiSettings) {
+							let checkCharacterOK = false;
+							if (radio) {
+								if (uiSettings.radioCharacter) {
+									checkCharacterOK = true;
+									checkCharacter = uiSettings.radioCharacter;
+									margin = (uiSettings.radioMargin || "2px");
+								}
+							} else if (uiSettings.checkCharacter) {
 								checkCharacterOK = true;
-								checkCharacter = uiSettings.radioCharacter;
-								margin = (uiSettings.radioMargin || "2px");
+								checkCharacter = uiSettings.checkCharacter;
+								margin = (uiSettings.checkMargin || "2px");
 							}
-						} else if (uiSettings.checkCharacter) {
-							checkCharacterOK = true;
-							checkCharacter = uiSettings.checkCharacter;
-							margin = (uiSettings.checkMargin || "2px");
+							if (checkCharacterOK) {
+								if (uiSettings.checkFontFamily)
+									s.style.fontFamily = uiSettings.checkFontFamily;
+								if (uiSettings.checkFontSize)
+									s.style.fontSize = uiSettings.checkFontSize;
+							}
 						}
-						if (checkCharacterOK) {
-							if (uiSettings.checkFontFamily)
-								s.style.fontFamily = uiSettings.checkFontFamily;
-							if (uiSettings.checkFontSize)
-								s.style.fontSize = uiSettings.checkFontSize;
-						}
+						if (margin)
+							s.style.marginRight = margin;
+						s.appendChild(document.createTextNode(checkCharacter));
+						if (!checked)
+							s.style.visibility = "hidden";
+						i.appendChild(s);
 					}
-					if (margin)
-						s.style.marginRight = margin;
-					s.appendChild(document.createTextNode(checkCharacter));
-					if (!checked)
-						s.style.visibility = "hidden";
-					i.appendChild(s);
 				}
 				i.appendChild(document.createTextNode(text));
 				if (clickHandler)
@@ -205,11 +222,19 @@ class GraphicalFilterEditorControl {
 
 		this.btnMnu = document.createElement("div");
 		this.btnMnu.className = "GEBTN GECLK";
+		this.openMenuElement = null;
 		this.openMenuCharacter = "\u25B2";
+		this.closeMenuElement = null;
 		this.closeMenuCharacter = "\u25BC";
 		if (uiSettings) {
 			let menuCharacterOK = false;
-			if (uiSettings.openMenuCharacter) {
+			if (uiSettings.openMenuHTML && uiSettings.closeMenuHTML) {
+				menuCharacterOK = true;
+				this.btnMnu.innerHTML = uiSettings.openMenuHTML + uiSettings.closeMenuHTML;
+				this.openMenuElement = this.btnMnu.childNodes[0] as HTMLElement;
+				this.closeMenuElement = this.btnMnu.childNodes[1] as HTMLElement;
+				this.closeMenuElement.style.display = "none";
+			} else if (uiSettings.openMenuCharacter) {
 				menuCharacterOK = true;
 				this.openMenuCharacter = uiSettings.openMenuCharacter;
 				this.closeMenuCharacter = (uiSettings.closeMenuCharacter || this.openMenuCharacter);
@@ -229,7 +254,8 @@ class GraphicalFilterEditorControl {
 					this.btnMnu.style.padding = uiSettings.menuPadding;
 			}
 		}
-		this.btnMnu.appendChild(document.createTextNode(this.openMenuCharacter));
+		if (!this.openMenuElement)
+			this.btnMnu.appendChild(document.createTextNode(this.openMenuCharacter));
 		this.btnMnu.onclick = this.btnMnu_Click.bind(this);
 		element.appendChild(this.btnMnu);
 
@@ -405,10 +431,20 @@ class GraphicalFilterEditorControl {
 			if (this.mnu.style.display === "none") {
 				this.mnu.style.bottom = (this.element.clientHeight - this.renderer.element.clientHeight) + "px";
 				this.mnu.style.display = "inline-block";
-				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.closeMenuCharacter);
+				if (this.openMenuElement && this.closeMenuElement) {
+					this.openMenuElement.style.display = "none";
+					this.closeMenuElement.style.display = "";
+				} else {
+					GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.closeMenuCharacter);
+				}
 			} else {
 				this.mnu.style.display = "none";
-				GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.openMenuCharacter);
+				if (this.openMenuElement && this.closeMenuElement) {
+					this.closeMenuElement.style.display = "none";
+					this.openMenuElement.style.display = "";
+				} else {
+					GraphicalFilterEditorControl.setFirstNodeText(this.btnMnu, this.openMenuCharacter);
+				}
 			}
 		}
 		return true;
