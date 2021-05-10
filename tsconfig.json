@@ -13,6 +13,7 @@
 		"lib/lib.ts",
 		"scripts/main.ts",
 		"scripts/ui/pointerHandler.ts",
+		"scripts/graphicalFilterEditor/graphicalFilterEditorStrings.ts",
 		"scripts/graphicalFilterEditor/graphicalFilterEditor.ts",
 		"scripts/graphicalFilterEditor/graphicalFilterEditorRenderer.ts",
 		"scripts/graphicalFilterEditor/graphicalFilterEditorCanvasRenderer.ts",

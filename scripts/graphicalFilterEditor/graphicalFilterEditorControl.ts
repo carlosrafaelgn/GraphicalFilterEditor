@@ -198,24 +198,24 @@ class GraphicalFilterEditorControl {
 		let lbl = document.createElement("div");
 		lbl.className = "GELBL";
 		lbl.style.width = "9em";
-		lbl.appendChild(document.createTextNode("Cursor: "));
+		lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Cursor));
 		lbl.appendChild(this.lblCursor = document.createElement("span"));
 		lbl.appendChild(document.createTextNode(" dB"));
-		this.lblCursor.appendChild(document.createTextNode("-0.00"));
+		this.lblCursor.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Minus0));
 		element.appendChild(lbl);
 
 		lbl = document.createElement("div");
 		lbl.className = "GELBL";
 		lbl.style.width = "9em";
-		lbl.appendChild(document.createTextNode("Curve: "));
+		lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Curve));
 		lbl.appendChild(this.lblCurve = document.createElement("span"));
 		lbl.appendChild(document.createTextNode(" dB"));
-		this.lblCurve.appendChild(document.createTextNode("-0.00"));
+		this.lblCurve.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Minus0));
 		element.appendChild(lbl);
 
 		lbl = document.createElement("div");
 		lbl.className = "GELBL";
-		lbl.appendChild(document.createTextNode("Frequency: "));
+		lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Frequency));
 		lbl.appendChild(this.lblFrequency = document.createElement("span"));
 		this.lblFrequency.appendChild(document.createTextNode("0 Hz (31 Hz)"));
 		element.appendChild(lbl);
@@ -265,28 +265,28 @@ class GraphicalFilterEditorControl {
 
 		let mnuh = document.createElement("div");
 		mnuh.className = "GEMNUH";
-		mnuh.appendChild(createMenuLabel("Same curve for both channels"));
-		mnuh.appendChild(this.mnuChBL = createMenuItem("Use left curve", true, true, true, this.mnuChB_Click.bind(this, 0)));
-		mnuh.appendChild(this.mnuChBR = createMenuItem("Use right curve", true, false, true, this.mnuChB_Click.bind(this, 1)));
+		mnuh.appendChild(createMenuLabel(GraphicalFilterEditorStrings.SameCurve));
+		mnuh.appendChild(this.mnuChBL = createMenuItem(GraphicalFilterEditorStrings.UseLeftCurve, true, true, true, this.mnuChB_Click.bind(this, 0)));
+		mnuh.appendChild(this.mnuChBR = createMenuItem(GraphicalFilterEditorStrings.UseRightCurve, true, false, true, this.mnuChB_Click.bind(this, 1)));
 		mnuh.appendChild(createMenuSep());
-		mnuh.appendChild(createMenuLabel("One curve for each channel"));
-		mnuh.appendChild(this.mnuChL = createMenuItem("Show left curve", true, false, true, this.mnuChLR_Click.bind(this, 0)));
-		mnuh.appendChild(this.mnuChR = createMenuItem("Show right curve", true, false, true, this.mnuChLR_Click.bind(this, 1)));
+		mnuh.appendChild(createMenuLabel(GraphicalFilterEditorStrings.OneForEach));
+		mnuh.appendChild(this.mnuChL = createMenuItem(GraphicalFilterEditorStrings.ShowLeftCurve, true, false, true, this.mnuChLR_Click.bind(this, 0)));
+		mnuh.appendChild(this.mnuChR = createMenuItem(GraphicalFilterEditorStrings.ShowRightCurve, true, false, true, this.mnuChLR_Click.bind(this, 1)));
 		this.mnu.appendChild(mnuh);
 
 		mnuh = document.createElement("div");
 		mnuh.className = "GEMNUH GEMNUSEPH";
-		mnuh.appendChild(createMenuItem("Reset curve", false, false, false, this.mnuResetCurve_Click.bind(this)));
+		mnuh.appendChild(createMenuItem(GraphicalFilterEditorStrings.ResetCurve, false, false, false, this.mnuResetCurve_Click.bind(this)));
 		mnuh.appendChild(createMenuSep());
-		mnuh.appendChild(createMenuLabel("Edit mode"));
-		mnuh.appendChild(this.mnuEditRegular = createMenuItem("Regular", true, true, true, this.mnuEditRegular_Click.bind(this)));
-		mnuh.appendChild(this.mnuEditZones = createMenuItem("Zones", true, false, true, this.mnuEditZones_Click.bind(this)));
-		mnuh.appendChild(this.mnuEditSmoothNarrow = createMenuItem("Smooth (narrow)", true, false, true, this.mnuEditSmoothNarrow_Click.bind(this)));
-		mnuh.appendChild(this.mnuEditSmoothWide = createMenuItem("Smooth (wide)", true, false, true, this.mnuEditSmoothWide_Click.bind(this)));
+		mnuh.appendChild(createMenuLabel(GraphicalFilterEditorStrings.EditMode));
+		mnuh.appendChild(this.mnuEditRegular = createMenuItem(GraphicalFilterEditorStrings.Regular, true, true, true, this.mnuEditRegular_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditZones = createMenuItem(GraphicalFilterEditorStrings.Zones, true, false, true, this.mnuEditZones_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditSmoothNarrow = createMenuItem(GraphicalFilterEditorStrings.SmoothNarrow, true, false, true, this.mnuEditSmoothNarrow_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditSmoothWide = createMenuItem(GraphicalFilterEditorStrings.SmoothWide, true, false, true, this.mnuEditSmoothWide_Click.bind(this)));
 		mnuh.appendChild(createMenuSep());
-		mnuh.appendChild(this.mnuNormalizeCurves = createMenuItem("Normalize curves", true, false, false, this.mnuNormalizeCurves_Click.bind(this)));
-		mnuh.appendChild(this.mnuShowZones = createMenuItem("Show zones", true, false, false, this.mnuShowZones_Click.bind(this)));
-		mnuh.appendChild(this.mnuShowActual = createMenuItem("Show actual response", true, true, false, this.mnuShowActual_Click.bind(this)));
+		mnuh.appendChild(this.mnuNormalizeCurves = createMenuItem(GraphicalFilterEditorStrings.NormalizeCurves, true, false, false, this.mnuNormalizeCurves_Click.bind(this)));
+		mnuh.appendChild(this.mnuShowZones = createMenuItem(GraphicalFilterEditorStrings.ShowZones, true, false, false, this.mnuShowZones_Click.bind(this)));
+		mnuh.appendChild(this.mnuShowActual = createMenuItem(GraphicalFilterEditorStrings.ShowActualResponse, true, true, false, this.mnuShowActual_Click.bind(this)));
 		this.mnu.appendChild(mnuh);
 
 		element.appendChild(this.mnu);
@@ -413,8 +413,8 @@ class GraphicalFilterEditorControl {
 	}
 
 	private static formatDB(dB: number): string {
-		if (dB < -40) return "-Inf.";
-		return ((dB < 0) ? dB.toFixed(2) : ((dB === 0) ? "-" + dB.toFixed(2) : "+" + dB.toFixed(2)));
+		if (dB < -40) return GraphicalFilterEditorStrings.MinusInfinity;
+		return ((dB < 0) ? GraphicalFilterEditorStrings.toFixed(dB, 2) : ((dB === 0) ? GraphicalFilterEditorStrings.Minus0 : "+" + GraphicalFilterEditorStrings.toFixed(dB, 2)));
 	}
 
 	private static formatFrequency(frequencyAndEquivalent: number[]): string {
