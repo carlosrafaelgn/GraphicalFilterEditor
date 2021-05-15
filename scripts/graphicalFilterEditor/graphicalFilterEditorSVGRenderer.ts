@@ -40,6 +40,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		super(document.createElement("div"), Math.abs(GraphicalFilterEditorControl.ControlWidth - GraphicalFilterEditor.VisibleBinCount) >> 1, editor);
 
 		this.element.className = "GECV";
+		this.element.style.overflow = "hidden";
 		this.element.style.backgroundColor = "#303030";
 
 		this.element.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1" version="1.1" style="transform-origin: top left; pointer-events: none;">
