@@ -38,6 +38,7 @@ interface GraphicalFilterEditorSettings {
 interface GraphicalFilterEditorUISettings {
 	svgRenderer?: boolean;
 	scale?: number;
+	hideEditModePeakingEq?: boolean;
 
 	checkFontFamily?: string;
 	checkFontSize?: string;
@@ -66,8 +67,9 @@ class GraphicalFilterEditorControl {
 	public static readonly EditModeZones = 1;
 	public static readonly EditModeSmoothNarrow = 2;
 	public static readonly EditModeSmoothWide = 3;
+	public static readonly EditModePeakingEq = 4;
 	public static readonly EditModeFirst = 0;
-	public static readonly EditModeLast = 3;
+	public static readonly EditModeLast = 4;
 
 	public readonly filter: GraphicalFilterEditor;
 	public readonly element: HTMLDivElement;
@@ -85,6 +87,7 @@ class GraphicalFilterEditorControl {
 	private readonly mnuEditZones: HTMLDivElement;
 	private readonly mnuEditSmoothNarrow: HTMLDivElement;
 	private readonly mnuEditSmoothWide: HTMLDivElement;
+	private readonly mnuEditPeakingEq: HTMLDivElement;
 	private readonly mnuNormalizeCurves: HTMLDivElement;
 	private readonly mnuShowActual: HTMLDivElement;
 	private readonly lblCursor: HTMLSpanElement;
@@ -127,9 +130,9 @@ class GraphicalFilterEditorControl {
 				l.appendChild(document.createTextNode(text));
 				return l;
 			},
-			createMenuItem = (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (ev: MouseEvent) => any) => {
+			createMenuItem = (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (ev: MouseEvent) => any, className?: string | null) => {
 				const i = document.createElement("div");
-				i.className = "GEMNUIT GECLK";
+				i.className = (className ? ("GEMNUIT GECLK " + className) : "GEMNUIT GECLK");
 				if (checkable) {
 					if (uiSettings && ((radio && uiSettings.radioHTML) || (!radio && uiSettings.checkHTML))) {
 						i.innerHTML = (radio ? uiSettings.radioHTML : uiSettings.checkHTML) as string;
@@ -264,7 +267,7 @@ class GraphicalFilterEditorControl {
 		this.mnu.style.display = "none";
 
 		let mnuh = document.createElement("div");
-		mnuh.className = "GEMNUH";
+		mnuh.className = "GEMNUH GEFILTER";
 		mnuh.appendChild(createMenuLabel(GraphicalFilterEditorStrings.SameCurve));
 		mnuh.appendChild(this.mnuChBL = createMenuItem(GraphicalFilterEditorStrings.UseLeftCurve, true, true, true, this.mnuChB_Click.bind(this, 0)));
 		mnuh.appendChild(this.mnuChBR = createMenuItem(GraphicalFilterEditorStrings.UseRightCurve, true, false, true, this.mnuChB_Click.bind(this, 1)));
@@ -283,8 +286,11 @@ class GraphicalFilterEditorControl {
 		mnuh.appendChild(this.mnuEditZones = createMenuItem(GraphicalFilterEditorStrings.Zones, true, false, true, this.mnuEditZones_Click.bind(this)));
 		mnuh.appendChild(this.mnuEditSmoothNarrow = createMenuItem(GraphicalFilterEditorStrings.SmoothNarrow, true, false, true, this.mnuEditSmoothNarrow_Click.bind(this)));
 		mnuh.appendChild(this.mnuEditSmoothWide = createMenuItem(GraphicalFilterEditorStrings.SmoothWide, true, false, true, this.mnuEditSmoothWide_Click.bind(this)));
+		mnuh.appendChild(this.mnuEditPeakingEq = createMenuItem(GraphicalFilterEditorStrings.PeakingEq, true, false, true, this.mnuEditPeakingEq_Click.bind(this)));
+		if (uiSettings && uiSettings.hideEditModePeakingEq)
+			this.mnuEditPeakingEq.style.display = "none";
 		mnuh.appendChild(createMenuSep());
-		mnuh.appendChild(this.mnuNormalizeCurves = createMenuItem(GraphicalFilterEditorStrings.NormalizeCurves, true, false, false, this.mnuNormalizeCurves_Click.bind(this)));
+		mnuh.appendChild(this.mnuNormalizeCurves = createMenuItem(GraphicalFilterEditorStrings.NormalizeCurves, true, false, false, this.mnuNormalizeCurves_Click.bind(this), "GEFILTER"));
 		mnuh.appendChild(this.mnuShowZones = createMenuItem(GraphicalFilterEditorStrings.ShowZones, true, false, false, this.mnuShowZones_Click.bind(this)));
 		mnuh.appendChild(this.mnuShowActual = createMenuItem(GraphicalFilterEditorStrings.ShowActualResponse, true, true, false, this.mnuShowActual_Click.bind(this)));
 		this.mnu.appendChild(mnuh);
@@ -531,11 +537,25 @@ class GraphicalFilterEditorControl {
 	private changeEditMode(editMode: number): void {
 		if (editMode < GraphicalFilterEditorControl.EditModeFirst || editMode > GraphicalFilterEditorControl.EditModeLast)
 			return;
+
 		this.editMode = editMode;
 		this.checkMenu(this.mnuEditRegular, editMode === GraphicalFilterEditorControl.EditModeRegular);
 		this.checkMenu(this.mnuEditZones, editMode === GraphicalFilterEditorControl.EditModeZones);
 		this.checkMenu(this.mnuEditSmoothNarrow, editMode === GraphicalFilterEditorControl.EditModeSmoothNarrow);
 		this.checkMenu(this.mnuEditSmoothWide, editMode === GraphicalFilterEditorControl.EditModeSmoothWide);
+
+		let isPeakingEq = (editMode === GraphicalFilterEditorControl.EditModePeakingEq);
+		this.checkMenu(this.mnuEditPeakingEq, isPeakingEq);
+
+		if (this.filter.isPeakingEq !== isPeakingEq) {
+			this.mnu.className = (isPeakingEq ? "GEMNU GEEQ" : "GEMNU");
+
+			this.filter.changeIsPeakingEq(isPeakingEq, this.currentChannelIndex, this.isSameFilterLR);
+			if (this.isActualChannelCurveNeeded) {
+				this.filter.updateActualChannelCurve(this.currentChannelIndex);
+				this.drawCurve();
+			}
+		}
 	}
 
 	private mnuEditRegular_Click(e: MouseEvent): boolean {
@@ -559,6 +579,12 @@ class GraphicalFilterEditorControl {
 	private mnuEditSmoothWide_Click(e: MouseEvent): boolean {
 		if (!e.button)
 			this.changeEditMode(GraphicalFilterEditorControl.EditModeSmoothWide);
+		return this.btnMnu_Click(e);
+	}
+
+	private mnuEditPeakingEq_Click(e: MouseEvent): boolean {
+		if (!e.button)
+			this.changeEditMode(GraphicalFilterEditorControl.EditModePeakingEq);
 		return this.btnMnu_Click(e);
 	}
 
@@ -597,6 +623,7 @@ class GraphicalFilterEditorControl {
 
 			switch (this.editMode) {
 				case GraphicalFilterEditorControl.EditModeZones:
+				case GraphicalFilterEditorControl.EditModePeakingEq:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
 					break;
 				case GraphicalFilterEditorControl.EditModeSmoothNarrow:
@@ -631,6 +658,7 @@ class GraphicalFilterEditorControl {
 		if (this.drawingMode) {
 			switch (this.editMode) {
 				case GraphicalFilterEditorControl.EditModeZones:
+				case GraphicalFilterEditorControl.EditModePeakingEq:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
 					break;
 				case GraphicalFilterEditorControl.EditModeSmoothNarrow:

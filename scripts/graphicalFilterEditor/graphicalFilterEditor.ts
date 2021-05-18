@@ -93,10 +93,19 @@ class GraphicalFilterEditor {
 	private filterLength: number;
 	private _sampleRate: number;
 	private _isNormalized: boolean;
+	private _isPeakingEq: boolean;
 	private binCount: number;
 	private audioContext: AudioContext;
 	private filterKernel: AudioBuffer;
 	private _convolver: ConvolverNode | null;
+	private biquadFilters: BiquadFilterNode[] | null;
+	private biquadFilterInput: AudioNode | null;
+	private biquadFilterOutput: AudioNode | null;
+	private biquadFilterGains: number[] | null;
+	private biquadFilterActualFrequencies: Float32Array | null;
+	private biquadFilterActualAccum: Float32Array | null;
+	private biquadFilterActualMag: Float32Array | null;
+	private biquadFilterActualPhase: Float32Array | null;
 	private filterChangedCallback: FilterChangedCallback | null | undefined;
 	private curveSnapshot: Int32Array | null;
 
@@ -107,13 +116,14 @@ class GraphicalFilterEditor {
 	public readonly equivalentZones: Int32Array;
 	public readonly equivalentZonesFrequencyCount: Int32Array;
 
-	public constructor(filterLength: number, audioContext: AudioContext, filterChangedCallback?: FilterChangedCallback | null) {
+	public constructor(filterLength: number, audioContext: AudioContext, filterChangedCallback?: FilterChangedCallback | null, isPeakingEq?: boolean) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
 		this.filterLength = filterLength;
 		this._sampleRate = (audioContext.sampleRate ? audioContext.sampleRate : 44100);
 		this._isNormalized = false;
+		this._isPeakingEq = !!isPeakingEq;
 		this.binCount = (filterLength >>> 1) + 1;
 		this.filterKernel = audioContext.createBuffer(2, filterLength, this._sampleRate);
 		this.audioContext = audioContext;
@@ -133,6 +143,14 @@ class GraphicalFilterEditor {
 		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount + 1);
 
 		this._convolver = null;
+		this.biquadFilters = null;
+		this.biquadFilterInput = null;
+		this.biquadFilterOutput = null;
+		this.biquadFilterGains = null;
+		this.biquadFilterActualFrequencies = null;
+		this.biquadFilterActualAccum = null;
+		this.biquadFilterActualMag = null;
+		this.biquadFilterActualPhase = null;
 		this.curveSnapshot = null;
 
 		this.updateFilter(0, true, true);
@@ -150,16 +168,20 @@ class GraphicalFilterEditor {
 		return this._isNormalized;
 	}
 
+	public get isPeakingEq(): boolean {
+		return this._isPeakingEq;
+	}
+
 	public get convolver(): ConvolverNode | null {
 		return this._convolver;
 	}
 
 	public get inputNode(): AudioNode | null {
-		return this._convolver;
+		return this.biquadFilterInput || this._convolver;
 	}
 
 	public get outputNode(): AudioNode | null {
-		return this._convolver;
+		return this.biquadFilterOutput || this._convolver;
 	}
 
 	public connectSourceAndDestination(source: AudioNode | null, destination: AudioNode | null): boolean {
@@ -353,11 +375,15 @@ class GraphicalFilterEditor {
 
 	public copyFilter(sourceChannel: number, destinationChannel: number): void {
 		this.copyToChannel(this.filterKernel.getChannelData(sourceChannel), destinationChannel);
-		if (this._convolver)
-			this.updateBuffer();
+		this.updateBuffer();
 	}
 
 	public updateFilter(channelIndex: number, isSameFilterLR: boolean, updateBothChannels: boolean): void {
+		if (this._isPeakingEq) {
+			this.updatePeakingEq(channelIndex);
+			return;
+		}
+
 		cLib._graphicalFilterEditorUpdateFilter(this.editorPtr, channelIndex, this._isNormalized);
 		this.copyToChannel(this.filterKernelBuffer, channelIndex);
 
@@ -367,14 +393,109 @@ class GraphicalFilterEditor {
 		} else if (updateBothChannels) {
 			// Update the other channel as well
 			this.updateFilter(1 - channelIndex, false, false);
-		} else if (this._convolver) {
+		} else {
 			this.updateBuffer();
 		}
 	}
 
 	public updateActualChannelCurve(channelIndex: number): void {
+		if (this._isPeakingEq) {
+			this.updateActualChannelCurvePeakingEq();
+			return;
+		}
+
 		this.copyFromChannel(this.filterKernelBuffer, channelIndex);
 		cLib._graphicalFilterEditorUpdateActualChannelCurve(this.editorPtr, channelIndex);
+	}
+
+	public updatePeakingEq(channelIndex: number): void {
+		const audioContext = this.audioContext,
+			curve = this.channelCurves[channelIndex],
+			equivalentZones = this.equivalentZones,
+			equivalentZonesFrequencyCount = this.equivalentZonesFrequencyCount,
+			equivalentZoneCount = GraphicalFilterEditor.EquivalentZoneCount;
+
+		let biquadFilters = this.biquadFilters,
+			biquadFilterGains = this.biquadFilterGains,
+			connectionsChanged = false;
+
+		if (!biquadFilters || !biquadFilterGains) {
+			connectionsChanged = true;
+			biquadFilters = new Array(equivalentZoneCount);
+			biquadFilterGains = new Array(equivalentZoneCount);
+			const q = new Array(equivalentZoneCount),
+				ln2_2 = Math.log(2) * 0.5,
+				fs = this.audioContext.sampleRate,
+				_2pi = 2 * Math.PI;
+			for (let i = equivalentZoneCount - 1; i >= 0; i--) {
+				const w0 = _2pi * equivalentZones[i] / fs;
+				q[i] = 1 / (2 * Math.sinh(ln2_2 * (w0 / Math.sin(w0))));
+			}
+			for (let i = equivalentZoneCount - 1; i >= 0; i--) {
+				const biquadFilter = audioContext.createBiquadFilter();
+				biquadFilter.type = "peaking";
+				biquadFilter.frequency.value = equivalentZones[i];
+				biquadFilter.Q.value = q[i];
+				biquadFilters[i] = biquadFilter;
+				if (i < (equivalentZoneCount - 1))
+					biquadFilters[i + 1].connect(biquadFilters[i]);
+			}
+			this.biquadFilters = biquadFilters;
+			this.biquadFilterInput = biquadFilters[equivalentZoneCount - 1];
+			this.biquadFilterOutput = biquadFilters[0];
+		}
+
+		for (let i = equivalentZoneCount - 1; i >= 0; i--)
+			biquadFilterGains[i] = Math.max(-40, this.yToDB(curve[equivalentZonesFrequencyCount[i]]));
+
+		const bandCorrelation = -0.15;
+		for (let i = equivalentZoneCount - 1; i >= 0; i--)
+			biquadFilters[i].gain.value = biquadFilterGains[i] +
+				(i < (equivalentZoneCount - 1) ? (biquadFilterGains[i + 1] * bandCorrelation) : 0) +
+				(i > 0 ? (biquadFilterGains[i - 1] * bandCorrelation) : 0);
+
+		if (connectionsChanged && this.filterChangedCallback)
+			this.filterChangedCallback();
+	}
+
+	public updateActualChannelCurvePeakingEq(): void {
+		const biquadFilters = this.biquadFilters;
+
+		if (!biquadFilters)
+			return;
+
+		let biquadFilterActualFrequencies = this.biquadFilterActualFrequencies,
+			biquadFilterActualAccum = this.biquadFilterActualAccum,
+			biquadFilterActualMag = this.biquadFilterActualMag,
+			biquadFilterActualPhase = this.biquadFilterActualPhase;
+
+		if (!biquadFilterActualFrequencies || !biquadFilterActualAccum || !biquadFilterActualMag || !biquadFilterActualPhase) {
+			const visibleFrequencies = this.visibleFrequencies;
+			biquadFilterActualFrequencies = new Float32Array(visibleFrequencies.length);
+			for (let i = visibleFrequencies.length - 1; i >= 0; i--)
+				biquadFilterActualFrequencies[i] = visibleFrequencies[i];
+			biquadFilterActualAccum = new Float32Array(visibleFrequencies.length);
+			biquadFilterActualMag = new Float32Array(visibleFrequencies.length);
+			biquadFilterActualPhase = new Float32Array(visibleFrequencies.length);
+			this.biquadFilterActualFrequencies = biquadFilterActualFrequencies;
+			this.biquadFilterActualAccum = biquadFilterActualAccum;
+			this.biquadFilterActualMag = biquadFilterActualMag;
+			this.biquadFilterActualPhase = biquadFilterActualPhase;
+		}
+
+		biquadFilterActualAccum.fill(1);
+
+		for (let i = biquadFilters.length - 1; i >= 0; i--) {
+			(biquadFilters[i] as BiquadFilterNode).getFrequencyResponse(biquadFilterActualFrequencies, biquadFilterActualMag, biquadFilterActualPhase);
+			for (let j = biquadFilterActualMag.length - 1; j >= 0; j--)
+				biquadFilterActualAccum[j] *= biquadFilterActualMag[j];
+		}
+
+		const curve = this.actualChannelCurve,
+			magnitudeToY = this.magnitudeToY;
+
+		for (let i = curve.length - 1; i >= 0; i--)
+			curve[i] = magnitudeToY(biquadFilterActualAccum[i]);
 	}
 
 	public changeFilterLength(newFilterLength: number, channelIndex: number, isSameFilterLR: boolean): boolean {
@@ -408,14 +529,54 @@ class GraphicalFilterEditor {
 		return false;
 	}
 
+	public changeIsPeakingEq(isPeakingEq: boolean, channelIndex: number, isSameFilterLR: boolean): boolean {
+		if (!this._isPeakingEq !== !isPeakingEq) {
+			this._isPeakingEq = !!isPeakingEq;
+			this.disconnectOutputFromDestination();
+			if (isPeakingEq) {
+				this._convolver = null;
+			} else {
+				const biquadFilters = this.biquadFilters;
+				if (biquadFilters) {
+					for (let i = biquadFilters.length - 1; i >= 0; i--)
+						biquadFilters[i].disconnect();
+					biquadFilters.fill(null as any);
+					this.biquadFilters = null;
+				}
+				this.biquadFilterInput = null;
+				this.biquadFilterOutput = null;
+				this.biquadFilterGains = null;
+				this.biquadFilterActualFrequencies = null;
+				this.biquadFilterActualAccum = null;
+				this.biquadFilterActualMag = null;
+				this.biquadFilterActualPhase = null;
+			}
+			this.updateFilter(channelIndex, isSameFilterLR, true);
+			return true;
+		}
+		return false;
+	}
+
 	public changeAudioContext(newAudioContext: AudioContext, channelIndex: number, isSameFilterLR: boolean): boolean {
 		if (this.audioContext !== newAudioContext) {
-			var oldConvolver = this._convolver;
-			if (oldConvolver) {
-				oldConvolver.disconnect();
-				this._convolver = null; // Just to prevent intermediate calls to this.updateBuffer() during this.updateFilter()
+			this.disconnectOutputFromDestination();
+			this._convolver = null;
+			const biquadFilters = this.biquadFilters;
+			if (biquadFilters) {
+				for (let i = biquadFilters.length - 1; i >= 0; i--)
+					biquadFilters[i].disconnect();
+				biquadFilters.fill(null as any);
+				this.biquadFilters = null;
 			}
+			this.biquadFilterInput = null;
+			this.biquadFilterOutput = null;
+			this.biquadFilterGains = null;
+			this.biquadFilterActualFrequencies = null;
+			this.biquadFilterActualAccum = null;
+			this.biquadFilterActualMag = null;
+			this.biquadFilterActualPhase = null;
 			this.audioContext = newAudioContext;
+			this._sampleRate = (newAudioContext.sampleRate ? newAudioContext.sampleRate : 44100);
 			this.filterKernel = newAudioContext.createBuffer(2, this.filterLength, this._sampleRate);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			this.updateBuffer();

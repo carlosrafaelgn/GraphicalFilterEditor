@@ -73,6 +73,20 @@ function zeroObject(o: any): void {
 }
 
 function setup(): void {
+	if (!Array.prototype.fill) {
+		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
+		Array.prototype.fill = function (value: any, start?: number, end?: number): any {
+			var i, length = this.length | 0;
+			start = (start as number) | 0;
+			end = ((end === undefined) ? length : (end | 0));
+			end = ((end < 0) ? Math.max(length + end, 0) : Math.min(end, length));
+			i = ((start < 0) ? Math.max(length + start, 0) : Math.min(start, length));
+			while (i < end)
+				this[i++] = value;
+			return this;
+		};
+	}
+
 	((window as any)["CLib"]() as Promise<CLib>).then((value) => {
 		cLib = value;
 		if ((window as any)["main"])

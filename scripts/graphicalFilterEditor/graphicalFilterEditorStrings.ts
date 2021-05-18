@@ -42,6 +42,7 @@ class GraphicalFilterEditorStrings {
 	public static Zones = "Zones";
 	public static SmoothNarrow = "Smooth (narrow)";
 	public static SmoothWide = "Smooth (wide)";
+	public static PeakingEq = "10-band Peaking Filter";
 	public static NormalizeCurves = "Normalize curves";
 	public static ShowZones = "Show zones";
 	public static ShowActualResponse = "Show actual response";
@@ -68,6 +69,7 @@ class GraphicalFilterEditorStrings {
 			GraphicalFilterEditorStrings.Zones = "Zonas";
 			GraphicalFilterEditorStrings.SmoothNarrow = "Suave (estreito)";
 			GraphicalFilterEditorStrings.SmoothWide = "Suave (largo)";
+			GraphicalFilterEditorStrings.PeakingEq = "Filtro \"Peaking\" de 10 Bandas";
 			GraphicalFilterEditorStrings.NormalizeCurves = "Normalizar curvas";
 			GraphicalFilterEditorStrings.ShowZones = "Exibir zonas";
 			GraphicalFilterEditorStrings.ShowActualResponse = "Exibir resposta real";
