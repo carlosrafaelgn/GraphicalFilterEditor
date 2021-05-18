@@ -485,10 +485,17 @@ class GraphicalFilterEditor {
 
 		biquadFilterActualAccum.fill(1);
 
+		const length = biquadFilterActualFrequencies.length;
 		for (let i = biquadFilters.length - 1; i >= 0; i--) {
 			(biquadFilters[i] as BiquadFilterNode).getFrequencyResponse(biquadFilterActualFrequencies, biquadFilterActualMag, biquadFilterActualPhase);
-			for (let j = biquadFilterActualMag.length - 1; j >= 0; j--)
-				biquadFilterActualAccum[j] *= biquadFilterActualMag[j];
+			let lastMag = 0;
+			for (let j = 0; j < length; j++) {
+				// Just to avoid the last few NaN pixels on devices with a sample rate of 44100Hz
+				const mag = biquadFilterActualMag[j];
+				if (!isNaN(mag))
+					lastMag = mag;
+				biquadFilterActualAccum[j] *= lastMag;
+			}
 		}
 
 		const curve = this.actualChannelCurve,
