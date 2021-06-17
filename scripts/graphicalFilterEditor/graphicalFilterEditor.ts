@@ -28,6 +28,12 @@ interface FilterChangedCallback {
 	(): void;
 }
 
+enum GraphicalFilterEditorIIRType {
+	None = 0,
+	Peaking = 1,
+	Shelf = 2
+}
+
 class GraphicalFilterEditor {
 	// Must be in sync with c/common.h
 	// Sorry, but due to the frequency mapping I created, this class will only work with
@@ -42,6 +48,8 @@ class GraphicalFilterEditor {
 	public static readonly MinimumChannelValueY = GraphicalFilterEditor.ValidYRangeHeight - 1;
 	public static readonly MaximumFilterLength = 8192;
 	public static readonly EquivalentZoneCount = 10;
+	public static readonly ShelfEquivalentZoneCount = 7;
+	public static readonly ShelfEquivalentZones = [0, 2, 3, 4, 6, 8, 9];
 
 	public static encodeCurve(curve: Int32Array): string {
 		const min = GraphicalFilterEditor.MinimumChannelValueY,
@@ -93,15 +101,17 @@ class GraphicalFilterEditor {
 	private filterLength: number;
 	private _sampleRate: number;
 	private _isNormalized: boolean;
-	private _isPeakingEq: boolean;
+	private _iirType: GraphicalFilterEditorIIRType;
 	private binCount: number;
 	private audioContext: AudioContext;
 	private filterKernel: AudioBuffer;
+	private source: AudioNode | null;
 	private _convolver: ConvolverNode | null;
-	private biquadFilters: BiquadFilterNode[] | null;
+	private biquadFilters: AudioNode[] | null;
 	private biquadFilterInput: AudioNode | null;
 	private biquadFilterOutput: AudioNode | null;
 	private biquadFilterGains: number[] | null;
+	private biquadFilterActualGains: number[] | null;
 	private biquadFilterActualFrequencies: Float32Array | null;
 	private biquadFilterActualAccum: Float32Array | null;
 	private biquadFilterActualMag: Float32Array | null;
@@ -112,18 +122,18 @@ class GraphicalFilterEditor {
 	private readonly filterKernelBuffer: Float32Array;
 	public readonly channelCurves: Int32Array[];
 	public readonly actualChannelCurve: Int32Array;
-	public readonly visibleFrequencies: Int32Array;
+	public readonly visibleFrequencies: Float64Array;
 	public readonly equivalentZones: Int32Array;
 	public readonly equivalentZonesFrequencyCount: Int32Array;
 
-	public constructor(filterLength: number, audioContext: AudioContext, filterChangedCallback?: FilterChangedCallback | null, isPeakingEq?: boolean) {
+	public constructor(filterLength: number, audioContext: AudioContext, filterChangedCallback?: FilterChangedCallback | null, _iirType?: GraphicalFilterEditorIIRType) {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
 		this.filterLength = filterLength;
 		this._sampleRate = (audioContext.sampleRate ? audioContext.sampleRate : 44100);
 		this._isNormalized = false;
-		this._isPeakingEq = !!isPeakingEq;
+		this._iirType = (_iirType || GraphicalFilterEditorIIRType.None);
 		this.binCount = (filterLength >>> 1) + 1;
 		this.filterKernel = audioContext.createBuffer(2, filterLength, this._sampleRate);
 		this.audioContext = audioContext;
@@ -138,15 +148,17 @@ class GraphicalFilterEditor {
 			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 1), GraphicalFilterEditor.VisibleBinCount)
 		];
 		this.actualChannelCurve = new Int32Array(buffer, cLib._graphicalFilterEditorGetActualChannelCurve(this.editorPtr), GraphicalFilterEditor.VisibleBinCount);
-		this.visibleFrequencies = new Int32Array(buffer, cLib._graphicalFilterEditorGetVisibleFrequencies(this.editorPtr), GraphicalFilterEditor.VisibleBinCount);
+		this.visibleFrequencies = new Float64Array(buffer, cLib._graphicalFilterEditorGetVisibleFrequencies(this.editorPtr), GraphicalFilterEditor.VisibleBinCount);
 		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount);
 		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount + 1);
 
+		this.source = null;
 		this._convolver = null;
 		this.biquadFilters = null;
 		this.biquadFilterInput = null;
 		this.biquadFilterOutput = null;
 		this.biquadFilterGains = null;
+		this.biquadFilterActualGains = null;
 		this.biquadFilterActualFrequencies = null;
 		this.biquadFilterActualAccum = null;
 		this.biquadFilterActualMag = null;
@@ -168,8 +180,8 @@ class GraphicalFilterEditor {
 		return this._isNormalized;
 	}
 
-	public get isPeakingEq(): boolean {
-		return this._isPeakingEq;
+	public get iirType(): GraphicalFilterEditorIIRType {
+		return this._iirType;
 	}
 
 	public get convolver(): ConvolverNode | null {
@@ -190,6 +202,9 @@ class GraphicalFilterEditor {
 	}
 
 	public connectSourceToInput(source: AudioNode | null): boolean {
+		if (this.source)
+			this.source.disconnect();
+		this.source = source;
 		if (source) {
 			source.disconnect();
 			const inputNode = this.inputNode;
@@ -239,6 +254,13 @@ class GraphicalFilterEditor {
 		return ((y <= GraphicalFilterEditor.MaximumChannelValueY) ? GraphicalFilterEditor.MaximumChannelValueY :
 			((y > GraphicalFilterEditor.MinimumChannelValueY) ? (GraphicalFilterEditor.ValidYRangeHeight + 1) :
 				y));
+	}
+
+	public dBToMagnitude(dB: number): number {
+		// 40dB = 100
+		// -40dB = 0.01
+		// magnitude = 10 ^ (dB/20)
+		return Math.pow(10, dB / 20);
 	}
 
 	public yToDB(y: number): number {
@@ -306,6 +328,14 @@ class GraphicalFilterEditor {
 			cy = this.clampY(y),
 			curve = this.channelCurves[channelIndex];
 		for (i = this.equivalentZonesFrequencyCount[i]; i < ii; i++)
+			curve[i] = cy;
+	}
+
+	public changeZoneYByIndex(channelIndex: number, zoneIndex: number, y: number): void {
+		const ii = this.equivalentZonesFrequencyCount[zoneIndex + 1],
+			cy = this.clampY(y),
+			curve = this.channelCurves[channelIndex];
+		for (let i = this.equivalentZonesFrequencyCount[zoneIndex]; i < ii; i++)
 			curve[i] = cy;
 	}
 
@@ -379,9 +409,13 @@ class GraphicalFilterEditor {
 	}
 
 	public updateFilter(channelIndex: number, isSameFilterLR: boolean, updateBothChannels: boolean): void {
-		if (this._isPeakingEq) {
-			this.updatePeakingEq(channelIndex);
-			return;
+		switch (this._iirType) {
+			case GraphicalFilterEditorIIRType.Peaking:
+				this.updatePeakingEq(channelIndex);
+				return;
+			case GraphicalFilterEditorIIRType.Shelf:
+				this.updateShelfEq(channelIndex);
+				return;
 		}
 
 		cLib._graphicalFilterEditorUpdateFilter(this.editorPtr, channelIndex, this._isNormalized);
@@ -399,8 +433,8 @@ class GraphicalFilterEditor {
 	}
 
 	public updateActualChannelCurve(channelIndex: number): void {
-		if (this._isPeakingEq) {
-			this.updateActualChannelCurvePeakingEq();
+		if (this._iirType) {
+			this.updateActualChannelCurveIIR();
 			return;
 		}
 
@@ -421,16 +455,20 @@ class GraphicalFilterEditor {
 
 		if (!biquadFilters || !biquadFilterGains) {
 			connectionsChanged = true;
+
 			biquadFilters = new Array(equivalentZoneCount);
 			biquadFilterGains = new Array(equivalentZoneCount);
+
 			const q = new Array(equivalentZoneCount),
 				ln2_2 = Math.log(2) * 0.5,
 				fs = this.audioContext.sampleRate,
 				_2pi = 2 * Math.PI;
+
 			for (let i = equivalentZoneCount - 1; i >= 0; i--) {
 				const w0 = _2pi * equivalentZones[i] / fs;
 				q[i] = 1 / (2 * Math.sinh(ln2_2 * (w0 / Math.sin(w0))));
 			}
+
 			for (let i = equivalentZoneCount - 1; i >= 0; i--) {
 				const biquadFilter = audioContext.createBiquadFilter();
 				biquadFilter.type = "peaking";
@@ -440,6 +478,7 @@ class GraphicalFilterEditor {
 				if (i < (equivalentZoneCount - 1))
 					biquadFilters[i + 1].connect(biquadFilters[i]);
 			}
+
 			this.biquadFilters = biquadFilters;
 			this.biquadFilterInput = biquadFilters[equivalentZoneCount - 1];
 			this.biquadFilterOutput = biquadFilters[0];
@@ -450,7 +489,7 @@ class GraphicalFilterEditor {
 
 		const bandCorrelation = -0.15;
 		for (let i = equivalentZoneCount - 1; i >= 0; i--)
-			biquadFilters[i].gain.value = biquadFilterGains[i] +
+			(biquadFilters[i] as BiquadFilterNode).gain.value = biquadFilterGains[i] +
 				(i < (equivalentZoneCount - 1) ? (biquadFilterGains[i + 1] * bandCorrelation) : 0) +
 				(i > 0 ? (biquadFilterGains[i - 1] * bandCorrelation) : 0);
 
@@ -458,7 +497,211 @@ class GraphicalFilterEditor {
 			this.filterChangedCallback();
 	}
 
-	public updateActualChannelCurvePeakingEq(): void {
+	public updateShelfEq(channelIndex: number): void {
+		const audioContext = this.audioContext,
+			curve = this.channelCurves[channelIndex],
+			equivalentZonesFrequencyCount = this.equivalentZonesFrequencyCount,
+			shelfEquivalentZoneCount = GraphicalFilterEditor.ShelfEquivalentZoneCount,
+			shelfEquivalentZones = GraphicalFilterEditor.ShelfEquivalentZones;
+
+		let biquadFilters = this.biquadFilters,
+			biquadFilterGains = this.biquadFilterGains,
+			biquadFilterActualGains = this.biquadFilterActualGains;
+
+		if (!biquadFilters || !biquadFilterGains || !biquadFilterActualGains) {
+			biquadFilters = new Array(shelfEquivalentZoneCount);
+			biquadFilterGains = new Array(shelfEquivalentZoneCount);
+			biquadFilterActualGains = new Array(shelfEquivalentZoneCount);
+
+			this.biquadFilters = biquadFilters;
+			this.biquadFilterGains = biquadFilterGains;
+			this.biquadFilterActualGains = biquadFilterActualGains;
+
+			biquadFilters[shelfEquivalentZoneCount - 1] = audioContext.createGain();
+			this.biquadFilterInput = biquadFilters[shelfEquivalentZoneCount - 1];
+		}
+
+		for (let i = shelfEquivalentZoneCount - 1; i >= 0; i--)
+			biquadFilterGains[i] = Math.max(-40, this.yToDB(curve[equivalentZonesFrequencyCount[shelfEquivalentZones[i]]]));
+
+		// Taken from my other project: FPlayAndroid
+		// https://github.com/carlosrafaelgn/FPlayAndroid/blob/master/jni/x/Effects.h
+		const lastBand = shelfEquivalentZoneCount - 1;
+		let leftover = 0,
+			lastValidFilter = lastBand,
+			lastFilterHasChanged = false,
+			biquadFilterOutput = biquadFilters[lastBand];
+
+		(biquadFilterOutput as GainNode).gain.value = this.dBToMagnitude(biquadFilterGains[lastBand]);
+
+		for (let i = lastBand - 1; i >= 0; i--) {
+			let gain = leftover + (biquadFilterGains[i] - biquadFilterGains[i + 1]);
+
+			// Beyond +-22.87dB the filter yields NaN unless we use any other formula that produces ripple
+			if (gain < -22) {
+				leftover = gain + 22;
+				gain = -22;
+			} else if (gain > 22) {
+				leftover = gain - 22;
+				gain = 22;
+			} else {
+				leftover = 0;
+			}
+
+			if (biquadFilterActualGains[i] !== gain) {
+				lastFilterHasChanged = true;
+
+				biquadFilterActualGains[i] = gain;
+				if (biquadFilters[i])
+					biquadFilters[i].disconnect();
+				
+				biquadFilterOutput.disconnect();
+
+				if (gain) {
+					biquadFilters[i] = this.createIIRFilter(i, gain);
+					biquadFilterOutput.connect(biquadFilters[i]);
+					biquadFilterOutput = biquadFilters[i];
+				} else {
+					biquadFilters[i] = null as any;
+				}
+			} else if (biquadFilters[i]) {
+				if (lastFilterHasChanged) {
+					lastFilterHasChanged = false;
+					biquadFilterOutput.connect(biquadFilters[i]);
+				}
+				biquadFilterOutput = biquadFilters[i];
+			}
+		}
+
+		if (this.biquadFilterOutput !== biquadFilterOutput) {
+			this.biquadFilterOutput = biquadFilterOutput;
+			if (this.filterChangedCallback)
+				this.filterChangedCallback();
+		}
+	}
+
+	// Taken from my other project: FPlayAndroid
+	// https://github.com/carlosrafaelgn/FPlayAndroid/blob/master/jni/x/Effects.h
+	private createIIRFilter(band: number, gain: number): IIRFilterNode {
+		const audioContext = this.audioContext;
+
+		// The idea for this equalizer is simple/trick ;)
+		//
+		// band Max-1 is an ordinary gain, corresponding to its gain + pre amp
+		// band Max-2 is a lowshelf filter, applying a gain corresponding to this delta: Band Max-2's gain - Band Max-1's gain
+		// ...
+		// band 0 is a lowshelf filter, applying a gain corresponding to this delta: Band 0's gain - Band 1's gain
+
+		// The method used to compute b0, b1, b2, a1 and a2 was created
+		// by Robert Bristow-Johnson (extracted from his Audio-EQ-Cookbook.txt)
+		//
+		// Cookbook formulae for audio EQ biquad filter coefficients
+		// by Robert Bristow-Johnson  <rbj@audioimagination.com>
+		//
+		// Links:
+		// https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
+		// https://webaudio.github.io/Audio-EQ-Cookbook/Audio-EQ-Cookbook.txt
+		// http://www.earlevel.com/main/2010/12/20/biquad-calculator/
+		//
+		// These are the original/old links, but they all appear to be gone now!
+		// http://www.musicdsp.org/archive.php?classid=3#197
+		// http://www.musicdsp.org/archive.php?classid=3#198
+		// http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
+		// http://www.musicdsp.org/files/EQ-Coefficients.pdf
+		//
+		// Begin with these user defined parameters:
+		//
+		// Fs (the sampling frequency)
+		//
+		// f0 ("wherever it's happenin', man."  Center Frequency or
+		//   Corner Frequency, or shelf midpoint frequency, depending
+		//   on which filter type.  The "significant frequency".)
+		//
+		// dBgain (used only for peaking and shelving filters)
+		//
+		// Q or BW or S (only one must be chosen)
+		// Q (the EE kind of definition, except for peakingEQ in which A*Q is
+		//   the classic EE Q.  That adjustment in definition was made so that
+		//   a boost of N dB followed by a cut of N dB for identical Q and
+		//   f0/Fs results in a precisely flat unity gain filter or "wire".)
+		//
+		// BW, the bandwidth in octaves (between -3 dB frequencies for BPF
+		//   and notch or between midpoint (dBgain/2) gain frequencies for
+		//   peaking EQ)
+		//
+		// S, a "shelf slope" parameter (for shelving EQ only).  When S = 1,
+		//   the shelf slope is as steep as it can be and remain monotonically
+		//   increasing or decreasing gain with frequency.  The shelf slope, in
+		//   dB/octave, remains proportional to S for all other values for a
+		//   fixed f0/Fs and dBgain.
+		//
+		// Then compute a few intermediate variables:
+		//
+		// A  = sqrt( 10^(dBgain/20) )
+		//    =	   10^(dBgain/40)	 (for peaking and shelving EQ filters only)
+		//
+		// w0 = 2*pi*f0/Fs
+		//
+		// cos(w0)
+		// sin(w0)
+		//
+		// alpha = sin(w0)/(2*Q)                               (case: Q)
+		//       = sin(w0)*sinh( ln(2)/2 * BW * w0/sin(w0) )   (case: BW)
+		//       = sin(w0)/2 * sqrt( (A + 1/A)*(1/S - 1) + 2 ) (case: S)
+
+		const Fs = audioContext.sampleRate;
+		let f0: number;
+		switch (band) {
+		case 0: // 31.25 Hz / 62.5 Hz
+			f0 = 92.75;
+			break;
+		case 1: // 125 Hz
+			f0 = 187.5;
+			break;
+		case 2: // 250 Hz
+			f0 = 375.0;
+			break;
+		case 3: // 500 Hz / 1000 Hz
+			f0 = 1500.0;
+			break;
+		case 4: // 2000 Hz / 4000 Hz
+			f0 = 6000.0;
+			break;
+		default: // 8000 Hz
+			f0 = 12000.0;
+			break;
+		}
+
+		const PI = 3.1415926535897932384626433832795;
+		const S = 2.0;
+		const A = Math.pow(10.0, gain / 40.0);
+		const w0 = 2.0 * PI * f0 / Fs;
+		const cosw0 = Math.cos(w0);
+		const sinw0 = Math.sin(w0);
+
+		// alpha = sin(w0)/2 * sqrt( (A + 1/A)*(1/S - 1) + 2 )
+		// S used to be assumed as 1, resulting in
+		// alpha = sin(w0)/2 * sqrt( (A + 1/A)*(1/1 - 1) + 2 )
+		// alpha = sin(w0)/2 * sqrt(2)
+		// alpha = sin(w0) * 0.70710678118654752440084436210485
+		// but that yielded a very subtle slope... therefore, we are now
+		// using S = 2, making the slope more aggressive
+
+		const alpha = sinw0 * 0.5 * Math.sqrt((A + (1.0 / A)) * ((1.0 / S) - 1.0) + 2.0);
+
+		const two_sqrtA_alpha = 2.0 * Math.sqrt(A) * alpha;
+
+		const b0 =     A*( (A+1.0) - ((A-1.0)*cosw0) + two_sqrtA_alpha );
+		const b1 = 2.0*A*( (A-1.0) - ((A+1.0)*cosw0)                   );
+		const b2 =     A*( (A+1.0) - ((A-1.0)*cosw0) - two_sqrtA_alpha );
+		const a0 =         (A+1.0) + ((A-1.0)*cosw0) + two_sqrtA_alpha;
+		const a1 =  -2.0*( (A-1.0) + ((A+1.0)*cosw0)                   );
+		const a2 =         (A+1.0) + ((A-1.0)*cosw0) - two_sqrtA_alpha;
+
+		return audioContext.createIIRFilter([b0, b1, b2], [a0, a1, a2]);
+	}
+
+	public updateActualChannelCurveIIR(): void {
 		const biquadFilters = this.biquadFilters;
 
 		if (!biquadFilters)
@@ -483,14 +726,30 @@ class GraphicalFilterEditor {
 			this.biquadFilterActualPhase = biquadFilterActualPhase;
 		}
 
-		biquadFilterActualAccum.fill(1);
-
 		const length = biquadFilterActualFrequencies.length;
-		for (let i = biquadFilters.length - 1; i >= 0; i--) {
+
+		// Both BiquadFilterNode and IIRFilterNode have getFrequencyResponse(), so let's just
+		// pretend all filters are BiquadFilterNode's for the sake of simplicity
+		if (this._iirType === GraphicalFilterEditorIIRType.Shelf) {
+			biquadFilterActualAccum.fill((biquadFilters[biquadFilters.length - 1] as GainNode).gain.value);
+		} else {
+			(biquadFilters[biquadFilters.length - 1] as BiquadFilterNode).getFrequencyResponse(biquadFilterActualFrequencies, biquadFilterActualAccum, biquadFilterActualPhase);
+			// Just to avoid the last few NaN pixels on devices with a sample rate of 44100Hz or lower
+			let i = length - 1, lastMag = 1;
+			while (i >= 0 && isNaN(lastMag = biquadFilterActualAccum[i]))
+				i--;
+			i++;
+			while (i < length)
+				biquadFilterActualAccum[i++] = lastMag;
+		}
+
+		for (let i = biquadFilters.length - 2; i >= 0; i--) {
+			// When using GraphicalFilterEditorIIRType.Shelf, a few biquadFilters could be null
+			if (!biquadFilters[i])
+				continue;
 			(biquadFilters[i] as BiquadFilterNode).getFrequencyResponse(biquadFilterActualFrequencies, biquadFilterActualMag, biquadFilterActualPhase);
-			let lastMag = 0;
-			for (let j = 0; j < length; j++) {
-				// Just to avoid the last few NaN pixels on devices with a sample rate of 44100Hz
+			for (let j = 0, lastMag = 0; j < length; j++) {
+				// Just to avoid the last few NaN pixels on devices with a sample rate of 44100Hz or lower
 				const mag = biquadFilterActualMag[j];
 				if (!isNaN(mag))
 					lastMag = mag;
@@ -536,28 +795,27 @@ class GraphicalFilterEditor {
 		return false;
 	}
 
-	public changeIsPeakingEq(isPeakingEq: boolean, channelIndex: number, isSameFilterLR: boolean): boolean {
-		if (!this._isPeakingEq !== !isPeakingEq) {
-			this._isPeakingEq = !!isPeakingEq;
+	public changeIIRType(iirType: GraphicalFilterEditorIIRType, channelIndex: number, isSameFilterLR: boolean): boolean {
+		if (this._iirType !== iirType) {
+			this._iirType = iirType;
 			this.disconnectOutputFromDestination();
-			if (isPeakingEq) {
-				this._convolver = null;
-			} else {
-				const biquadFilters = this.biquadFilters;
-				if (biquadFilters) {
-					for (let i = biquadFilters.length - 1; i >= 0; i--)
+			this._convolver = null;
+			const biquadFilters = this.biquadFilters;
+			if (biquadFilters) {
+				for (let i = biquadFilters.length - 1; i >= 0; i--) {
+					if (biquadFilters[i])
 						biquadFilters[i].disconnect();
-					biquadFilters.fill(null as any);
-					this.biquadFilters = null;
 				}
-				this.biquadFilterInput = null;
-				this.biquadFilterOutput = null;
-				this.biquadFilterGains = null;
-				this.biquadFilterActualFrequencies = null;
-				this.biquadFilterActualAccum = null;
-				this.biquadFilterActualMag = null;
-				this.biquadFilterActualPhase = null;
+				biquadFilters.fill(null as any);
+				this.biquadFilters = null;
 			}
+			this.biquadFilterInput = null;
+			this.biquadFilterOutput = null;
+			this.biquadFilterGains = null;
+			this.biquadFilterActualFrequencies = null;
+			this.biquadFilterActualAccum = null;
+			this.biquadFilterActualMag = null;
+			this.biquadFilterActualPhase = null;
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
@@ -570,8 +828,10 @@ class GraphicalFilterEditor {
 			this._convolver = null;
 			const biquadFilters = this.biquadFilters;
 			if (biquadFilters) {
-				for (let i = biquadFilters.length - 1; i >= 0; i--)
-					biquadFilters[i].disconnect();
+				for (let i = biquadFilters.length - 1; i >= 0; i--) {
+					if (biquadFilters[i])
+						biquadFilters[i].disconnect();
+				}
 				biquadFilters.fill(null as any);
 				this.biquadFilters = null;
 			}

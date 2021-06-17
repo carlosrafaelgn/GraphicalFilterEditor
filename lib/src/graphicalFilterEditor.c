@@ -42,9 +42,9 @@ void freeBuffer(void* ptr) {
 typedef struct GraphicalFilterEditorStruct {
 	double filterKernelBuffer[MaximumFilterLength];
 	double tmp[MaximumFilterLength];
+	double visibleFrequencies[VisibleBinCount];
 	int channelCurves[2][VisibleBinCount];
 	int actualChannelCurve[VisibleBinCount];
-	int visibleFrequencies[VisibleBinCount];
 	int equivalentZones[EquivalentZoneCount];
 	int equivalentZonesFrequencyCount[EquivalentZoneCount + 1];
 
@@ -74,41 +74,61 @@ GraphicalFilterEditor* graphicalFilterEditorAlloc(int filterLength, int sampleRa
 	editor->sampleRate = sampleRate;
 	editor->binCount = (filterLength >> 1) + 1;
 
-	// Old frequency mapping (512 bins)
+	// First frequency mapping (512 bins - Original 2013)
 	// const int freqSteps[] = { 5, 5, 5, 5, 10, 10, 20, 40, 80, 89 };
 	// const int firstFreqs[] = { 5, 50, 95, 185, 360, 720, 1420, 2860, 5740, 11498 };
 	// const int equivalentZones[] = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
 	// const int equivalentZonesFrequencyCount[] = { 0, 9, 9 + 9, 18 + 9 + 9, 35 + 18 + 9 + 9, 36 + 35 + 18 + 9 + 9, 70 + 36 + 35 + 18 + 9 + 9, 72 + 70 + 36 + 35 + 18 + 9 + 9, 72 + 72 + 70 + 36 + 35 + 18 + 9 + 9, 72 + 72 + 72 + 70 + 36 + 35 + 18 + 9 + 9, VisibleBinCount };
 	//
-	// New frequency mapping (500 bins)
+	// Second frequency mapping (500 bins - logarithmic divisions/zones with linear inner frequencies - 03-2021)
 	// Equivalent zone 31.25  | 62.5   | 125   | 250   | 500 | 1000 | 2000 | 4000 | 8000  | 16000
 	// First frequency 0      | 46.875 | 93.75 | 187.5 | 375 | 750  | 1500 | 3000 | 6000  | 12000
 	// Last frequency  46.875 | 93.75  | 187.5 | 375   | 750 | 1500 | 3000 | 6000 | 12000 | 24000
 	// Steps           50     | 50     | 50    | 50    | 50  | 50   | 50   | 50   | 50    | 50
-	const float freqSteps[] = { 0.9375f, 0.9375f, 1.875f, 3.75f, 7.5f, 15.0f, 30.0f, 60.0f, 120.0f, 240.0f };
-	const float firstFreqs[] = { 0.0f, 46.875f, 93.75f, 187.5f, 375.0f, 750.0f, 1500.0f, 3000.0f, 6000.0f, 12000.0f };
+	//const float freqSteps[] = { 0.9375f, 0.9375f, 1.875f, 3.75f, 7.5f, 15.0f, 30.0f, 60.0f, 120.0f, 240.0f };
+	//const float firstFreqs[] = { 0.0f, 46.875f, 93.75f, 187.5f, 375.0f, 750.0f, 1500.0f, 3000.0f, 6000.0f, 12000.0f };
+	//
+	// Third frequency mapping (500 bins - logarithmic divisions/zones with logarithmic inner frequencies - 06-2021)
+	// Equivalent zone 31.25  | 62.5   | 125   | 250   | 500 | 1000 | 2000 | 4000 | 8000  | 16000
+	// First frequency 0      | 46.875 | 93.75 | 187.5 | 375 | 750  | 1500 | 3000 | 6000  | 12000
+	// Last frequency  46.875 | 93.75  | 187.5 | 375   | 750 | 1500 | 3000 | 6000 | 12000 | 24000
+	// Steps           50     | 50     | 50    | 50    | 50  | 50   | 50   | 50   | 50    | 50
+	// With the exception of the frequencies belonging to the first zone, all other frequencies
+	// were generated using an exponential step of 2^(1/50) = 
 	const int equivalentZones[] = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
 	const int equivalentZonesFrequencyCount[] = { 0, 50, 100, 150, 200, 250, 300, 350, 400, 450, VisibleBinCount };
-
-	int i, s;
-	float f = firstFreqs[0];
+	const double firstFreqs[] = { 0.0, 46.875, 93.75, 187.5, 375.0, 750.0, 1500.0, 3000.0, 6000.0, 12000.0 };
+	const double step = 1.0139594797900291386901659996282;
 
 	memcpy(editor->equivalentZones, equivalentZones, sizeof(int) * EquivalentZoneCount);
 	memcpy(editor->equivalentZonesFrequencyCount, equivalentZonesFrequencyCount, sizeof(int) * (EquivalentZoneCount + 1));
-	for (i = 0, s = 0; i < VisibleBinCount; i++) {
-		editor->visibleFrequencies[i] = (int)f;
-		if (s != EquivalentZoneCount && (i + 1) >= equivalentZonesFrequencyCount[s + 1]) {
-			s++;
-			f = firstFreqs[s];
-		} else {
-			f += freqSteps[s];
+
+	double* const visibleFrequencies = editor->visibleFrequencies;
+
+	double f = 0.0;
+	for (int i = 0; i < equivalentZonesFrequencyCount[1]; i++) {
+		visibleFrequencies[i] = f;
+		f += 0.9375;
+	}
+
+	for (int z = 1; z < EquivalentZoneCount; z++) {
+		int i = equivalentZonesFrequencyCount[z];
+		const int e = equivalentZonesFrequencyCount[z + 1];
+		f = firstFreqs[z];
+		while (i < e) {
+			visibleFrequencies[i] = f;
+			f *= step;
+			i++;
 		}
 	}
 
-	for (i = VisibleBinCount - 1; i >= 0; i--) {
-		editor->channelCurves[0][i] = ZeroChannelValueY;
-		editor->channelCurves[1][i] = ZeroChannelValueY;
-		editor->actualChannelCurve[i] = ZeroChannelValueY;
+	int* const channelCurves0 = editor->channelCurves[0];
+	int* const channelCurves1 = editor->channelCurves[1];
+	int* const actualChannelCurve = editor->actualChannelCurve;
+	for (int i = VisibleBinCount - 1; i >= 0; i--) {
+		channelCurves0[i] = ZeroChannelValueY;
+		channelCurves1[i] = ZeroChannelValueY;
+		actualChannelCurve[i] = ZeroChannelValueY;
 	}
 
 	return editor;
@@ -126,7 +146,7 @@ int* graphicalFilterEditorGetActualChannelCurve(GraphicalFilterEditor* editor) {
 	return editor->actualChannelCurve;
 }
 
-int* graphicalFilterEditorGetVisibleFrequencies(GraphicalFilterEditor* editor) {
+double* graphicalFilterEditorGetVisibleFrequencies(GraphicalFilterEditor* editor) {
 	return editor->visibleFrequencies;
 }
 
@@ -138,18 +158,18 @@ int* graphicalFilterEditorGetEquivalentZonesFrequencyCount(GraphicalFilterEditor
 	return editor->equivalentZonesFrequencyCount;
 }
 
-double yToMagnitude(int y) {
+double yToMagnitude(double y) {
 	// 40dB = 100
 	// -40dB = 0.01
 	// magnitude = 10 ^ (dB/20)
 	// log a (x^p) = p * log a (x)
 	// x^p = a ^ (p * log a (x))
 	// 10^p = e ^ (p * log e (10))
-	return ((y <= MaximumChannelValueY) ? 100 :
-		((y > MinimumChannelValueY) ? 0 :
+	return ((y <= MaximumChannelValueY) ? 100.0 :
+		((y > MinimumChannelValueY) ? 0.0 :
 			// 2 = 40dB/20
 			// 2.302585092994046 = LN10
-			exp(lerp(MaximumChannelValueY, 2, MinimumChannelValueY, -2, (double)y) * 2.302585092994046)));
+			exp(lerp(MaximumChannelValueY, 2, MinimumChannelValueY, -2, y) * 2.302585092994046)));
 }
 
 int magnitudeToY(double magnitude) {
@@ -216,10 +236,10 @@ void graphicalFilterEditorUpdateFilter(GraphicalFilterEditor* editor, int channe
 	double* const filter = editor->filterKernelBuffer;
 	double* const tmp = editor->tmp;
 	const int* const curve = editor->channelCurves[channelIndex];
-	const int* const visibleFrequencies = editor->visibleFrequencies;
+	const double* const visibleFrequencies = editor->visibleFrequencies;
 
-	int i, ii, freq, avg, avgCount, repeat = (isNormalized ? 2 : 1);
-	double k, mag, invMaxMag = 1.0;
+	int i, ii, avgCount, repeat = (isNormalized ? 2 : 1);
+	double k, mag, freq, avg, invMaxMag = 1.0;
 
 	// Fill in all filter points, either averaging or interpolating them as necessary
 	do {
@@ -227,35 +247,35 @@ void graphicalFilterEditorUpdateFilter(GraphicalFilterEditor* editor, int channe
 		i = 1;
 		ii = 0;
 		for (; ;) {
-			freq = (int)(bw * (double)i);
+			freq = bw * (double)i;
 			if (freq >= visibleFrequencies[0]) break;
-			mag = yToMagnitude(curve[0]);
+			mag = yToMagnitude((double)curve[0]);
 			filter[i << 1] = mag * invMaxMag;
 			i++;
 		}
 
-		while (bw > (double)(visibleFrequencies[ii + 1] - visibleFrequencies[ii]) && i < filterLength2 && ii < (VisibleBinCount - 1)) {
-			freq = (int)(bw * (double)i);
-			avg = 0;
+		while (bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii]) && i < filterLength2 && ii < (VisibleBinCount - 1)) {
+			freq = bw * (double)i;
+			avg = 0.0;
 			avgCount = 0;
 			do {
-				avg += curve[ii];
+				avg += (double)curve[ii];
 				avgCount++;
 				ii++;
 			} while (freq > visibleFrequencies[ii] && ii < (VisibleBinCount - 1));
-			mag = yToMagnitude(avg / avgCount);
+			mag = yToMagnitude(avg / (double)avgCount);
 			filter[i << 1] = mag * invMaxMag;
 			i++;
 		}
 
 		for (; i < filterLength2; i++) {
-			freq = (int)(bw * (double)i);
+			freq = bw * (double)i;
 			if (freq >= visibleFrequencies[VisibleBinCount - 1]) {
-				mag = yToMagnitude(curve[VisibleBinCount - 1]);
+				mag = yToMagnitude((double)curve[VisibleBinCount - 1]);
 			} else {
 				while (ii < (VisibleBinCount - 1) && freq > visibleFrequencies[ii + 1])
 					ii++;
-				mag = yToMagnitude((int)lerp((double)visibleFrequencies[ii], (double)curve[ii], (double)visibleFrequencies[ii + 1], (double)curve[ii + 1], (double)freq));
+				mag = yToMagnitude(lerp(visibleFrequencies[ii], (double)curve[ii], visibleFrequencies[ii + 1], (double)curve[ii + 1], freq));
 			}
 			filter[i << 1] = mag * invMaxMag;
 		}
@@ -312,7 +332,7 @@ void graphicalFilterEditorUpdateActualChannelCurve(GraphicalFilterEditor* editor
 	double* const filter = editor->filterKernelBuffer;
 	double* const tmp = editor->tmp;
 	int* const curve = editor->actualChannelCurve;
-	const int* const visibleFrequencies = editor->visibleFrequencies;
+	const double* const visibleFrequencies = editor->visibleFrequencies;
 
 	int i, ii, avgCount;
 	double avg, freq;
@@ -327,13 +347,13 @@ void graphicalFilterEditorUpdateActualChannelCurve(GraphicalFilterEditor* editor
 	// tmp now contains (filterLength2 + 1) magnitudes
 	i = 0;
 	ii = 0;
-	while (ii < (VisibleBinCount - 1) && i < filterLength2 && bw > (double)(visibleFrequencies[ii + 1] - visibleFrequencies[ii])) {
+	while (ii < (VisibleBinCount - 1) && i < filterLength2 && bw > (visibleFrequencies[ii + 1] - visibleFrequencies[ii])) {
 		freq = bw * (double)i;
-		while (i < filterLength2 && (int)(freq + bw) < visibleFrequencies[ii]) {
+		while (i < filterLength2 && (freq + bw) < visibleFrequencies[ii]) {
 			i++;
 			freq = bw * (double)i;
 		}
-		curve[ii] = magnitudeToY(lerp(freq, tmp[i], freq + bw, tmp[i + 1], (double)visibleFrequencies[ii]));
+		curve[ii] = magnitudeToY(lerp(freq, tmp[i], freq + bw, tmp[i + 1], visibleFrequencies[ii]));
 		ii++;
 	}
 
@@ -346,7 +366,7 @@ void graphicalFilterEditorUpdateActualChannelCurve(GraphicalFilterEditor* editor
 			avgCount++;
 			i++;
 			freq = bw * (double)i;
-		} while ((int)freq < visibleFrequencies[ii] && i < filterLength2);
+		} while (freq < visibleFrequencies[ii] && i < filterLength2);
 		curve[ii] = magnitudeToY(avg / (double)avgCount);
 		ii++;
 	}

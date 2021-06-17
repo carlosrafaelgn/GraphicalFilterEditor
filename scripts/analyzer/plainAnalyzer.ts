@@ -29,7 +29,7 @@ class PlainAnalyzer extends Analyzer {
 	private readonly analyzerL: AnalyserNode;
 	private readonly analyzerR: AnalyserNode;
 
-	private readonly visibleFrequencies: Int32Array;
+	private readonly visibleFrequencies: Float64Array;
 
 	private readonly ptr: number;
 	private readonly fft4gfPtr: number;
