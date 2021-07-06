@@ -35,7 +35,7 @@
 
 class SoundParticlesAnalyzer extends Analyzer {
 	// Vertex shader (one attribute and one uniform per line)
-	private static readonly VertexShaderSource = `precision mediump float;
+	private static readonly vertexShaderSource = `precision mediump float;
 attribute vec4 inPosition;
 attribute vec2 inTexCoord;
 uniform float amplitude;
@@ -58,7 +58,7 @@ void main() {
 }`;
 
 	// Fragment shader (one uniform per line)
-	private static readonly FragmentShaderSource = `precision lowp float;
+	private static readonly fragmentShaderSource = `precision lowp float;
 uniform sampler2D texColor;
 varying vec2 vTexCoord;
 varying vec3 vColor;
@@ -101,7 +101,7 @@ void main() {
 	private lastTime = 0;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
-		super(audioContext, parent, id, true, Analyzer.ControlWidth, 320);
+		super(audioContext, parent, id, true, Analyzer.controlWidth, 320);
 
 		this.analyzerL = audioContext.createAnalyser();
 		this.analyzerL.fftSize = 1024;
@@ -187,7 +187,7 @@ void main() {
 			stencil: false,
 			antialias: false,
 			premultipliedAlpha: true
-		}, SoundParticlesAnalyzer.VertexShaderSource, SoundParticlesAnalyzer.FragmentShaderSource);
+		}, SoundParticlesAnalyzer.vertexShaderSource, SoundParticlesAnalyzer.fragmentShaderSource);
 
 		if (!program) {
 			this.err("Apparently your browser does not support WebGL");

@@ -37,7 +37,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 	private isActualChannelCurveNeeded: boolean;
 
 	public constructor(editor: GraphicalFilterEditorControl) {
-		super(document.createElement("div"), Math.abs(GraphicalFilterEditorControl.ControlWidth - GraphicalFilterEditor.VisibleBinCount) >> 1, editor);
+		super(document.createElement("div"), Math.abs(GraphicalFilterEditorControl.controlWidth - GraphicalFilterEditor.visibleBinCount) >> 1, editor);
 
 		this.element.className = "GECV";
 		this.element.style.overflow = "hidden";
@@ -99,9 +99,9 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		if (!element || !editor || !filter || !svg)
 			return;
 
-		const visibleBinCount = GraphicalFilterEditor.VisibleBinCount,
-			controlWidth = GraphicalFilterEditorControl.ControlWidth,
-			controlHeight = GraphicalFilterEditorControl.ControlHeight,
+		const visibleBinCount = GraphicalFilterEditor.visibleBinCount,
+			controlWidth = GraphicalFilterEditorControl.controlWidth,
+			controlHeight = GraphicalFilterEditorControl.controlHeight,
 			pixelRatio = (devicePixelRatio > 1 ? devicePixelRatio : 1),
 			editorScale = editor.scale,
 			scale = editorScale * pixelRatio,
@@ -128,11 +128,11 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		for (let i = svgLines.length - 1; i >= 2; i--)
 			svgLines[i].setAttribute("y2", y);
 
-		y = (((GraphicalFilterEditor.ZeroChannelValueY * scale) | 0) + halfLineWidth).toString();
+		y = (((GraphicalFilterEditor.zeroChannelValueY * scale) | 0) + halfLineWidth).toString();
 		svgLines[0].setAttribute("y1", y);
 		svgLines[0].setAttribute("y2", y);
 
-		y = (((GraphicalFilterEditor.ValidYRangeHeight * scale) | 0) + halfLineWidth).toString();
+		y = (((GraphicalFilterEditor.validYRangeHeight * scale) | 0) + halfLineWidth).toString();
 		svgLines[1].setAttribute("y1", y);
 		svgLines[1].setAttribute("y2", y);
 
@@ -176,7 +176,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 			lineWidth = (scale < 1 ? (scale * 2) : ((scale * 2) | 0)),
 			halfLineWidth = lineWidth * 0.5,
 			canvasLeftMargin = this.leftMargin,
-			visibleBinCount = GraphicalFilterEditor.VisibleBinCount;
+			visibleBinCount = GraphicalFilterEditor.visibleBinCount;
 
 		for (let turn = (isActualChannelCurveNeeded ? 1 : 0); turn >= 0; turn--) {
 			const curve = ((turn || !isActualChannelCurveNeeded) ? filter.channelCurves[currentChannelIndex] : filter.actualChannelCurve),

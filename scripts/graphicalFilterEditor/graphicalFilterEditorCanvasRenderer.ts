@@ -30,7 +30,7 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 	private rangeImage: CanvasGradient;
 
 	public constructor(editor: GraphicalFilterEditorControl) {
-		super(document.createElement("canvas"), Math.abs(GraphicalFilterEditorControl.ControlWidth - GraphicalFilterEditor.VisibleBinCount) >> 1, editor);
+		super(document.createElement("canvas"), Math.abs(GraphicalFilterEditorControl.controlWidth - GraphicalFilterEditor.visibleBinCount) >> 1, editor);
 
 		this.element.className = "GECV";
 
@@ -48,8 +48,8 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		if (!element || !editor)
 			return;
 
-		const controlWidth = GraphicalFilterEditorControl.ControlWidth,
-			controlHeight = GraphicalFilterEditorControl.ControlHeight,
+		const controlWidth = GraphicalFilterEditorControl.controlWidth,
+			controlHeight = GraphicalFilterEditorControl.controlHeight,
 			pixelRatio = (devicePixelRatio > 1 ? devicePixelRatio : 1),
 			editorScale = editor.scale,
 			scale = editorScale * pixelRatio;
@@ -101,11 +101,11 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 			canvasLeftMargin = this.leftMargin,
 			canvasWidth = canvas.width,
 			canvasHeight = canvas.height,
-			widthPlusMarginMinus1 = canvasLeftMargin + GraphicalFilterEditor.VisibleBinCount - 1,
+			widthPlusMarginMinus1 = canvasLeftMargin + GraphicalFilterEditor.visibleBinCount - 1,
 			dashGap = Math.round(8 * scale),
 			dashLength = Math.round(4 * scale),
 			dashCount = ((canvasWidth / dashGap) | 0) + 1,
-			maximumChannelValueY = (GraphicalFilterEditor.MaximumChannelValueY * scale) | 0;
+			maximumChannelValueY = (GraphicalFilterEditor.maximumChannelValueY * scale) | 0;
 
 		let lineWidth = (scale < 1 ? scale : (scale | 0)),
 			halfLineWidth = lineWidth * 0.5;
@@ -117,7 +117,7 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		ctx.beginPath();
 
 		let x = canvasWidth + (dashLength >> 1),
-			y = ((GraphicalFilterEditor.ZeroChannelValueY * scale) | 0) + halfLineWidth;
+			y = ((GraphicalFilterEditor.zeroChannelValueY * scale) | 0) + halfLineWidth;
 		ctx.moveTo(x, y);
 		for (let i = dashCount - 1; i >= 0; i--) {
 			ctx.lineTo(x - dashLength, y);
@@ -128,7 +128,7 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 
 		ctx.beginPath();
 		x = canvasWidth + (dashLength >> 1),
-		y = ((GraphicalFilterEditor.ValidYRangeHeight * scale) | 0) + halfLineWidth;
+		y = ((GraphicalFilterEditor.validYRangeHeight * scale) | 0) + halfLineWidth;
 		ctx.moveTo(x, y);
 		for (let i = dashCount - 1; i >= 0; i--) {
 			ctx.lineTo(x - dashLength, y);
@@ -160,7 +160,7 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 
 		ctx.lineWidth = lineWidth;
 
-		const visibleBinCountMinus1 = GraphicalFilterEditor.VisibleBinCount - 1;
+		const visibleBinCountMinus1 = GraphicalFilterEditor.visibleBinCount - 1;
 
 		for (let turn = (isActualChannelCurveNeeded ? 1 : 0); turn >= 0; turn--) {
 			const curve = ((turn || !isActualChannelCurveNeeded) ? filter.channelCurves[currentChannelIndex] : filter.actualChannelCurve);

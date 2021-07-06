@@ -38,22 +38,22 @@ class GraphicalFilterEditor {
 	// Must be in sync with c/common.h
 	// Sorry, but due to the frequency mapping I created, this class will only work with
 	// 500 visible bins... in order to change this, a new frequency mapping must be created...
-	public static readonly VisibleBinCount = 500;
-	public static readonly ValidYRangeHeight = 321;
-	public static readonly ZeroChannelValueY = GraphicalFilterEditor.ValidYRangeHeight >>> 1;
-	public static readonly MaximumChannelValue = GraphicalFilterEditor.ZeroChannelValueY;
-	public static readonly MinimumChannelValue = -GraphicalFilterEditor.ZeroChannelValueY;
-	public static readonly MinusInfiniteChannelValue = GraphicalFilterEditor.MinimumChannelValue - 1;
-	public static readonly MaximumChannelValueY = 0;
-	public static readonly MinimumChannelValueY = GraphicalFilterEditor.ValidYRangeHeight - 1;
-	public static readonly MaximumFilterLength = 8192;
-	public static readonly EquivalentZoneCount = 10;
-	public static readonly ShelfEquivalentZoneCount = 7;
-	public static readonly ShelfEquivalentZones = [0, 2, 3, 4, 6, 8, 9];
+	public static readonly visibleBinCount = 500;
+	public static readonly validYRangeHeight = 321;
+	public static readonly zeroChannelValueY = GraphicalFilterEditor.validYRangeHeight >>> 1;
+	public static readonly maximumChannelValue = GraphicalFilterEditor.zeroChannelValueY;
+	public static readonly minimumChannelValue = -GraphicalFilterEditor.zeroChannelValueY;
+	public static readonly minusInfiniteChannelValue = GraphicalFilterEditor.minimumChannelValue - 1;
+	public static readonly maximumChannelValueY = 0;
+	public static readonly minimumChannelValueY = GraphicalFilterEditor.validYRangeHeight - 1;
+	public static readonly maximumFilterLength = 8192;
+	public static readonly equivalentZoneCount = 10;
+	public static readonly shelfEquivalentZoneCount = 7;
+	public static readonly shelfEquivalentZones = [0, 2, 3, 4, 6, 8, 9];
 
 	public static encodeCurve(curve: Int32Array): string {
-		const min = GraphicalFilterEditor.MinimumChannelValueY,
-			range = GraphicalFilterEditor.ValidYRangeHeight,
+		const min = GraphicalFilterEditor.minimumChannelValueY,
+			range = GraphicalFilterEditor.validYRangeHeight,
 			length = curve.length,
 			array: number[] = new Array(length << 1);
 		let actualLength = 0;
@@ -72,18 +72,18 @@ class GraphicalFilterEditor {
 	}
 
 	public static decodeCurve(str?: string | null): number[] | null {
-		if (!str || str.length < (GraphicalFilterEditor.VisibleBinCount * 4 / 3))
+		if (!str || str.length < (GraphicalFilterEditor.visibleBinCount * 4 / 3))
 			return null;
 		try {
 			str = atob(str);
 		} catch (ex) {
 			return null;
 		}
-		if (str.length < GraphicalFilterEditor.VisibleBinCount)
+		if (str.length < GraphicalFilterEditor.visibleBinCount)
 			return null;
-		const range = GraphicalFilterEditor.ValidYRangeHeight,
+		const range = GraphicalFilterEditor.validYRangeHeight,
 			length = str.length,
-			array: number[] = new Array(GraphicalFilterEditor.VisibleBinCount);
+			array: number[] = new Array(GraphicalFilterEditor.visibleBinCount);
 		let actualLength = 0;
 		for (let i = 0; i < length; i++) {
 			const v = str.charCodeAt(i);
@@ -142,15 +142,15 @@ class GraphicalFilterEditor {
 
 		const buffer = cLib.HEAP8.buffer as ArrayBuffer;
 
-		this.filterKernelBuffer = new Float32Array(buffer, cLib._graphicalFilterEditorGetFilterKernelBuffer(this.editorPtr), GraphicalFilterEditor.MaximumFilterLength);
+		this.filterKernelBuffer = new Float32Array(buffer, cLib._graphicalFilterEditorGetFilterKernelBuffer(this.editorPtr), GraphicalFilterEditor.maximumFilterLength);
 		this.channelCurves = [
-			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 0), GraphicalFilterEditor.VisibleBinCount),
-			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 1), GraphicalFilterEditor.VisibleBinCount)
+			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 0), GraphicalFilterEditor.visibleBinCount),
+			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 1), GraphicalFilterEditor.visibleBinCount)
 		];
-		this.actualChannelCurve = new Int32Array(buffer, cLib._graphicalFilterEditorGetActualChannelCurve(this.editorPtr), GraphicalFilterEditor.VisibleBinCount);
-		this.visibleFrequencies = new Float64Array(buffer, cLib._graphicalFilterEditorGetVisibleFrequencies(this.editorPtr), GraphicalFilterEditor.VisibleBinCount);
-		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount);
-		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.EquivalentZoneCount + 1);
+		this.actualChannelCurve = new Int32Array(buffer, cLib._graphicalFilterEditorGetActualChannelCurve(this.editorPtr), GraphicalFilterEditor.visibleBinCount);
+		this.visibleFrequencies = new Float64Array(buffer, cLib._graphicalFilterEditorGetVisibleFrequencies(this.editorPtr), GraphicalFilterEditor.visibleBinCount);
+		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this.editorPtr), GraphicalFilterEditor.equivalentZoneCount);
+		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.equivalentZoneCount + 1);
 
 		this.source = null;
 		this._convolver = null;
@@ -246,13 +246,13 @@ class GraphicalFilterEditor {
 
 	public clampX(x: number): number {
 		return ((x <= 0) ? 0 :
-			((x >= GraphicalFilterEditor.VisibleBinCount) ? (GraphicalFilterEditor.VisibleBinCount - 1) :
+			((x >= GraphicalFilterEditor.visibleBinCount) ? (GraphicalFilterEditor.visibleBinCount - 1) :
 				x));
 	}
 
 	public clampY(y: number): number {
-		return ((y <= GraphicalFilterEditor.MaximumChannelValueY) ? GraphicalFilterEditor.MaximumChannelValueY :
-			((y > GraphicalFilterEditor.MinimumChannelValueY) ? (GraphicalFilterEditor.ValidYRangeHeight + 1) :
+		return ((y <= GraphicalFilterEditor.maximumChannelValueY) ? GraphicalFilterEditor.maximumChannelValueY :
+			((y > GraphicalFilterEditor.minimumChannelValueY) ? (GraphicalFilterEditor.validYRangeHeight + 1) :
 				y));
 	}
 
@@ -264,9 +264,9 @@ class GraphicalFilterEditor {
 	}
 
 	public yToDB(y: number): number {
-		return ((y <= GraphicalFilterEditor.MaximumChannelValueY) ? 40 :
-			((y > GraphicalFilterEditor.MinimumChannelValueY) ? -Infinity :
-				lerp(GraphicalFilterEditor.MaximumChannelValueY, 40, GraphicalFilterEditor.MinimumChannelValueY, -40, y)));
+		return ((y <= GraphicalFilterEditor.maximumChannelValueY) ? 40 :
+			((y > GraphicalFilterEditor.minimumChannelValueY) ? -Infinity :
+				lerp(GraphicalFilterEditor.maximumChannelValueY, 40, GraphicalFilterEditor.minimumChannelValueY, -40, y)));
 	}
 
 	public yToMagnitude(y: number): number {
@@ -276,21 +276,21 @@ class GraphicalFilterEditor {
 		// log a (x^p) = p * log a (x)
 		// x^p = a ^ (p * log a (x))
 		// 10^p = e ^ (p * log e (10))
-		return ((y <= GraphicalFilterEditor.MaximumChannelValueY) ? 100 :
-			((y > GraphicalFilterEditor.MinimumChannelValueY) ? 0 :
-				Math.exp(lerp(GraphicalFilterEditor.MaximumChannelValueY, 2, GraphicalFilterEditor.MinimumChannelValueY, -2, y) * Math.LN10))); //2 = 40dB/20
+		return ((y <= GraphicalFilterEditor.maximumChannelValueY) ? 100 :
+			((y > GraphicalFilterEditor.minimumChannelValueY) ? 0 :
+				Math.exp(lerp(GraphicalFilterEditor.maximumChannelValueY, 2, GraphicalFilterEditor.minimumChannelValueY, -2, y) * Math.LN10))); //2 = 40dB/20
 	}
 
 	public magnitudeToY(magnitude: number): number {
 		// 40dB = 100
 		// -40dB = 0.01 (we are using 0.009 due to float point errors)
-		return ((magnitude >= 100) ? GraphicalFilterEditor.MaximumChannelValueY :
-			((magnitude < 0.009) ? (GraphicalFilterEditor.ValidYRangeHeight + 1) :
-				Math.round((GraphicalFilterEditor.ZeroChannelValueY - (GraphicalFilterEditor.ZeroChannelValueY * Math.log(magnitude) / Math.LN10 * 0.5)) - 0.4)));
+		return ((magnitude >= 100) ? GraphicalFilterEditor.maximumChannelValueY :
+			((magnitude < 0.009) ? (GraphicalFilterEditor.validYRangeHeight + 1) :
+				Math.round((GraphicalFilterEditor.zeroChannelValueY - (GraphicalFilterEditor.zeroChannelValueY * Math.log(magnitude) / Math.LN10 * 0.5)) - 0.4)));
 	}
 
 	public visibleBinToZoneIndex(visibleBinIndex: number): number {
-		if (visibleBinIndex >= (GraphicalFilterEditor.VisibleBinCount - 1)) {
+		if (visibleBinIndex >= (GraphicalFilterEditor.visibleBinCount - 1)) {
 			return this.equivalentZones.length - 1;
 		} else if (visibleBinIndex > 0) {
 			const z = this.equivalentZonesFrequencyCount;
@@ -305,7 +305,7 @@ class GraphicalFilterEditor {
 	public visibleBinToFrequency(visibleBinIndex: number, returnGroup: boolean): number | number[] {
 		const ez = this.equivalentZones,
 			vf = this.visibleFrequencies,
-			vbc = GraphicalFilterEditor.VisibleBinCount;
+			vbc = GraphicalFilterEditor.visibleBinCount;
 		if (visibleBinIndex >= (vbc - 1)) {
 			return (returnGroup ? [vf[vbc - 1], ez[ez.length - 1]] : vf[vbc - 1]);
 		} else if (visibleBinIndex > 0) {
@@ -341,7 +341,7 @@ class GraphicalFilterEditor {
 
 	public startSmoothEdition(channelIndex: number): void {
 		if (!this.curveSnapshot)
-			this.curveSnapshot = new Int32Array(GraphicalFilterEditor.VisibleBinCount);
+			this.curveSnapshot = new Int32Array(GraphicalFilterEditor.visibleBinCount);
 		this.curveSnapshot.set(this.channelCurves[channelIndex]);
 	}
 
@@ -349,7 +349,7 @@ class GraphicalFilterEditor {
 		const curveSnapshot = this.curveSnapshot;
 		if (!curveSnapshot)
 			return;
-		const count = GraphicalFilterEditor.VisibleBinCount,
+		const count = GraphicalFilterEditor.visibleBinCount,
 			cy = this.clampY(y),
 			curve = this.channelCurves[channelIndex];
 		curve.set(curveSnapshot);
@@ -447,7 +447,7 @@ class GraphicalFilterEditor {
 			curve = this.channelCurves[channelIndex],
 			equivalentZones = this.equivalentZones,
 			equivalentZonesFrequencyCount = this.equivalentZonesFrequencyCount,
-			equivalentZoneCount = GraphicalFilterEditor.EquivalentZoneCount;
+			equivalentZoneCount = GraphicalFilterEditor.equivalentZoneCount;
 
 		let biquadFilters = this.biquadFilters,
 			biquadFilterGains = this.biquadFilterGains,
@@ -501,8 +501,8 @@ class GraphicalFilterEditor {
 		const audioContext = this.audioContext,
 			curve = this.channelCurves[channelIndex],
 			equivalentZonesFrequencyCount = this.equivalentZonesFrequencyCount,
-			shelfEquivalentZoneCount = GraphicalFilterEditor.ShelfEquivalentZoneCount,
-			shelfEquivalentZones = GraphicalFilterEditor.ShelfEquivalentZones;
+			shelfEquivalentZoneCount = GraphicalFilterEditor.shelfEquivalentZoneCount,
+			shelfEquivalentZones = GraphicalFilterEditor.shelfEquivalentZones;
 
 		let biquadFilters = this.biquadFilters,
 			biquadFilterGains = this.biquadFilterGains,

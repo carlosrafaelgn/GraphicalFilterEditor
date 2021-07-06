@@ -61,17 +61,17 @@ interface GraphicalFilterEditorUISettings {
 }
 
 class GraphicalFilterEditorControl {
-	public static readonly ControlWidth = Math.max(512, GraphicalFilterEditor.VisibleBinCount);
-	public static readonly ControlHeight = GraphicalFilterEditor.ValidYRangeHeight + 3;
+	public static readonly controlWidth = Math.max(512, GraphicalFilterEditor.visibleBinCount);
+	public static readonly controlHeight = GraphicalFilterEditor.validYRangeHeight + 3;
 
-	public static readonly EditModeRegular = 0;
-	public static readonly EditModeZones = 1;
-	public static readonly EditModeSmoothNarrow = 2;
-	public static readonly EditModeSmoothWide = 3;
-	public static readonly EditModePeakingEq = 4;
-	public static readonly EditModeShelfEq = 5;
-	public static readonly EditModeFirst = 0;
-	public static readonly EditModeLast = 5;
+	public static readonly editModeRegular = 0;
+	public static readonly editModeZones = 1;
+	public static readonly editModeSmoothNarrow = 2;
+	public static readonly editModeSmoothWide = 3;
+	public static readonly editModePeakingEq = 4;
+	public static readonly editModeShelfEq = 5;
+	public static readonly editModeFirst = 0;
+	public static readonly editModeLast = 5;
 
 	public readonly filter: GraphicalFilterEditor;
 	public readonly element: HTMLDivElement;
@@ -103,7 +103,7 @@ class GraphicalFilterEditorControl {
 	private readonly closeMenuCharacter: string;
 
 	private showZones = false;
-	private editMode = GraphicalFilterEditorControl.EditModeRegular;
+	private editMode = GraphicalFilterEditorControl.editModeRegular;
 	private isActualChannelCurveNeeded = true;
 	private currentChannelIndex = 0;
 	private isSameFilterLR = true;
@@ -331,7 +331,7 @@ class GraphicalFilterEditorControl {
 		if (settings.showZones === false || settings.showZones === true)
 			this.showZones = settings.showZones;
 
-		if (settings.editMode && settings.editMode >= GraphicalFilterEditorControl.EditModeFirst && settings.editMode <= GraphicalFilterEditorControl.EditModeLast)
+		if (settings.editMode && settings.editMode >= GraphicalFilterEditorControl.editModeFirst && settings.editMode <= GraphicalFilterEditorControl.editModeLast)
 			this.editMode = settings.editMode;
 
 		if (settings.isActualChannelCurveNeeded === false || settings.isActualChannelCurveNeeded === true)
@@ -353,13 +353,13 @@ class GraphicalFilterEditorControl {
 
 		if (leftCurve) {
 			const curve = filter.channelCurves[0];
-			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+			for (let i = GraphicalFilterEditor.visibleBinCount - 1; i >= 0; i--)
 				curve[i] = filter.clampY(leftCurve[i]);
 		}
 
 		if (rightCurve) {
 			const curve = filter.channelCurves[1];
-			for (let i = GraphicalFilterEditor.VisibleBinCount - 1; i >= 0; i--)
+			for (let i = GraphicalFilterEditor.visibleBinCount - 1; i >= 0; i--)
 				curve[i] = filter.clampY(rightCurve[i]);
 		}
 
@@ -521,7 +521,7 @@ class GraphicalFilterEditorControl {
 		if (!e.button) {
 			const curve = this.filter.channelCurves[this.currentChannelIndex];
 			for (let i = curve.length - 1; i >= 0; i--)
-				curve[i] = GraphicalFilterEditor.ZeroChannelValueY;
+				curve[i] = GraphicalFilterEditor.zeroChannelValueY;
 
 			this.filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, false);
 			if (this.isActualChannelCurveNeeded)
@@ -541,23 +541,23 @@ class GraphicalFilterEditorControl {
 	}
 
 	private changeEditMode(editMode: number): void {
-		if (editMode < GraphicalFilterEditorControl.EditModeFirst || editMode > GraphicalFilterEditorControl.EditModeLast)
+		if (editMode < GraphicalFilterEditorControl.editModeFirst || editMode > GraphicalFilterEditorControl.editModeLast)
 			return;
 
 		this.editMode = editMode;
-		this.checkMenu(this.mnuEditRegular, editMode === GraphicalFilterEditorControl.EditModeRegular);
-		this.checkMenu(this.mnuEditZones, editMode === GraphicalFilterEditorControl.EditModeZones);
-		this.checkMenu(this.mnuEditSmoothNarrow, editMode === GraphicalFilterEditorControl.EditModeSmoothNarrow);
-		this.checkMenu(this.mnuEditSmoothWide, editMode === GraphicalFilterEditorControl.EditModeSmoothWide);
-		this.checkMenu(this.mnuEditPeakingEq, editMode === GraphicalFilterEditorControl.EditModePeakingEq);
-		this.checkMenu(this.mnuEditShelfEq, editMode === GraphicalFilterEditorControl.EditModeShelfEq);
+		this.checkMenu(this.mnuEditRegular, editMode === GraphicalFilterEditorControl.editModeRegular);
+		this.checkMenu(this.mnuEditZones, editMode === GraphicalFilterEditorControl.editModeZones);
+		this.checkMenu(this.mnuEditSmoothNarrow, editMode === GraphicalFilterEditorControl.editModeSmoothNarrow);
+		this.checkMenu(this.mnuEditSmoothWide, editMode === GraphicalFilterEditorControl.editModeSmoothWide);
+		this.checkMenu(this.mnuEditPeakingEq, editMode === GraphicalFilterEditorControl.editModePeakingEq);
+		this.checkMenu(this.mnuEditShelfEq, editMode === GraphicalFilterEditorControl.editModeShelfEq);
 
 		let iirType = GraphicalFilterEditorIIRType.None;
 		switch (editMode) {
-			case GraphicalFilterEditorControl.EditModePeakingEq:
+			case GraphicalFilterEditorControl.editModePeakingEq:
 				iirType = GraphicalFilterEditorIIRType.Peaking;
 				break;
-			case GraphicalFilterEditorControl.EditModeShelfEq:
+			case GraphicalFilterEditorControl.editModeShelfEq:
 				iirType = GraphicalFilterEditorIIRType.Shelf;
 				break;
 		}
@@ -575,37 +575,37 @@ class GraphicalFilterEditorControl {
 
 	private mnuEditRegular_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.EditModeRegular);
+			this.changeEditMode(GraphicalFilterEditorControl.editModeRegular);
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditZones_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.EditModeZones);
+			this.changeEditMode(GraphicalFilterEditorControl.editModeZones);
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditSmoothNarrow_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.EditModeSmoothNarrow);
+			this.changeEditMode(GraphicalFilterEditorControl.editModeSmoothNarrow);
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditSmoothWide_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.EditModeSmoothWide);
+			this.changeEditMode(GraphicalFilterEditorControl.editModeSmoothWide);
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditPeakingEq_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.EditModePeakingEq);
+			this.changeEditMode(GraphicalFilterEditorControl.editModePeakingEq);
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditShelfEq_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.EditModeShelfEq);
+			this.changeEditMode(GraphicalFilterEditorControl.editModeShelfEq);
 		return this.btnMnu_Click(e);
 	}
 
@@ -643,11 +643,11 @@ class GraphicalFilterEditorControl {
 			this.drawingMode = 1;
 
 			switch (this.editMode) {
-				case GraphicalFilterEditorControl.EditModeZones:
-				case GraphicalFilterEditorControl.EditModePeakingEq:
+				case GraphicalFilterEditorControl.editModeZones:
+				case GraphicalFilterEditorControl.editModePeakingEq:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
 					break;
-				case GraphicalFilterEditorControl.EditModeShelfEq:
+				case GraphicalFilterEditorControl.editModeShelfEq:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
 					switch (this.filter.visibleBinToZoneIndex(x)) {
 						case 0:
@@ -670,13 +670,13 @@ class GraphicalFilterEditorControl {
 							break;
 					}
 					break;
-				case GraphicalFilterEditorControl.EditModeSmoothNarrow:
+				case GraphicalFilterEditorControl.editModeSmoothNarrow:
 					this.filter.startSmoothEdition(this.currentChannelIndex);
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 3);
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 3);
 					break;
-				case GraphicalFilterEditorControl.EditModeSmoothWide:
+				case GraphicalFilterEditorControl.editModeSmoothWide:
 					this.filter.startSmoothEdition(this.currentChannelIndex);
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 1);
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 1);
 					break;
 				default:
 					this.filter.channelCurves[this.currentChannelIndex][this.filter.clampX(x)] = this.filter.clampY(y);
@@ -701,11 +701,11 @@ class GraphicalFilterEditorControl {
 
 		if (this.drawingMode) {
 			switch (this.editMode) {
-				case GraphicalFilterEditorControl.EditModeZones:
-				case GraphicalFilterEditorControl.EditModePeakingEq:
+				case GraphicalFilterEditorControl.editModeZones:
+				case GraphicalFilterEditorControl.editModePeakingEq:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
 					break;
-				case GraphicalFilterEditorControl.EditModeShelfEq:
+				case GraphicalFilterEditorControl.editModeShelfEq:
 					this.filter.changeZoneY(this.currentChannelIndex, x, y);
 					switch (this.filter.visibleBinToZoneIndex(x)) {
 						case 0:
@@ -728,11 +728,11 @@ class GraphicalFilterEditorControl {
 							break;
 					}
 					break;
-				case GraphicalFilterEditorControl.EditModeSmoothNarrow:
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 3);
+				case GraphicalFilterEditorControl.editModeSmoothNarrow:
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 3);
 					break;
-				case GraphicalFilterEditorControl.EditModeSmoothWide:
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.VisibleBinCount >> 1);
+				case GraphicalFilterEditorControl.editModeSmoothWide:
+					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 1);
 					break;
 				default:
 					if (Math.abs(x - this.lastDrawX) > 1) {
