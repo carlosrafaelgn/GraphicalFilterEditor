@@ -1,5 +1,3 @@
-rm assets/js/graphicalFilterEditor.min.js
-
 tsc
 
 # ECMASCRIPT_2015 and ES6 are the same thing...

@@ -1,7 +1,5 @@
-@echo off
+@ECHO OFF
 
-del assets\js\graphicalFilterEditor.min.js
+CALL tsc
 
-call tsc
-
-move assets\js\graphicalFilterEditor.js assets\js\graphicalFilterEditor.min.js
+MOVE assets\js\graphicalFilterEditor.js assets\js\graphicalFilterEditor.min.js
