@@ -87,14 +87,27 @@ function setup(): void {
 		};
 	}
 
-	((window as any)["CLib"]() as Promise<CLib>).then((value) => {
-		cLib = value;
-		if ((window as any)["main"])
-			(window as any)["main"]();
-	}, (reason) => {
-		alert(reason);
-		throw reason;
-	});
+	function finishLoading(options?: any): void {
+		((window as any)["CLib"](options) as Promise<CLib>).then((value) => {
+			cLib = value;
+			if ((window as any)["main"])
+				(window as any)["main"]();
+		}, (reason) => {
+			alert(reason);
+			throw reason;
+		});
+	}
+
+	const wasmBinaryReader: (() => (ArrayBuffer | PromiseLike<ArrayBuffer>)) | undefined = (window as any)["CLibWasmBinaryReader"];
+	if (wasmBinaryReader) {
+		Promise.resolve(wasmBinaryReader()).then((wasmBinary) => {
+			finishLoading({ wasmBinary });
+		}, () => {
+			finishLoading();
+		});
+	} else {
+		finishLoading();
+	}
 }
 
 setup();
