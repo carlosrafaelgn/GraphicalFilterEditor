@@ -49,7 +49,7 @@ class GraphicalFilterEditorStrings {
 	public static ShowActualResponse = "Show actual response";
 	public static MinusInfinity = "-Inf.";
 
-	public static toFixed = function (x: number, fractionDigits: number): string { return x.toFixed(fractionDigits); };
+	public static toFixed(x: number, fractionDigits: number): string { return x.toFixed(fractionDigits); }
 
 	public static init(language: string): void {
 		if (language && language.toLowerCase().indexOf("pt") === 0) {
