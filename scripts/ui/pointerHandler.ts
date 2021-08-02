@@ -178,6 +178,14 @@ class PointerHandler {
 		if (this.pointerId >= 0 && e.pointerType !== "mouse")
 			return cancelEvent(e);
 
+		if (e.pointerType === "touch" && e.target && (e.target as HTMLElement).tagName) {
+			// Avoid processing the touch if it actually happened outside the element
+			const rect = (e.target as HTMLElement).getBoundingClientRect();
+			if (e.clientX < rect.left || e.clientX >= rect.right ||
+				e.clientY < rect.top || e.clientY >= rect.bottom)
+				return cancelEvent(e);
+		}
+
 		const ret = this.mouseDown(e);
 
 		if (this._captured)

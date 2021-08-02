@@ -30,7 +30,7 @@ function cancelEvent(e: Event): boolean {
 	if (e) {
 		if ("isCancelled" in e)
 			(e as any).isCancelled = true;
-		if ("preventDefault" in e)
+		if (("preventDefault" in e) && (!("cancelable" in e) || e.cancelable))
 			e.preventDefault();
 		if ("stopPropagation" in e)
 			e.stopPropagation();
