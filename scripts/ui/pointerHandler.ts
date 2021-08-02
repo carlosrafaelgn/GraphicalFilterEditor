@@ -74,6 +74,12 @@ class PointerHandler {
 
 		this.boundExtraTouchStart = null;
 
+		// If the element using the PointerHandler wants to track pointer/touch position,
+		// it is important not to forget to add the touch-action CSS property, with a value
+		// like none (or similiar, depending on the case) to prevent pointercancel/touchcancel
+		// events from happening when the touch actually starts outside the element, and
+		// sometimes, even when the touch starts inside it.
+		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/pointercancel_event
 		if ("onpointerdown" in element) {
 			this.documentDownEvent = "pointerdown";
 			this.documentMoveEvent = "pointermove";
