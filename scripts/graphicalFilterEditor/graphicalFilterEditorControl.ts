@@ -102,17 +102,17 @@ class GraphicalFilterEditorControl {
 	private readonly closeMenuElement: HTMLElement | null;
 	private readonly closeMenuCharacter: string;
 
-	private showZones = false;
-	private editMode = GraphicalFilterEditorControl.editModeRegular;
-	private isActualChannelCurveNeeded = true;
-	private currentChannelIndex = 0;
+	private _scale: number;
+	private _showZones = false;
+	private _editMode = GraphicalFilterEditorControl.editModeRegular;
+	private _isActualChannelCurveNeeded = true;
+	private _currentChannelIndex = 0;
 	private isSameFilterLR = true;
 	private drawingMode = 0;
 	private lastDrawX = 0;
 	private lastDrawY = 0;
 	private drawOffsetX = 0;
 	private drawOffsetY = 0;
-	private _scale: number;
 
 	private boundMouseMove: any;
 
@@ -329,16 +329,16 @@ class GraphicalFilterEditorControl {
 		const filter = this.filter;
 
 		if (settings.showZones === false || settings.showZones === true)
-			this.showZones = settings.showZones;
+			this._showZones = settings.showZones;
 
 		if (settings.editMode && settings.editMode >= GraphicalFilterEditorControl.editModeFirst && settings.editMode <= GraphicalFilterEditorControl.editModeLast)
-			this.editMode = settings.editMode;
+			this._editMode = settings.editMode;
 
 		if (settings.isActualChannelCurveNeeded === false || settings.isActualChannelCurveNeeded === true)
-			this.isActualChannelCurveNeeded = settings.isActualChannelCurveNeeded;
+			this._isActualChannelCurveNeeded = settings.isActualChannelCurveNeeded;
 
 		if (settings.currentChannelIndex === 0 || settings.currentChannelIndex === 1)
-			this.currentChannelIndex = settings.currentChannelIndex;
+			this._currentChannelIndex = settings.currentChannelIndex;
 
 		if (settings.isSameFilterLR === false || settings.isSameFilterLR === true)
 			this.isSameFilterLR = settings.isSameFilterLR;
@@ -364,41 +364,41 @@ class GraphicalFilterEditorControl {
 		}
 
 		if (this.isSameFilterLR) {
-			this.checkMenu(this.mnuChBL, (this.currentChannelIndex === 0));
+			this.checkMenu(this.mnuChBL, (this._currentChannelIndex === 0));
 			this.checkMenu(this.mnuChL, false);
-			this.checkMenu(this.mnuChBR, (this.currentChannelIndex === 1));
+			this.checkMenu(this.mnuChBR, (this._currentChannelIndex === 1));
 			this.checkMenu(this.mnuChR, false);
 		} else {
 			this.checkMenu(this.mnuChBL, false);
-			this.checkMenu(this.mnuChL, (this.currentChannelIndex === 0));
+			this.checkMenu(this.mnuChL, (this._currentChannelIndex === 0));
 			this.checkMenu(this.mnuChBR, false);
-			this.checkMenu(this.mnuChR, (this.currentChannelIndex === 1));
+			this.checkMenu(this.mnuChR, (this._currentChannelIndex === 1));
 		}
 
 		const isNormalized = ((settings.isNormalized === false || settings.isNormalized === true) ? settings.isNormalized : filter.isNormalized);
 
 		if (isNormalized === filter.isNormalized)
-			filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, true);
+			filter.updateFilter(this._currentChannelIndex, this.isSameFilterLR, true);
 		else
-			filter.changeIsNormalized(isNormalized, this.currentChannelIndex, this.isSameFilterLR);
+			filter.changeIsNormalized(isNormalized, this._currentChannelIndex, this.isSameFilterLR);
 
-		if (this.isActualChannelCurveNeeded)
-			this.filter.updateActualChannelCurve(this.currentChannelIndex);
+		if (this._isActualChannelCurveNeeded)
+			this.filter.updateActualChannelCurve(this._currentChannelIndex);
 
-		this.checkMenu(this.mnuShowZones, this.showZones);
-		this.changeEditMode(this.editMode);
+		this.checkMenu(this.mnuShowZones, this._showZones);
+		this.editMode = this._editMode;
 		this.checkMenu(this.mnuNormalizeCurves, this.filter.isNormalized);
-		this.checkMenu(this.mnuShowActual, this.isActualChannelCurveNeeded);
+		this.checkMenu(this.mnuShowActual, this._isActualChannelCurveNeeded);
 
 		this.drawCurve();
 	}
 
 	public saveSettings(): GraphicalFilterEditorSettings {
 		return {
-			showZones: this.showZones,
-			editMode: this.editMode,
-			isActualChannelCurveNeeded: this.isActualChannelCurveNeeded,
-			currentChannelIndex: this.currentChannelIndex,
+			showZones: this._showZones,
+			editMode: this._editMode,
+			isActualChannelCurveNeeded: this._isActualChannelCurveNeeded,
+			currentChannelIndex: this._currentChannelIndex,
 			isSameFilterLR: this.isSameFilterLR,
 			isNormalized: this.filter.isNormalized,
 			leftCurve: GraphicalFilterEditor.encodeCurve(this.filter.channelCurves[0]),
@@ -420,6 +420,82 @@ class GraphicalFilterEditorControl {
 
 		if (this.renderer) {
 			this.renderer.scaleChanged();
+			this.drawCurve();
+		}
+	}
+
+	public get showZones(): boolean {
+		return this._showZones;
+	}
+
+	public set showZones(showZones: boolean) {
+		this._showZones = showZones;
+		this.checkMenu(this.mnuShowZones, showZones);
+		this.drawCurve();
+	}
+
+	public get editMode(): number {
+		return this._editMode;
+	}
+
+	public set editMode(editMode: number) {
+		if (editMode < GraphicalFilterEditorControl.editModeFirst || editMode > GraphicalFilterEditorControl.editModeLast)
+			return;
+
+		this._editMode = editMode;
+		this.checkMenu(this.mnuEditRegular, editMode === GraphicalFilterEditorControl.editModeRegular);
+		this.checkMenu(this.mnuEditZones, editMode === GraphicalFilterEditorControl.editModeZones);
+		this.checkMenu(this.mnuEditSmoothNarrow, editMode === GraphicalFilterEditorControl.editModeSmoothNarrow);
+		this.checkMenu(this.mnuEditSmoothWide, editMode === GraphicalFilterEditorControl.editModeSmoothWide);
+		this.checkMenu(this.mnuEditPeakingEq, editMode === GraphicalFilterEditorControl.editModePeakingEq);
+		this.checkMenu(this.mnuEditShelfEq, editMode === GraphicalFilterEditorControl.editModeShelfEq);
+
+		let iirType = GraphicalFilterEditorIIRType.None;
+		switch (editMode) {
+			case GraphicalFilterEditorControl.editModePeakingEq:
+				iirType = GraphicalFilterEditorIIRType.Peaking;
+				break;
+			case GraphicalFilterEditorControl.editModeShelfEq:
+				iirType = GraphicalFilterEditorIIRType.Shelf;
+				break;
+		}
+
+		if (this.filter.iirType !== iirType) {
+			this.mnu.className = (iirType ? "GEMNU GEEQ" : "GEMNU");
+
+			this.filter.changeIIRType(iirType, this._currentChannelIndex, this.isSameFilterLR);
+			if (this._isActualChannelCurveNeeded) {
+				this.filter.updateActualChannelCurve(this._currentChannelIndex);
+				this.drawCurve();
+			}
+		}
+	}
+
+	public get isActualChannelCurveNeeded(): boolean {
+		return this._isActualChannelCurveNeeded;
+	}
+
+	public set isActualChannelCurveNeeded(isActualChannelCurveNeeded: boolean) {
+		this._isActualChannelCurveNeeded = isActualChannelCurveNeeded;
+		this.checkMenu(this.mnuShowActual, isActualChannelCurveNeeded);
+		if (isActualChannelCurveNeeded)
+			this.filter.updateActualChannelCurve(this._currentChannelIndex);
+		this.drawCurve();
+	}
+
+	public get currentChannelIndex(): number {
+		return this._currentChannelIndex;
+	}
+
+	public get isNormalized(): boolean {
+		return this.filter.isNormalized;
+	}
+
+	public set isNormalized(isNormalized: boolean) {
+		this.filter.changeIsNormalized(isNormalized, this._currentChannelIndex, this.isSameFilterLR);
+		this.checkMenu(this.mnuNormalizeCurves, isNormalized);
+		if (this._isActualChannelCurveNeeded) {
+			this.filter.updateActualChannelCurve(this._currentChannelIndex);
 			this.drawCurve();
 		}
 	}
@@ -469,19 +545,19 @@ class GraphicalFilterEditorControl {
 
 	private mnuChB_Click(channelIndex: number, e: MouseEvent): boolean {
 		if (!e.button) {
-			if (!this.isSameFilterLR || this.currentChannelIndex !== channelIndex) {
+			if (!this.isSameFilterLR || this._currentChannelIndex !== channelIndex) {
 				if (this.isSameFilterLR) {
-					this.currentChannelIndex = channelIndex;
+					this._currentChannelIndex = channelIndex;
 					this.filter.updateFilter(channelIndex, true, true);
-					if (this.isActualChannelCurveNeeded)
+					if (this._isActualChannelCurveNeeded)
 						this.filter.updateActualChannelCurve(channelIndex);
 					this.drawCurve();
 				} else {
 					this.isSameFilterLR = true;
 					this.filter.copyFilter(channelIndex, 1 - channelIndex);
-					if (this.currentChannelIndex !== channelIndex) {
-						this.currentChannelIndex = channelIndex;
-						if (this.isActualChannelCurveNeeded)
+					if (this._currentChannelIndex !== channelIndex) {
+						this._currentChannelIndex = channelIndex;
+						if (this._isActualChannelCurveNeeded)
 							this.filter.updateActualChannelCurve(channelIndex);
 						this.drawCurve();
 					}
@@ -497,14 +573,14 @@ class GraphicalFilterEditorControl {
 
 	private mnuChLR_Click(channelIndex: number, e: MouseEvent): boolean {
 		if (!e.button) {
-			if (this.isSameFilterLR || this.currentChannelIndex !== channelIndex) {
+			if (this.isSameFilterLR || this._currentChannelIndex !== channelIndex) {
 				if (this.isSameFilterLR) {
 					this.isSameFilterLR = false;
-					this.filter.updateFilter(1 - this.currentChannelIndex, false, false);
+					this.filter.updateFilter(1 - this._currentChannelIndex, false, false);
 				}
-				if (this.currentChannelIndex !== channelIndex) {
-					this.currentChannelIndex = channelIndex;
-					if (this.isActualChannelCurveNeeded)
+				if (this._currentChannelIndex !== channelIndex) {
+					this._currentChannelIndex = channelIndex;
+					if (this._isActualChannelCurveNeeded)
 						this.filter.updateActualChannelCurve(channelIndex);
 					this.drawCurve();
 				}
@@ -518,117 +594,62 @@ class GraphicalFilterEditorControl {
 	}
 
 	private mnuResetCurve_Click(e: MouseEvent): boolean {
-		if (!e.button) {
-			const curve = this.filter.channelCurves[this.currentChannelIndex];
-			for (let i = curve.length - 1; i >= 0; i--)
-				curve[i] = GraphicalFilterEditor.zeroChannelValueY;
-
-			this.filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, false);
-			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
-			this.drawCurve();
-		}
+		if (!e.button)
+			this.resetCurve();
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuShowZones_Click(e: MouseEvent): boolean {
-		if (!e.button) {
-			this.showZones = !this.showZones;
-			this.checkMenu(this.mnuShowZones, this.showZones);
-			this.drawCurve();
-		}
+		if (!e.button)
+			this.showZones = !this._showZones;
 		return this.btnMnu_Click(e);
-	}
-
-	private changeEditMode(editMode: number): void {
-		if (editMode < GraphicalFilterEditorControl.editModeFirst || editMode > GraphicalFilterEditorControl.editModeLast)
-			return;
-
-		this.editMode = editMode;
-		this.checkMenu(this.mnuEditRegular, editMode === GraphicalFilterEditorControl.editModeRegular);
-		this.checkMenu(this.mnuEditZones, editMode === GraphicalFilterEditorControl.editModeZones);
-		this.checkMenu(this.mnuEditSmoothNarrow, editMode === GraphicalFilterEditorControl.editModeSmoothNarrow);
-		this.checkMenu(this.mnuEditSmoothWide, editMode === GraphicalFilterEditorControl.editModeSmoothWide);
-		this.checkMenu(this.mnuEditPeakingEq, editMode === GraphicalFilterEditorControl.editModePeakingEq);
-		this.checkMenu(this.mnuEditShelfEq, editMode === GraphicalFilterEditorControl.editModeShelfEq);
-
-		let iirType = GraphicalFilterEditorIIRType.None;
-		switch (editMode) {
-			case GraphicalFilterEditorControl.editModePeakingEq:
-				iirType = GraphicalFilterEditorIIRType.Peaking;
-				break;
-			case GraphicalFilterEditorControl.editModeShelfEq:
-				iirType = GraphicalFilterEditorIIRType.Shelf;
-				break;
-		}
-
-		if (this.filter.iirType !== iirType) {
-			this.mnu.className = (iirType ? "GEMNU GEEQ" : "GEMNU");
-
-			this.filter.changeIIRType(iirType, this.currentChannelIndex, this.isSameFilterLR);
-			if (this.isActualChannelCurveNeeded) {
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
-				this.drawCurve();
-			}
-		}
 	}
 
 	private mnuEditRegular_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.editModeRegular);
+			this.editMode = GraphicalFilterEditorControl.editModeRegular;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditZones_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.editModeZones);
+			this.editMode = GraphicalFilterEditorControl.editModeZones;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditSmoothNarrow_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.editModeSmoothNarrow);
+			this.editMode = GraphicalFilterEditorControl.editModeSmoothNarrow;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditSmoothWide_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.editModeSmoothWide);
+			this.editMode = GraphicalFilterEditorControl.editModeSmoothWide;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditPeakingEq_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.editModePeakingEq);
+			this.editMode = GraphicalFilterEditorControl.editModePeakingEq;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuEditShelfEq_Click(e: MouseEvent): boolean {
 		if (!e.button)
-			this.changeEditMode(GraphicalFilterEditorControl.editModeShelfEq);
+			this.editMode = GraphicalFilterEditorControl.editModeShelfEq;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuNormalizeCurves_Click(e: MouseEvent): boolean {
-		if (!e.button) {
-			this.filter.changeIsNormalized(!this.filter.isNormalized, this.currentChannelIndex, this.isSameFilterLR);
-			this.checkMenu(this.mnuNormalizeCurves, this.filter.isNormalized);
-			if (this.isActualChannelCurveNeeded) {
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
-				this.drawCurve();
-			}
-		}
+		if (!e.button)
+			this.isNormalized = !this.filter.isNormalized;
 		return this.btnMnu_Click(e);
 	}
 
 	private mnuShowActual_Click(e: MouseEvent): boolean {
-		if (!e.button) {
-			this.isActualChannelCurveNeeded = !this.isActualChannelCurveNeeded;
-			this.checkMenu(this.mnuShowActual, this.isActualChannelCurveNeeded);
-			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
-			this.drawCurve();
-		}
+		if (!e.button)
+			this.isActualChannelCurveNeeded = !this._isActualChannelCurveNeeded;
 		return this.btnMnu_Click(e);
 	}
 
@@ -642,44 +663,24 @@ class GraphicalFilterEditorControl {
 
 			this.drawingMode = 1;
 
-			switch (this.editMode) {
+			switch (this._editMode) {
 				case GraphicalFilterEditorControl.editModeZones:
 				case GraphicalFilterEditorControl.editModePeakingEq:
-					this.filter.changeZoneY(this.currentChannelIndex, x, y);
+					this.filter.changeZoneY(this._currentChannelIndex, x, y);
 					break;
 				case GraphicalFilterEditorControl.editModeShelfEq:
-					this.filter.changeZoneY(this.currentChannelIndex, x, y);
-					switch (this.filter.visibleBinToZoneIndex(x)) {
-						case 0:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 1, y);
-							break;
-						case 1:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 0, y);
-							break;
-						case 4:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 5, y);
-							break;
-						case 5:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 4, y);
-							break;
-						case 6:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 7, y);
-							break;
-						case 7:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 6, y);
-							break;
-					}
+					this.filter.changeShelfZoneY(this._currentChannelIndex, x, y);
 					break;
 				case GraphicalFilterEditorControl.editModeSmoothNarrow:
-					this.filter.startSmoothEdition(this.currentChannelIndex);
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 3);
+					this.filter.startSmoothEdition(this._currentChannelIndex);
+					this.filter.changeSmoothY(this._currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 3);
 					break;
 				case GraphicalFilterEditorControl.editModeSmoothWide:
-					this.filter.startSmoothEdition(this.currentChannelIndex);
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 1);
+					this.filter.startSmoothEdition(this._currentChannelIndex);
+					this.filter.changeSmoothY(this._currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 1);
 					break;
 				default:
-					this.filter.channelCurves[this.currentChannelIndex][this.filter.clampX(x)] = this.filter.clampY(y);
+					this.filter.channelCurves[this._currentChannelIndex][this.filter.clampX(x)] = this.filter.clampY(y);
 					this.lastDrawX = x;
 					this.lastDrawY = y;
 					break;
@@ -697,42 +698,22 @@ class GraphicalFilterEditorControl {
 		let x = (((e.clientX - rect.left) / this._scale) | 0) - this.renderer.leftMargin,
 			y = (((e.clientY - rect.top) / this._scale) | 0);
 
-		let curve = this.filter.channelCurves[this.currentChannelIndex];
+		let curve = this.filter.channelCurves[this._currentChannelIndex];
 
 		if (this.drawingMode) {
-			switch (this.editMode) {
+			switch (this._editMode) {
 				case GraphicalFilterEditorControl.editModeZones:
 				case GraphicalFilterEditorControl.editModePeakingEq:
-					this.filter.changeZoneY(this.currentChannelIndex, x, y);
+					this.filter.changeZoneY(this._currentChannelIndex, x, y);
 					break;
 				case GraphicalFilterEditorControl.editModeShelfEq:
-					this.filter.changeZoneY(this.currentChannelIndex, x, y);
-					switch (this.filter.visibleBinToZoneIndex(x)) {
-						case 0:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 1, y);
-							break;
-						case 1:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 0, y);
-							break;
-						case 4:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 5, y);
-							break;
-						case 5:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 4, y);
-							break;
-						case 6:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 7, y);
-							break;
-						case 7:
-							this.filter.changeZoneYByIndex(this.currentChannelIndex, 6, y);
-							break;
-					}
+					this.filter.changeShelfZoneY(this._currentChannelIndex, x, y);
 					break;
 				case GraphicalFilterEditorControl.editModeSmoothNarrow:
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 3);
+					this.filter.changeSmoothY(this._currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 3);
 					break;
 				case GraphicalFilterEditorControl.editModeSmoothWide:
-					this.filter.changeSmoothY(this.currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 1);
+					this.filter.changeSmoothY(this._currentChannelIndex, x, y, GraphicalFilterEditor.visibleBinCount >> 1);
 					break;
 				default:
 					if (Math.abs(x - this.lastDrawX) > 1) {
@@ -751,7 +732,7 @@ class GraphicalFilterEditorControl {
 					break;
 			}
 			this.drawCurve();
-		} else if (this.isActualChannelCurveNeeded) {
+		} else if (this._isActualChannelCurveNeeded) {
 			curve = this.filter.actualChannelCurve;
 		}
 
@@ -765,17 +746,47 @@ class GraphicalFilterEditorControl {
 		if (this.drawingMode) {
 			this.renderer.element.addEventListener("mousemove", this.boundMouseMove);
 			this.drawingMode = 0;
-			this.filter.updateFilter(this.currentChannelIndex, this.isSameFilterLR, false);
-			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
-			this.drawCurve();
+			this.commitChanges();
 		}
 	}
 
+	public resetCurve() {
+		const curve = this.filter.channelCurves[this._currentChannelIndex];
+		for (let i = curve.length - 1; i >= 0; i--)
+			curve[i] = GraphicalFilterEditor.zeroChannelValueY;
+
+		this.filter.updateFilter(this._currentChannelIndex, this.isSameFilterLR, false);
+		if (this._isActualChannelCurveNeeded)
+			this.filter.updateActualChannelCurve(this._currentChannelIndex);
+		this.drawCurve();
+	}
+
+	public changeZoneY(zoneIndex: number, y: number, removeActualChannelCurve?: boolean): void {
+		this.filter.changeZoneYByIndex(this._currentChannelIndex, zoneIndex, y);
+		this.drawCurve(removeActualChannelCurve);
+	}
+
+	public changeShelfZoneY(shelfZoneIndex: number, y: number, removeActualChannelCurve?: boolean): void {
+		this.filter.changeShelfZoneYByIndex(this._currentChannelIndex, shelfZoneIndex, y);
+		this.drawCurve(removeActualChannelCurve);
+	}
+
+	public changeFilterY(x: number, y: number, removeActualChannelCurve?: boolean): void {
+		this.filter.channelCurves[this._currentChannelIndex][this.filter.clampX(x)] = this.filter.clampY(y);
+		this.drawCurve(removeActualChannelCurve);
+	}
+
+	public commitChanges(): void {
+		this.filter.updateFilter(this._currentChannelIndex, this.isSameFilterLR, false);
+		if (this._isActualChannelCurveNeeded)
+			this.filter.updateActualChannelCurve(this._currentChannelIndex);
+		this.drawCurve();
+	}
+
 	public changeFilterLength(newFilterLength: number): boolean {
-		if (this.filter.changeFilterLength(newFilterLength, this.currentChannelIndex, this.isSameFilterLR)) {
-			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
+		if (this.filter.changeFilterLength(newFilterLength, this._currentChannelIndex, this.isSameFilterLR)) {
+			if (this._isActualChannelCurveNeeded)
+				this.filter.updateActualChannelCurve(this._currentChannelIndex);
 			this.drawCurve();
 			return true;
 		}
@@ -783,9 +794,9 @@ class GraphicalFilterEditorControl {
 	}
 
 	public changeSampleRate(newSampleRate: number): boolean {
-		if (this.filter.changeSampleRate(newSampleRate, this.currentChannelIndex, this.isSameFilterLR)) {
-			if (this.isActualChannelCurveNeeded)
-				this.filter.updateActualChannelCurve(this.currentChannelIndex);
+		if (this.filter.changeSampleRate(newSampleRate, this._currentChannelIndex, this.isSameFilterLR)) {
+			if (this._isActualChannelCurveNeeded)
+				this.filter.updateActualChannelCurve(this._currentChannelIndex);
 			this.drawCurve();
 			return true;
 		}
@@ -793,11 +804,11 @@ class GraphicalFilterEditorControl {
 	}
 
 	public changeAudioContext(newAudioContext: AudioContext): boolean {
-		return this.filter.changeAudioContext(newAudioContext, this.currentChannelIndex, this.isSameFilterLR);
+		return this.filter.changeAudioContext(newAudioContext, this._currentChannelIndex, this.isSameFilterLR);
 	}
 
-	public drawCurve(): void {
+	public drawCurve(removeActualChannelCurve?: boolean): void {
 		if (this.renderer)
-			this.renderer.drawCurve(this.showZones, this.isActualChannelCurveNeeded && !this.drawingMode, this.currentChannelIndex);
+			this.renderer.drawCurve(this._showZones, !removeActualChannelCurve && this._isActualChannelCurveNeeded && !this.drawingMode, this._currentChannelIndex);
 	}
 }

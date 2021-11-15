@@ -332,11 +332,50 @@ class GraphicalFilterEditor {
 	}
 
 	public changeZoneYByIndex(channelIndex: number, zoneIndex: number, y: number): void {
+		if (zoneIndex < 0)
+			zoneIndex = 0;
+		else if (zoneIndex >= this.equivalentZones.length)
+			zoneIndex = this.equivalentZones.length - 1;
 		const ii = this.equivalentZonesFrequencyCount[zoneIndex + 1],
 			cy = this.clampY(y),
 			curve = this.channelCurves[channelIndex];
 		for (let i = this.equivalentZonesFrequencyCount[zoneIndex]; i < ii; i++)
 			curve[i] = cy;
+	}
+
+	private changeShelfZoneYByRegularIndex(channelIndex: number, zoneIndex: number, y: number): void {
+		switch (zoneIndex) {
+			case 0:
+			case 1:
+				this.changeZoneYByIndex(channelIndex, 0, y);
+				this.changeZoneYByIndex(channelIndex, 1, y);
+				break;
+			case 4:
+			case 5:
+				this.changeZoneYByIndex(channelIndex, 4, y);
+				this.changeZoneYByIndex(channelIndex, 5, y);
+				break;
+			case 6:
+			case 7:
+				this.changeZoneYByIndex(channelIndex, 6, y);
+				this.changeZoneYByIndex(channelIndex, 7, y);
+				break;
+			default:
+				this.changeZoneYByIndex(channelIndex, zoneIndex, y);
+				break;
+		}
+	}
+
+	public changeShelfZoneY(channelIndex: number, x: number, y: number): void {
+		this.changeShelfZoneYByRegularIndex(channelIndex, this.visibleBinToZoneIndex(x), y);
+	}
+
+	public changeShelfZoneYByIndex(channelIndex: number, shelfZoneIndex: number, y: number): void {
+		if (shelfZoneIndex < 0)
+			shelfZoneIndex = 0;
+		else if (shelfZoneIndex >= GraphicalFilterEditor.shelfEquivalentZoneCount)
+			shelfZoneIndex = GraphicalFilterEditor.shelfEquivalentZoneCount - 1;
+		this.changeShelfZoneYByRegularIndex(channelIndex, GraphicalFilterEditor.shelfEquivalentZones[shelfZoneIndex], y);
 	}
 
 	public startSmoothEdition(channelIndex: number): void {
