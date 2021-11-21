@@ -761,9 +761,17 @@ class GraphicalFilterEditorControl {
 		this.drawCurve();
 	}
 
+	public getZoneY(zoneIndex: number): number {
+		return this.filter.getZoneY(this._currentChannelIndex, zoneIndex);
+	}
+
 	public changeZoneY(zoneIndex: number, y: number, removeActualChannelCurve?: boolean): void {
 		this.filter.changeZoneYByIndex(this._currentChannelIndex, zoneIndex, y);
 		this.drawCurve(removeActualChannelCurve);
+	}
+
+	public getShelfZoneY(shelfZoneIndex: number): number {
+		return this.filter.getShelfZoneY(this._currentChannelIndex, shelfZoneIndex);
 	}
 
 	public changeShelfZoneY(shelfZoneIndex: number, y: number, removeActualChannelCurve?: boolean): void {

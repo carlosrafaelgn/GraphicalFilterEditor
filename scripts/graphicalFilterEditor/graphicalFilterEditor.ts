@@ -322,6 +322,14 @@ class GraphicalFilterEditor {
 		return (returnGroup ? [vf[0], ez[0]] : vf[0]);
 	}
 
+	public getZoneY(channelIndex: number, zoneIndex: number): number {
+		if (zoneIndex < 0)
+			zoneIndex = 0;
+		else if (zoneIndex >= this.equivalentZones.length)
+			zoneIndex = this.equivalentZones.length - 1;
+		return this.channelCurves[channelIndex][this.equivalentZonesFrequencyCount[zoneIndex]];
+	}
+
 	public changeZoneY(channelIndex: number, x: number, y: number): void {
 		let i = this.visibleBinToZoneIndex(x);
 		const ii = this.equivalentZonesFrequencyCount[i + 1],
@@ -364,6 +372,14 @@ class GraphicalFilterEditor {
 				this.changeZoneYByIndex(channelIndex, zoneIndex, y);
 				break;
 		}
+	}
+
+	public getShelfZoneY(channelIndex: number, shelfZoneIndex: number): number {
+		if (shelfZoneIndex < 0)
+			shelfZoneIndex = 0;
+		else if (shelfZoneIndex >= GraphicalFilterEditor.shelfEquivalentZoneCount)
+			shelfZoneIndex = GraphicalFilterEditor.shelfEquivalentZoneCount - 1;
+		return this.channelCurves[channelIndex][this.equivalentZonesFrequencyCount[GraphicalFilterEditor.shelfEquivalentZones[shelfZoneIndex]]];
 	}
 
 	public changeShelfZoneY(channelIndex: number, x: number, y: number): void {
