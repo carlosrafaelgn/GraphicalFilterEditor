@@ -34,7 +34,79 @@ enum GraphicalFilterEditorIIRType {
 	Shelf = 2
 }
 
-class GraphicalFilterEditor {
+abstract class Filter {
+	private source: AudioNode | null;
+
+	public filterChangedCallback: FilterChangedCallback | null | undefined;
+
+	public constructor(filterChangedCallback?: FilterChangedCallback | null) {
+		this.source = null;
+		this.filterChangedCallback = filterChangedCallback;
+	}
+
+	public abstract get inputNode(): AudioNode | null;
+	public abstract get outputNode(): AudioNode | null;
+
+	public connectSourceAndDestination(source: AudioNode | null, destination: AudioNode | null): boolean {
+		const s = this.connectSourceToInput(source);
+		return this.connectOutputToDestination(destination) && s;
+	}
+
+	public disconnectSourceAndDestination(): boolean {
+		const s = this.disconnectSourceFromInput();
+		return this.disconnectOutputFromDestination() && s;
+	}
+
+	public disconnectSourceFromInput(): boolean {
+		if (this.source) {
+			this.source.disconnect();
+			this.source = null;
+			return true;
+		}
+		return false;
+	}
+
+	public connectSourceToInput(source: AudioNode | null): boolean {
+		this.disconnectSourceFromInput();
+		this.source = source;
+		if (source) {
+			source.disconnect();
+			const inputNode = this.inputNode;
+			if (inputNode) {
+				source.connect(inputNode, 0, 0);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public connectOutputToDestination(destination: AudioNode | null): boolean {
+		const outputNode = this.outputNode;
+		if (outputNode) {
+			outputNode.disconnect();
+			if (destination)
+				outputNode.connect(destination, 0, 0);
+			return true;
+		}
+		return false;
+	}
+
+	public disconnectOutputFromDestination(): boolean {
+		const outputNode = this.outputNode;
+		if (outputNode) {
+			outputNode.disconnect();
+			return true;
+		}
+		return false;
+	}
+
+	public destroy(): void {
+		this.disconnectSourceFromInput();
+		this.disconnectOutputFromDestination();
+	}
+}
+
+class GraphicalFilterEditor extends Filter {
 	// Must be in sync with c/common.h
 	// Sorry, but due to the frequency mapping I created, this class will only work with
 	// 500 visible bins... in order to change this, a new frequency mapping must be created...
@@ -105,7 +177,6 @@ class GraphicalFilterEditor {
 	private binCount: number;
 	private audioContext: AudioContext;
 	private filterKernel: AudioBuffer;
-	private source: AudioNode | null;
 	private _convolver: ConvolverNode | null;
 	private biquadFilters: AudioNode[] | null;
 	private biquadFilterInput: AudioNode | null;
@@ -116,7 +187,6 @@ class GraphicalFilterEditor {
 	private biquadFilterActualAccum: Float32Array | null;
 	private biquadFilterActualMag: Float32Array | null;
 	private biquadFilterActualPhase: Float32Array | null;
-	private filterChangedCallback: FilterChangedCallback | null | undefined;
 	private curveSnapshot: Int32Array | null;
 
 	private readonly filterKernelBuffer: Float32Array;
@@ -126,7 +196,11 @@ class GraphicalFilterEditor {
 	public readonly equivalentZones: Int32Array;
 	public readonly equivalentZonesFrequencyCount: Int32Array;
 
+	public filterChangedCallback: FilterChangedCallback | null | undefined;
+
 	public constructor(filterLength: number, audioContext: AudioContext, filterChangedCallback?: FilterChangedCallback | null, _iirType?: GraphicalFilterEditorIIRType) {
+		super(filterChangedCallback);
+
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
@@ -152,7 +226,6 @@ class GraphicalFilterEditor {
 		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this.editorPtr), GraphicalFilterEditor.equivalentZoneCount);
 		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.equivalentZoneCount + 1);
 
-		this.source = null;
 		this._convolver = null;
 		this.biquadFilters = null;
 		this.biquadFilterInput = null;
@@ -196,49 +269,9 @@ class GraphicalFilterEditor {
 		return this.biquadFilterOutput || this._convolver;
 	}
 
-	public connectSourceAndDestination(source: AudioNode | null, destination: AudioNode | null): boolean {
-		const s = this.connectSourceToInput(source);
-		return this.connectOutputToDestination(destination) && s;
-	}
-
-	public connectSourceToInput(source: AudioNode | null): boolean {
-		if (this.source)
-			this.source.disconnect();
-		this.source = source;
-		if (source) {
-			source.disconnect();
-			const inputNode = this.inputNode;
-			if (inputNode) {
-				source.connect(inputNode, 0, 0);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	public connectOutputToDestination(destination: AudioNode | null): boolean {
-		const outputNode = this.outputNode;
-		if (this.outputNode) {
-			this.outputNode.disconnect();
-			if (destination)
-				this.outputNode.connect(destination, 0, 0);
-			return true;
-		}
-		return false;
-	}
-
-	public disconnectOutputFromDestination(): boolean {
-		const outputNode = this.outputNode;
-		if (this.outputNode) {
-			this.outputNode.disconnect();
-			return true;
-		}
-		return false;
-	}
-
 	public destroy(): void {
 		if (this.editorPtr) {
-			this.disconnectOutputFromDestination();
+			super.destroy();
 			cLib._graphicalFilterEditorFree(this.editorPtr);
 			zeroObject(this);
 		}
