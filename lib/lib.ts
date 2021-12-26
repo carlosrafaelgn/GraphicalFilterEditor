@@ -28,10 +28,6 @@ interface CLib {
 	HEAP8: Uint8Array;
 	HEAPF32: Float32Array;
 
-	stackSave(): number;
-	stackAlloc(size: number): number;
-	stackRestore(stackPtr: number): void;
-
 	_allocBuffer(size: number): number;
 	_freeBuffer(ptr: number): void;
 

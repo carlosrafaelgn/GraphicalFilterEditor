@@ -128,35 +128,35 @@ void main() {
 		this.ptr = ptr;
 
 		this.processedDataPtr = ptr;
-		this.processedData = new Uint8Array(512);
+		this.processedData = new Uint8Array(buffer, ptr, 512);
 		ptr += 512;
 
 		this.processedDataRPtr = ptr;
-		this.processedDataR = new Uint8Array(512);
+		this.processedDataR = new Uint8Array(buffer, ptr, 512);
 		ptr += 512;
 
 		this.fftPtr = ptr;
-		this.fft = new Float32Array(256);
+		this.fft = new Float32Array(buffer, ptr, 256);
 		ptr += (256 * 4);
 
 		this.COLORSPtr = ptr;
-		this.COLORS = new Float32Array(16 * 3);
+		this.COLORS = new Float32Array(buffer, ptr, 16 * 3);
 		ptr += (16 * 3 * 4);
 
 		this.bgPosPtr = ptr;
-		this.bgPos = new Float32Array(this.BG_COUNT * 2);
+		this.bgPos = new Float32Array(buffer, ptr, this.BG_COUNT * 2);
 		ptr += (this.BG_COUNT * 2 * 4);
 
 		this.bgSpeedYPtr = ptr;
-		this.bgSpeedY = new Float32Array(this.BG_COUNT);
+		this.bgSpeedY = new Float32Array(buffer, ptr, this.BG_COUNT);
 		ptr += (this.BG_COUNT * 4);
 
 		this.bgThetaPtr = ptr;
-		this.bgTheta = new Float32Array(this.BG_COUNT);
+		this.bgTheta = new Float32Array(buffer, ptr, this.BG_COUNT);
 		ptr += (this.BG_COUNT * 4);
 
 		this.bgColorPtr = ptr;
-		this.bgColor = new Uint8Array(this.BG_COUNT);
+		this.bgColor = new Uint8Array(buffer, ptr, this.BG_COUNT);
 
 		COLORS_R(0, FULL); COLORS_G(0, ZERO); COLORS_B(0, ZERO);
 		COLORS_R(1, ZERO); COLORS_G(1, FULL); COLORS_B(1, ZERO);

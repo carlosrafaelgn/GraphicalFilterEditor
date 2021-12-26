@@ -98,15 +98,31 @@ function setup(): void {
 		});
 	}
 
-	const wasmBinaryReader: (() => (ArrayBuffer | PromiseLike<ArrayBuffer>)) | undefined = (window as any)["CLibWasmBinaryReader"];
-	if (wasmBinaryReader) {
-		Promise.resolve(wasmBinaryReader()).then((wasmBinary) => {
+	const wasmBinary: ArrayBuffer | PromiseLike<ArrayBuffer> | undefined = (window as any)["CLibWasmBinary"];
+	if (wasmBinary) {
+		delete (window as any)["CLibWasmBinary"];
+		Promise.resolve(wasmBinary).then((wasmBinary) => {
 			finishLoading({ wasmBinary });
 		}, () => {
 			finishLoading();
 		});
 	} else {
-		finishLoading();
+		const memoryArrayBuffer: ArrayBuffer | PromiseLike<ArrayBuffer> | undefined = (window as any)["CLibMemoryArrayBuffer"];
+		if (memoryArrayBuffer) {
+			delete (window as any)["CLibMemoryArrayBuffer"];
+			Promise.resolve(memoryArrayBuffer).then((memoryArrayBuffer) => {
+				finishLoading({
+					memoryInitializerRequest: {
+						status: 200,
+						response: memoryArrayBuffer
+					}
+				});
+			}, () => {
+				finishLoading();
+			});
+		} else {
+			finishLoading();
+		}
 	}
 }
 

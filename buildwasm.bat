@@ -38,11 +38,10 @@ FOR /l %%X IN (0,1,1) DO (
 		-s PRECISE_F32=0 ^
 		-s DYNAMIC_EXECUTION=0 ^
 		-s EXPORTED_FUNCTIONS="['_allocBuffer', '_freeBuffer', '_fftSizeOf', '_fftInit', '_fftAlloc', '_fftFree', '_fftChangeN', '_fftSizeOff', '_fftInitf', '_fftAllocf', '_fftFreef', '_fftChangeNf', '_fft', '_ffti', '_fftf', '_fftif', '_graphicalFilterEditorAlloc', '_graphicalFilterEditorGetFilterKernelBuffer', '_graphicalFilterEditorGetChannelCurve', '_graphicalFilterEditorGetActualChannelCurve', '_graphicalFilterEditorGetVisibleFrequencies', '_graphicalFilterEditorGetEquivalentZones', '_graphicalFilterEditorGetEquivalentZonesFrequencyCount', '_graphicalFilterEditorUpdateFilter', '_graphicalFilterEditorUpdateActualChannelCurve', '_graphicalFilterEditorChangeFilterLength', '_graphicalFilterEditorFree', '_plainAnalyzer', '_waveletAnalyzer']" ^
-		-s EXPORTED_RUNTIME_METHODS="[stackSave, stackAlloc, stackRestore]" ^
 		-s ALLOW_MEMORY_GROWTH=0 ^
-		-s INITIAL_MEMORY=3145728 ^
-		-s MAXIMUM_MEMORY=3145728 ^
-		-s TOTAL_STACK=1048576 ^
+		-s INITIAL_MEMORY=327680 ^
+		-s MAXIMUM_MEMORY=327680 ^
+		-s TOTAL_STACK=65536 ^
 		-s SUPPORT_LONGJMP=0 ^
 		-s MINIMAL_RUNTIME=0 ^
 		-s ASSERTIONS=0 ^
