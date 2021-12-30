@@ -107,7 +107,7 @@ class Program {
 		for (let i = 0; i < lines.length; i++) {
 			// Remove extra spaces from the beginning and from the end of the line
 			const line = lines[i].trim();
-			if (line.substr(0, 7) === "uniform") {
+			if (line.substring(0, 7) === "uniform") {
 				// We do not consider the possibility of "\t" separating tokens (for now)
 				const tokens = line.split(" ");
 				// Skip the "uniform" token and store the current type to be used aftwerwards
@@ -119,7 +119,7 @@ class Program {
 					const lastChar = token.charAt(token.length - 1);
 					const breakNow = (lastChar === ";");
 					if (lastChar === "," || breakNow)
-						token = token.substr(0, token.length - 1);
+						token = token.substring(0, token.length - 1);
 					if (token !== "," && token.length) {
 						uniforms.push(token);
 						utypes.push(currentType);
@@ -127,7 +127,7 @@ class Program {
 					if (breakNow)
 						break;
 				}
-			} else if (line.substr(0, 9) === "attribute") {
+			} else if (line.substring(0, 9) === "attribute") {
 				// We do not consider the possibility of "\t" separating tokens (for now)
 				const tokens = line.split(" ");
 				// Skip the "attribute" token and store the current type to be used aftwerwards
@@ -138,7 +138,7 @@ class Program {
 					const lastChar = token.charAt(token.length - 1);
 					const breakNow = (lastChar === ";");
 					if (lastChar === "," || breakNow)
-						token = token.substr(0, token.length - 1);
+						token = token.substring(0, token.length - 1);
 					if (token !== "," && token.length)
 						attribs.push(token);
 					if (breakNow)
