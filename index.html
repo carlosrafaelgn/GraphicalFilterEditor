@@ -466,12 +466,13 @@
 		return true;
 	}
 	function prepareStreamingAndPlay() {
-		// Chrome now supports processing audio played over streamings (tested with Chrome v29.0.1547.76)
+		// Chrome now supports processing audio played over streams (tested with Chrome v29.0.1547.76)
 		if (chkSource[0].checked) {
 			// If chkSource[0] is checked, create a temporary URL for the chosen file
 			sourceAudio = new Audio(createObjURL($("txtFile").files[0]));
 		} else if (chkSource[1].checked) {
 			sourceAudio = new Audio($("txtURL").value);
+			sourceAudio.crossOrigin = "anonymous";
 		} else {
 			sourceAudio = new Audio("assets/audio/midnightride.mp3");
 		}
