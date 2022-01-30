@@ -88,11 +88,11 @@ function setup(): void {
 	}
 
 	function finishLoading(options?: any): void {
-		((window as any)["CLib"](options) as Promise<CLib>).then((value) => {
+		((window as any)["CLib"](options) as Promise<CLib>).then(function (value) {
 			cLib = value;
 			if ((window as any)["main"])
 				(window as any)["main"]();
-		}, (reason) => {
+		}, function (reason) {
 			alert(reason);
 			throw reason;
 		});
@@ -101,23 +101,23 @@ function setup(): void {
 	const wasmBinary: ArrayBuffer | PromiseLike<ArrayBuffer> | undefined = (window as any)["CLibWasmBinary"];
 	if (wasmBinary) {
 		delete (window as any)["CLibWasmBinary"];
-		Promise.resolve(wasmBinary).then((wasmBinary) => {
+		Promise.resolve(wasmBinary).then(function (wasmBinary) {
 			finishLoading({ wasmBinary });
-		}, () => {
+		}, function () {
 			finishLoading();
 		});
 	} else {
 		const memoryArrayBuffer: ArrayBuffer | PromiseLike<ArrayBuffer> | undefined = (window as any)["CLibMemoryArrayBuffer"];
 		if (memoryArrayBuffer) {
 			delete (window as any)["CLibMemoryArrayBuffer"];
-			Promise.resolve(memoryArrayBuffer).then((memoryArrayBuffer) => {
+			Promise.resolve(memoryArrayBuffer).then(function (memoryArrayBuffer) {
 				finishLoading({
 					memoryInitializerRequest: {
 						status: 200,
 						response: memoryArrayBuffer
 					}
 				});
-			}, () => {
+			}, function () {
 				finishLoading();
 			});
 		} else {

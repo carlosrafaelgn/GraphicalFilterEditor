@@ -122,18 +122,18 @@ class GraphicalFilterEditorControl {
 
 		this.filter = new GraphicalFilterEditor(filterLength, audioContext, filterChangedCallback);
 
-		const createMenuSep = () => {
+		const createMenuSep = function () {
 				const s = document.createElement("div");
 				s.className = "GEMNUSEP";
 				return s;
 			},
-			createMenuLabel = (text: string) => {
+			createMenuLabel = function (text: string) {
 				const l = document.createElement("div");
 				l.className = "GEMNULBL";
 				l.appendChild(document.createTextNode(text));
 				return l;
 			},
-			createMenuItem = (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (ev: MouseEvent) => any, className?: string | null) => {
+			createMenuItem = function (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (ev: MouseEvent) => any, className?: string | null) {
 				const i = document.createElement("div");
 				i.className = (className ? ("GEMNUIT GECLK " + className) : "GEMNUIT GECLK");
 				if (checkable) {
