@@ -314,7 +314,7 @@
 		enableButtons(true);
 		// Free all created URL's only at safe moments!
 		freeObjURLs();
-		alert(e);
+		alert(e ? (e.error || e.message || e.toString()) : "Unknown error");
 		return true;
 	}
 	function updateConnections() {
@@ -483,7 +483,9 @@
 		updateConnections();
 		// Listen to a possible pause command sent directly from the browser
 		sourceAudio.onpause = stop;
-		sourceAudio.play();
+		var promise = sourceAudio.play();
+		if (promise && promise.then)
+			promise.then(function () {}, handleError);
 		$("btnStop").disabled = "";
 		return true;
 	}
