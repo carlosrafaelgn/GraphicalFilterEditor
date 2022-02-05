@@ -190,6 +190,7 @@ class GraphicalFilterEditor extends Filter {
 	private curveSnapshot: Int32Array | null;
 
 	private readonly filterKernelBuffer: Float32Array;
+	public readonly iirSupported: boolean;
 	public readonly channelCurves: Int32Array[];
 	public readonly actualChannelCurve: Int32Array;
 	public readonly visibleFrequencies: Float64Array;
@@ -207,7 +208,8 @@ class GraphicalFilterEditor extends Filter {
 		this.filterLength = filterLength;
 		this._sampleRate = (audioContext.sampleRate ? audioContext.sampleRate : 44100);
 		this._isNormalized = false;
-		this._iirType = (_iirType || GraphicalFilterEditorIIRType.None);
+		this.iirSupported = (("createBiquadFilter" in audioContext) && ("createIIRFilter" in audioContext));
+		this._iirType = (this.iirSupported && _iirType) || GraphicalFilterEditorIIRType.None;
 		this.binCount = (filterLength >>> 1) + 1;
 		this.filterKernel = audioContext.createBuffer(2, filterLength, this._sampleRate);
 		this.audioContext = audioContext;
@@ -884,7 +886,7 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public changeIIRType(iirType: GraphicalFilterEditorIIRType, channelIndex: number, isSameFilterLR: boolean): boolean {
-		if (this._iirType !== iirType) {
+		if (this._iirType !== iirType && this.iirSupported) {
 			this._iirType = iirType;
 			this.disconnectOutputFromDestination();
 			this._convolver = null;
