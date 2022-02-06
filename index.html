@@ -224,6 +224,7 @@
 		$("cbFilterLength").addEventListener("change", filterLengthChanged);
 		$("cbAnalyzer").addEventListener("change", updateConnections);
 		audioContext = (window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : new fakeAudioContext()));
+		audioContext.suspend();
 		graphicEqualizer = new GraphicalFilterEditorControl($("equalizerPlaceholder"), 2048, audioContext, updateConnections, null, {
 			svgRenderer: true
 		});
@@ -518,9 +519,8 @@
 			return true;
 		}
 		if (audioContext.resume)
-			audioContext.resume().then(audioContextResumed);
-		else
-			audioContextResumed();
+			audioContext.resume();
+		audioContextResumed();
 		return true;
 	}
 	function processAndDownload() {
