@@ -10,7 +10,7 @@
 	-webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 
-.GE, .GECV {
+.GECV {
 	touch-action: none;
 }
 
@@ -56,7 +56,8 @@
 .GEMNUH {
 	display: inline-block;
 	vertical-align: top;
-	min-width: 15em;
+	min-width: 180px;
+	max-width: 225px;
 	box-sizing: content-box;
 }
 

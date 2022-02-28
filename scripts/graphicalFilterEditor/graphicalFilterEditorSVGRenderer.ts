@@ -120,6 +120,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		svg.setAttribute("viewBox", `0 0 ${x} ${y}`);
 		svg.style.transform = ((pixelRatio === 1) ? "" : ("scale(" + (1 / pixelRatio) + ")"));
 		this.svgGradient.setAttribute("y2", y);
+		editor.element.style.width = ((controlWidth * editorScale) | 0) + "px";
 		element.style.width = ((controlWidth * editorScale) | 0) + "px";
 		element.style.height = ((controlHeight * editorScale) | 0) + "px";
 

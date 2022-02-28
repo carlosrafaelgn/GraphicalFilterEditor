@@ -38,6 +38,8 @@ interface GraphicalFilterEditorSettings {
 interface GraphicalFilterEditorUISettings {
 	svgRenderer?: boolean;
 	scale?: number;
+	fontSize?: string;
+	lineHeight?: string;
 	hideEditModePeakingEq?: boolean;
 	hideEditModeShelfEq?: boolean;
 
@@ -103,6 +105,8 @@ class GraphicalFilterEditorControl {
 	private readonly closeMenuCharacter: string;
 
 	private _scale: number;
+	private _fontSize: string | null;
+	private _lineHeight: string | null;
 	private _showZones = false;
 	private _editMode = GraphicalFilterEditorControl.editModeRegular;
 	private _isActualChannelCurveNeeded = true;
@@ -186,8 +190,17 @@ class GraphicalFilterEditorControl {
 
 		this.element = element;
 		element.className = "GE";
+		element.setAttribute("aria-hidden", "true");
 
 		this.boundMouseMove = this.mouseMove.bind(this);
+
+		this._fontSize = null;
+		if (uiSettings && uiSettings.fontSize)
+			this.fontSize = uiSettings.fontSize;
+
+		this._lineHeight = null;
+		if (uiSettings && uiSettings.lineHeight)
+			this.lineHeight = uiSettings.lineHeight;
 
 		this._scale = 0;
 		this.scale = ((uiSettings && uiSettings.scale && uiSettings.scale > 0) ? uiSettings.scale : 1);
@@ -418,13 +431,39 @@ class GraphicalFilterEditorControl {
 			return;
 
 		this._scale = scale;
-		this.element.style.fontSize = (12 * scale) + "px";
-		this.element.style.lineHeight = (16 * scale) + "px";
+		if (!this._fontSize)
+			this.element.style.fontSize = (12 * scale) + "px";
+		if (!this._lineHeight)
+			this.element.style.lineHeight = (16 * scale) + "px";
 
 		if (this.renderer) {
 			this.renderer.scaleChanged();
 			this.drawCurve();
 		}
+	}
+
+	public get fontSize(): string | null {
+		return this._fontSize;
+	}
+
+	public set fontSize(fontSize: string | null) {
+		if (this._fontSize === fontSize || !this.element)
+			return;
+
+		this._fontSize = fontSize;
+		this.element.style.fontSize = (fontSize || ((12 * this._scale) + "px"));
+	}
+
+	public get lineHeight(): string | null {
+		return this._lineHeight;
+	}
+
+	public set lineHeight(lineHeight: string | null) {
+		if (this._lineHeight === lineHeight || !this.element)
+			return;
+
+		this._lineHeight = lineHeight;
+		this.element.style.lineHeight = (lineHeight || ((16 * this._scale) + "px"));
 	}
 
 	public get showZones(): boolean {
@@ -522,7 +561,7 @@ class GraphicalFilterEditorControl {
 	private btnMnu_Click(e: MouseEvent): boolean {
 		if (!e.button) {
 			if (this.mnu.style.display === "none") {
-				this.mnu.style.bottom = (this.element.clientHeight - this.renderer.element.clientHeight) + "px";
+				this.mnu.style.bottom = (this.btnMnu.clientHeight) + "px";
 				this.mnu.style.display = "inline-block";
 				if (this.openMenuElement && this.closeMenuElement) {
 					this.openMenuElement.style.display = "none";

@@ -56,6 +56,7 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 
 		element.width = (controlWidth * scale) | 0;
 		element.height = (controlHeight * scale) | 0;
+		editor.element.style.width = ((controlWidth * editorScale) | 0) + "px";
 		element.style.width = ((controlWidth * editorScale) | 0) + "px";
 		element.style.height = ((controlHeight * editorScale) | 0) + "px";
 
