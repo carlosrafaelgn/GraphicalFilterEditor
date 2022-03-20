@@ -137,7 +137,7 @@ class GraphicalFilterEditorControl {
 				l.appendChild(document.createTextNode(text));
 				return l;
 			},
-			createMenuItem = function (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (ev: MouseEvent) => any, className?: string | null) {
+			createMenuItem = function (text: string, checkable: boolean, checked: boolean, radio: boolean, clickHandler: (e: MouseEvent) => any, className?: string | null) {
 				const i = document.createElement("div");
 				i.className = (className ? ("GEMNUIT GECLK " + className) : "GEMNUIT GECLK");
 				if (checkable) {

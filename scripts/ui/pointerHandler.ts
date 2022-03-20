@@ -28,15 +28,15 @@
 // This file came from my other project: https://github.com/carlosrafaelgn/pixel
 //
 interface OutsidePointerHandler {
-	(event: Event): boolean;
+	(e: Event): boolean;
 }
 
 interface BooleanPointerHandler {
-	(event: MouseEvent): boolean;
+	(e: MouseEvent): boolean;
 }
 
 interface VoidPointerHandler {
-	(event: MouseEvent): void;
+	(e: MouseEvent): void;
 }
 
 class PointerHandler {
