@@ -466,8 +466,16 @@ class GraphicalFilterEditor extends Filter {
 		// a new convolver to force the changes to take effect. Just assigning
 		// the audio buffer to this._convolver.buffer, even if it is the same
 		// audio buffer, makes the convolver update its internal state.
-		this._convolver.buffer = this.filterKernel;
-		if (!oldConvolver && this.filterChangedCallback)
+		try {
+			this._convolver.buffer = this.filterKernel;
+		} catch (ex: any) {
+			// Old Chrome versions do not allow non-null buffers to be set to another
+			// non-null buffer
+			this._convolver = this.audioContext.createConvolver();
+			this._convolver.normalize = false;
+			this._convolver.buffer = this.filterKernel;
+		}
+		if (oldConvolver !== this._convolver && this.filterChangedCallback)
 			this.filterChangedCallback();
 	}
 
