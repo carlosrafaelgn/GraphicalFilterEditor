@@ -216,7 +216,7 @@ class GraphicalFilterEditorControl {
 
 		let lbl = document.createElement("div");
 		lbl.className = "GELBL";
-		lbl.style.width = "9em";
+		lbl.style.width = "11em";
 		lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Cursor));
 		lbl.appendChild(this.lblCursor = document.createElement("span"));
 		lbl.appendChild(document.createTextNode(" dB"));
@@ -225,7 +225,7 @@ class GraphicalFilterEditorControl {
 
 		lbl = document.createElement("div");
 		lbl.className = "GELBL";
-		lbl.style.width = "9em";
+		lbl.style.width = "11em";
 		lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Curve));
 		lbl.appendChild(this.lblCurve = document.createElement("span"));
 		lbl.appendChild(document.createTextNode(" dB"));
@@ -234,7 +234,7 @@ class GraphicalFilterEditorControl {
 
 		lbl = document.createElement("div");
 		lbl.className = "GELBL";
-		lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Frequency));
+		//lbl.appendChild(document.createTextNode(GraphicalFilterEditorStrings.Frequency));
 		lbl.appendChild(this.lblFrequency = document.createElement("span"));
 		this.lblFrequency.appendChild(document.createTextNode("0 Hz (31 Hz)"));
 		element.appendChild(lbl);
