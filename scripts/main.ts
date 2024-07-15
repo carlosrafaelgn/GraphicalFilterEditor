@@ -51,10 +51,12 @@ function smoothStep(edge0: number, edge1: number, x: number): number {
 	);
 }
 
-function zeroObject(o: any): void {
+function zeroObject(o: any, includeFunctions?: boolean): void {
 	for (let p in o) {
 		switch (typeof o[p]) {
 			case "function":
+				if (includeFunctions)
+					o[p] = null;
 				break;
 			case "boolean":
 				o[p] = false;
