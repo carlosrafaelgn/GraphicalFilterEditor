@@ -25,16 +25,16 @@
 //
 
 class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTMLDivElement> {
-	private readonly svg: SVGElement;
-	private readonly svgGradient: SVGLinearGradientElement;
-	private readonly svgZones: SVGElement;
-	private readonly svgGrayCurve: SVGElement;
-	private readonly svgCurve: SVGElement;
-	private readonly svgLines: SVGLineElement[];
+	private readonly _svg: SVGElement;
+	private readonly _svgGradient: SVGLinearGradientElement;
+	private readonly _svgZones: SVGElement;
+	private readonly _svgGrayCurve: SVGElement;
+	private readonly _svgCurve: SVGElement;
+	private readonly _svgLines: SVGLineElement[];
 
-	private pixelRatio: number;
-	private showZones: boolean;
-	private isActualChannelCurveNeeded: boolean;
+	private _pixelRatio: number;
+	private _showZones: boolean;
+	private _isActualChannelCurveNeeded: boolean;
 
 	public constructor(editor: GraphicalFilterEditorControl) {
 		super(document.createElement("div"), Math.abs(GraphicalFilterEditorControl.controlWidth - GraphicalFilterEditor.visibleBinCount) >> 1, editor);
@@ -71,21 +71,21 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 			<path style="fill:none;stroke:url(#editorSVGLinearGradient);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter" d="M 0,0 1,0" />
 		</svg>`;
 
-		this.pixelRatio = 1;
-		this.showZones = false;
-		this.isActualChannelCurveNeeded = true;
+		this._pixelRatio = 1;
+		this._showZones = false;
+		this._isActualChannelCurveNeeded = true;
 
 		const svg = this.element.firstChild as SVGElement;
-		this.svg = svg;
-		this.svgGradient = svg.getElementsByTagName("linearGradient")[0];
-		this.svgZones = svg.getElementsByTagName("g")[0];
+		this._svg = svg;
+		this._svgGradient = svg.getElementsByTagName("linearGradient")[0];
+		this._svgZones = svg.getElementsByTagName("g")[0];
 		const paths = svg.getElementsByTagName("path");
-		this.svgGrayCurve = paths[0];
-		this.svgCurve = paths[1];
+		this._svgGrayCurve = paths[0];
+		this._svgCurve = paths[1];
 		const svgLines = svg.getElementsByTagName("line");
-		this.svgLines = new Array(svgLines.length);
+		this._svgLines = new Array(svgLines.length);
 		for (let i = svgLines.length - 1; i >= 0; i--)
-			this.svgLines[i] = svgLines[i];
+			this._svgLines[i] = svgLines[i];
 
 		this.scaleChanged();
 	}
@@ -94,7 +94,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		const element = this.element,
 			editor = this.editor,
 			filter = editor.filter,
-			svg = this.svg;
+			svg = this._svg;
 
 		if (!element || !editor || !filter || !svg)
 			return;
@@ -108,7 +108,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 			canvasLeftMargin = this.leftMargin,
 			canvasWidth = (controlWidth * scale) | 0,
 			canvasHeight = (controlHeight * scale) | 0,	
-			svgLines = this.svgLines;
+			svgLines = this._svgLines;
 
 		let lineWidth = (scale < 1 ? scale : (scale | 0)),
 			halfLineWidth = lineWidth * 0.5,
@@ -119,7 +119,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		svg.setAttribute("height", y);
 		svg.setAttribute("viewBox", `0 0 ${x} ${y}`);
 		svg.style.transform = ((pixelRatio === 1) ? "" : ("scale(" + (1 / pixelRatio) + ")"));
-		this.svgGradient.setAttribute("y2", y);
+		this._svgGradient.setAttribute("y2", y);
 		editor.element.style.width = ((controlWidth * editorScale) | 0) + "px";
 		element.style.width = ((controlWidth * editorScale) | 0) + "px";
 		element.style.height = ((controlHeight * editorScale) | 0) + "px";
@@ -153,22 +153,22 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 		lineWidth = (scale < 1 ? (scale * 2) : ((scale * 2) | 0));
 		x = lineWidth.toString() + "px";
 
-		this.svgGrayCurve.style.strokeWidth = x;
-		this.svgCurve.style.strokeWidth = x;
+		this._svgGrayCurve.style.strokeWidth = x;
+		this._svgCurve.style.strokeWidth = x;
 
-		this.pixelRatio = pixelRatio;
+		this._pixelRatio = pixelRatio;
 	}
 
 	public drawCurve(showZones: boolean, isActualChannelCurveNeeded: boolean, currentChannelIndex: number): void {
 		let pixelRatio = (devicePixelRatio > 1 ? devicePixelRatio : 1);
-		if (pixelRatio !== this.pixelRatio) {
+		if (pixelRatio !== this._pixelRatio) {
 			this.scaleChanged();
-			pixelRatio = this.pixelRatio;
+			pixelRatio = this._pixelRatio;
 		}
 
-		if (this.showZones !== showZones) {
-			this.showZones = showZones;
-			this.svgZones.style.display = (showZones ? "" : "none");
+		if (this._showZones !== showZones) {
+			this._showZones = showZones;
+			this._svgZones.style.display = (showZones ? "" : "none");
 		}
 
 		const editor = this.editor,
@@ -181,7 +181,7 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 
 		for (let turn = (isActualChannelCurveNeeded ? 1 : 0); turn >= 0; turn--) {
 			const curve = ((turn || !isActualChannelCurveNeeded) ? filter.channelCurves[currentChannelIndex] : filter.actualChannelCurve),
-				svgCurve = (turn ? this.svgGrayCurve : this.svgCurve);
+				svgCurve = (turn ? this._svgGrayCurve : this._svgCurve);
 
 			let x = 1,
 				lastX = 0,
@@ -206,9 +206,9 @@ class GraphicalFilterEditorSVGRenderer extends GraphicalFilterEditorRenderer<HTM
 			svgCurve.setAttribute("d", str);
 		}
 
-		if (this.isActualChannelCurveNeeded !== isActualChannelCurveNeeded) {
-			this.isActualChannelCurveNeeded = isActualChannelCurveNeeded;
-			this.svgGrayCurve.style.display = (isActualChannelCurveNeeded ? "" : "none");
+		if (this._isActualChannelCurveNeeded !== isActualChannelCurveNeeded) {
+			this._isActualChannelCurveNeeded = isActualChannelCurveNeeded;
+			this._svgGrayCurve.style.display = (isActualChannelCurveNeeded ? "" : "none");
 		}
 	}
 }

@@ -40,39 +40,39 @@ interface VoidPointerHandler {
 }
 
 class PointerHandler {
-	private readonly documentTarget: HTMLElement;
-	private readonly element: HTMLElement;
+	private readonly _documentTarget: HTMLElement;
+	private readonly _element: HTMLElement;
 
-	private readonly downCallback: BooleanPointerHandler | null;
-	private readonly moveCallback: VoidPointerHandler | null;
-	private readonly upCallback: VoidPointerHandler | null;
+	private readonly _downCallback: BooleanPointerHandler | null;
+	private readonly _moveCallback: VoidPointerHandler | null;
+	private readonly _upCallback: VoidPointerHandler | null;
 
-	private readonly documentDownEvent: string;
-	private readonly documentMoveEvent: string;
-	private readonly documentUpEvent: string;
-	private readonly documentCancelEvent: string | null;
+	private readonly _documentDownEvent: string;
+	private readonly _documentMoveEvent: string;
+	private readonly _documentUpEvent: string;
+	private readonly _documentCancelEvent: string | null;
 
-	private readonly boundDocumentDown: any;
-	private readonly boundDocumentMove: any;
-	private readonly boundDocumentUp: any;
-	private readonly boundExtraTouchStart: any;
+	private readonly _boundDocumentDown: any;
+	private readonly _boundDocumentMove: any;
+	private readonly _boundDocumentUp: any;
+	private readonly _boundExtraTouchStart: any;
 
-	private readonly lazy: boolean;
+	private readonly _lazy: boolean;
 
-	private readonly outsidePointerHandler: OutsidePointerHandler | null;
+	private readonly _outsidePointerHandler: OutsidePointerHandler | null;
 
 	private _captured: boolean;
-	private pointerId: number;
+	private _pointerId: number;
 
 	public constructor(element: HTMLElement, downCallback: BooleanPointerHandler | null = null, moveCallback: VoidPointerHandler | null = null, upCallback: VoidPointerHandler | null = null, lazy: boolean = true, outsidePointerHandler: OutsidePointerHandler | null = null) {
-		this.documentTarget = (document.documentElement || document.body);
-		this.element = element;
+		this._documentTarget = (document.documentElement || document.body);
+		this._element = element;
 
-		this.downCallback = downCallback;
-		this.moveCallback = moveCallback;
-		this.upCallback = upCallback;
+		this._downCallback = downCallback;
+		this._moveCallback = moveCallback;
+		this._upCallback = upCallback;
 
-		this.boundExtraTouchStart = null;
+		this._boundExtraTouchStart = null;
 
 		// If the element using the PointerHandler wants to track pointer/touch position,
 		// it is important not to forget to add the touch-action CSS property, with a value
@@ -81,60 +81,60 @@ class PointerHandler {
 		// sometimes, even when the touch starts inside it.
 		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/pointercancel_event
 		if ("onpointerdown" in element) {
-			this.documentDownEvent = "pointerdown";
-			this.documentMoveEvent = "pointermove";
-			this.documentUpEvent = "pointerup";
-			this.documentCancelEvent = "pointercancel";
+			this._documentDownEvent = "pointerdown";
+			this._documentMoveEvent = "pointermove";
+			this._documentUpEvent = "pointerup";
+			this._documentCancelEvent = "pointercancel";
 
-			this.boundDocumentDown = this.pointerDown.bind(this);
-			this.boundDocumentUp = this.pointerUp.bind(this);
-			this.boundDocumentMove = this.pointerMove.bind(this);
+			this._boundDocumentDown = this.pointerDown.bind(this);
+			this._boundDocumentUp = this.pointerUp.bind(this);
+			this._boundDocumentMove = this.pointerMove.bind(this);
 
 			// Firefox mobile and a few iOS devices cause a buggy behavior if trying to handle
 			// pointerdown/move/up but not touchstart/end/cancel...
 			if ("ontouchstart" in element)
-				this.boundExtraTouchStart = this.extraTouchStart.bind(this);
+				this._boundExtraTouchStart = this.extraTouchStart.bind(this);
 		} else if ("ontouchstart" in element) {
-			this.documentDownEvent = "touchstart";
-			this.documentMoveEvent = "touchmove";
-			this.documentUpEvent = "touchend";
-			this.documentCancelEvent = "touchcancel";
+			this._documentDownEvent = "touchstart";
+			this._documentMoveEvent = "touchmove";
+			this._documentUpEvent = "touchend";
+			this._documentCancelEvent = "touchcancel";
 
-			this.boundDocumentDown = this.touchStart.bind(this);
-			this.boundDocumentUp = this.touchEnd.bind(this);
-			this.boundDocumentMove = this.touchMove.bind(this);
+			this._boundDocumentDown = this.touchStart.bind(this);
+			this._boundDocumentUp = this.touchEnd.bind(this);
+			this._boundDocumentMove = this.touchMove.bind(this);
 		} else {
-			this.documentDownEvent = "mousedown";
-			this.documentMoveEvent = "mousemove";
-			this.documentUpEvent = "mouseup";
-			this.documentCancelEvent = null;
+			this._documentDownEvent = "mousedown";
+			this._documentMoveEvent = "mousemove";
+			this._documentUpEvent = "mouseup";
+			this._documentCancelEvent = null;
 
-			this.boundDocumentDown = this.mouseDown.bind(this);
-			this.boundDocumentUp = this.mouseUp.bind(this);
-			this.boundDocumentMove = this.mouseMove.bind(this);
+			this._boundDocumentDown = this.mouseDown.bind(this);
+			this._boundDocumentUp = this.mouseUp.bind(this);
+			this._boundDocumentMove = this.mouseMove.bind(this);
 		}
 
-		this.lazy = lazy;
+		this._lazy = lazy;
 
-		this.outsidePointerHandler = outsidePointerHandler;
+		this._outsidePointerHandler = outsidePointerHandler;
 
-		if (this.boundExtraTouchStart)
-			element.addEventListener("touchstart", this.boundExtraTouchStart);
-		element.addEventListener(this.documentDownEvent, this.boundDocumentDown);
+		if (this._boundExtraTouchStart)
+			element.addEventListener("touchstart", this._boundExtraTouchStart);
+		element.addEventListener(this._documentDownEvent, this._boundDocumentDown);
 
 		if (!lazy)
 			this.addSecondaryHandlers();
 
 		this._captured = false;
-		this.pointerId = -1;
+		this._pointerId = -1;
 	}
 
 	public destroy(): void {
-		if (this.element) {
-			if (this.boundExtraTouchStart)
-				this.element.removeEventListener("touchstart", this.boundExtraTouchStart);
-			if (this.boundDocumentDown)
-				this.element.removeEventListener(this.documentDownEvent, this.boundDocumentDown);
+		if (this._element) {
+			if (this._boundExtraTouchStart)
+				this._element.removeEventListener("touchstart", this._boundExtraTouchStart);
+			if (this._boundDocumentDown)
+				this._element.removeEventListener(this._documentDownEvent, this._boundDocumentDown);
 		}
 
 		this.removeSecondaryHandlers();
@@ -149,61 +149,61 @@ class PointerHandler {
 	}
 
 	private addSecondaryHandlers(): void {
-		if (!this.documentTarget)
+		if (!this._documentTarget)
 			return;
 
 		// Firefox mobile and a few iOS devices treat a few events on the root element as passive by default
 		// https://stackoverflow.com/a/49853392/3569421
 		// https://stackoverflow.com/a/57076149/3569421
-		this.documentTarget.addEventListener(this.documentMoveEvent, this.boundDocumentMove, { capture: true, passive: false });
-		this.documentTarget.addEventListener(this.documentUpEvent, this.boundDocumentUp, true);
-		if (this.documentCancelEvent)
-			this.documentTarget.addEventListener(this.documentCancelEvent, this.boundDocumentUp, true);
+		this._documentTarget.addEventListener(this._documentMoveEvent, this._boundDocumentMove, { capture: true, passive: false });
+		this._documentTarget.addEventListener(this._documentUpEvent, this._boundDocumentUp, true);
+		if (this._documentCancelEvent)
+			this._documentTarget.addEventListener(this._documentCancelEvent, this._boundDocumentUp, true);
 	}
 
 	private removeSecondaryHandlers(): void {
-		if (!this.documentTarget)
+		if (!this._documentTarget)
 			return;
 
-		if (this.boundDocumentUp) {
-			this.documentTarget.removeEventListener(this.documentUpEvent, this.boundDocumentUp, true);
-			if (this.documentCancelEvent)
-				this.documentTarget.removeEventListener(this.documentCancelEvent, this.boundDocumentUp, true);
+		if (this._boundDocumentUp) {
+			this._documentTarget.removeEventListener(this._documentUpEvent, this._boundDocumentUp, true);
+			if (this._documentCancelEvent)
+				this._documentTarget.removeEventListener(this._documentCancelEvent, this._boundDocumentUp, true);
 		}
 
-		if (this.boundDocumentMove)
-			this.documentTarget.removeEventListener(this.documentMoveEvent, this.boundDocumentMove, true);
+		if (this._boundDocumentMove)
+			this._documentTarget.removeEventListener(this._documentMoveEvent, this._boundDocumentMove, true);
 	}
 
 	private extraTouchStart(e: TouchEvent): boolean | undefined {
-		if (e.target === this.element || (this.outsidePointerHandler && this.outsidePointerHandler(e)))
+		if (e.target === this._element || (this._outsidePointerHandler && this._outsidePointerHandler(e)))
 			return cancelEvent(e);
 	}
 
 	private pointerDown(e: PointerEvent): boolean | undefined {
-		if (this.pointerId >= 0 && e.pointerType !== "mouse")
+		if (this._pointerId >= 0 && e.pointerType !== "mouse")
 			return cancelEvent(e);
 
 		const ret = this.mouseDown(e);
 
 		if (this._captured)
-			this.pointerId = e.pointerId;
+			this._pointerId = e.pointerId;
 
 		return ret;
 	}
 
 	private pointerMove(e: PointerEvent): boolean | undefined {
-		if (!this._captured || e.pointerId !== this.pointerId)
+		if (!this._captured || e.pointerId !== this._pointerId)
 			return;
 
 		return this.mouseMove(e);
 	}
 
 	private pointerUp(e: PointerEvent): boolean | undefined {
-		if (!this._captured || e.pointerId !== this.pointerId)
+		if (!this._captured || e.pointerId !== this._pointerId)
 			return;
 
-		this.pointerId = -1;
+		this._pointerId = -1;
 
 		return this.mouseUp(e);
 	}
@@ -212,17 +212,17 @@ class PointerHandler {
 		if (e.touches.length > 1)
 			return;
 
-		if (this.pointerId >= 0)
+		if (this._pointerId >= 0)
 			this.touchEnd(e);
 
-		this.pointerId = 1;
+		this._pointerId = 1;
 
 		(e as any).clientX = e.touches[0].clientX;
 		(e as any).clientY = e.touches[0].clientY;
 
 		let ret = this.mouseDown(e as any);
 		if (ret === undefined)
-			this.pointerId = -1;
+			this._pointerId = -1;
 
 		return ret;
 	}
@@ -238,10 +238,10 @@ class PointerHandler {
 	}
 
 	private touchEnd(e: TouchEvent): boolean | undefined {
-		if (!this._captured || this.pointerId < 0)
+		if (!this._captured || this._pointerId < 0)
 			return;
 
-		this.pointerId = -1;
+		this._pointerId = -1;
 
 		return this.mouseUp(e as any);
 	}
@@ -249,14 +249,18 @@ class PointerHandler {
 	private mouseDown(e: MouseEvent): boolean | undefined {
 		this.mouseUp(e);
 
-		if (e.button || (e.target && e.target !== this.element && (!this.outsidePointerHandler || !this.outsidePointerHandler(e))))
+		if (e.button || (e.target && e.target !== this._element && (!this._outsidePointerHandler || !this._outsidePointerHandler(e))))
 			return;
 
-		if (this.downCallback && !this.downCallback(e))
+		if (this._downCallback && !this._downCallback(e))
 			return cancelEvent(e);
 
 		this._captured = true;
-		if (this.lazy)
+
+		if (("setPointerCapture" in this._element) && (e as any).pointerId >= 0)
+			this._element.setPointerCapture((e as any).pointerId);
+
+		if (this._lazy)
 			this.addSecondaryHandlers();
 
 		return cancelEvent(e);
@@ -266,8 +270,8 @@ class PointerHandler {
 		if (!this._captured)
 			return;
 
-		if (this.moveCallback)
-			this.moveCallback(e);
+		if (this._moveCallback)
+			this._moveCallback(e);
 
 		return cancelEvent(e);
 	}
@@ -277,11 +281,11 @@ class PointerHandler {
 			return;
 
 		this._captured = false;
-		if (this.lazy)
+		if (this._lazy)
 			this.removeSecondaryHandlers();
 
-		if (this.upCallback)
-			this.upCallback(e);
+		if (this._upCallback)
+			this._upCallback(e);
 
 		return cancelEvent(e);
 	}

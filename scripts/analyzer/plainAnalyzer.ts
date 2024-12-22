@@ -25,75 +25,75 @@
 //
 
 class PlainAnalyzer extends Analyzer {
-	private readonly sampleRate: number;
-	private readonly analyzerL: AnalyserNode;
-	private readonly analyzerR: AnalyserNode;
+	private readonly _sampleRate: number;
+	private readonly _analyzerL: AnalyserNode;
+	private readonly _analyzerR: AnalyserNode;
 
-	private readonly visibleFrequencies: Float64Array;
+	private readonly _visibleFrequencies: Float64Array;
 
-	private readonly ptr: number;
-	private readonly fft4gfPtr: number;
-	private readonly dataPtr: number;
-	private readonly data: Uint8Array;
-	private readonly tmpPtr: number;
-	private readonly tmp: Float32Array;
-	private readonly windowPtr: number;
-	private readonly window: Float32Array;
-	private readonly multiplierPtr: number;
-	private readonly multiplier: Float32Array;
-	private readonly prevLPtr: number;
-	private readonly prevL: Float32Array;
-	private readonly prevRPtr: number;
-	private readonly prevR: Float32Array;
+	private readonly _ptr: number;
+	private readonly _fft4gfPtr: number;
+	private readonly _dataPtr: number;
+	private readonly _data: Uint8Array;
+	private readonly _tmpPtr: number;
+	private readonly _tmp: Float32Array;
+	private readonly _windowPtr: number;
+	private readonly _window: Float32Array;
+	private readonly _multiplierPtr: number;
+	private readonly _multiplier: Float32Array;
+	private readonly _prevLPtr: number;
+	private readonly _prevL: Float32Array;
+	private readonly _prevRPtr: number;
+	private readonly _prevR: Float32Array;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
 		super(audioContext, parent, id);
 
-		this.sampleRate = graphicalFilterEditor.sampleRate;
+		this._sampleRate = graphicalFilterEditor.sampleRate;
 
 		// Only the first 1024 samples are necessary as the last
 		// 1024 samples would always be zeroed out!
-		this.analyzerL = audioContext.createAnalyser();
-		this.analyzerL.fftSize = 1024;
-		this.analyzerR = audioContext.createAnalyser();
-		this.analyzerR.fftSize = 1024;
+		this._analyzerL = audioContext.createAnalyser();
+		this._analyzerL.fftSize = 1024;
+		this._analyzerR = audioContext.createAnalyser();
+		this._analyzerR.fftSize = 1024;
 
-		this.visibleFrequencies = graphicalFilterEditor.visibleFrequencies;
+		this._visibleFrequencies = graphicalFilterEditor.visibleFrequencies;
 
 		const buffer = cLib.HEAP8.buffer as ArrayBuffer;
 
 		let ptr = cLib._allocBuffer(1024 + (2048 * 4) + (1024 * 4) + (3 * 512 * 4) + cLib._fftSizeOff(2048));
-		this.ptr = ptr;
+		this._ptr = ptr;
 
-		this.dataPtr = ptr;
-		this.data = new Uint8Array(buffer, ptr, 1024);
+		this._dataPtr = ptr;
+		this._data = new Uint8Array(buffer, ptr, 1024);
 		ptr += 1024;
 
-		this.tmpPtr = ptr;
-		this.tmp = new Float32Array(buffer, ptr, 2048);
+		this._tmpPtr = ptr;
+		this._tmp = new Float32Array(buffer, ptr, 2048);
 		ptr += (2048 * 4);
 
-		this.windowPtr = ptr;
-		this.window = new Float32Array(buffer, ptr, 1024);
+		this._windowPtr = ptr;
+		this._window = new Float32Array(buffer, ptr, 1024);
 		ptr += (1024 * 4);
 
-		this.multiplierPtr = ptr;
-		this.multiplier = new Float32Array(buffer, ptr, 512);
+		this._multiplierPtr = ptr;
+		this._multiplier = new Float32Array(buffer, ptr, 512);
 		ptr += (512 * 4);
 
-		this.prevLPtr = ptr;
-		this.prevL = new Float32Array(buffer, ptr, 512);
+		this._prevLPtr = ptr;
+		this._prevL = new Float32Array(buffer, ptr, 512);
 		ptr += (512 * 4);
 
-		this.prevRPtr = ptr;
-		this.prevR = new Float32Array(buffer, ptr, 512);
+		this._prevRPtr = ptr;
+		this._prevR = new Float32Array(buffer, ptr, 512);
 		ptr += (512 * 4);
 
-		this.fft4gfPtr = ptr;
-		cLib._fftInitf(this.fft4gfPtr, 2048);
+		this._fft4gfPtr = ptr;
+		cLib._fftInitf(this._fft4gfPtr, 2048);
 
-		const window = this.window,
-			multiplier = this.multiplier,
+		const window = this._window,
+			multiplier = this._multiplier,
 			pi = Math.PI,
 			exp = Math.exp,
 			cos = Math.cos,
@@ -122,23 +122,23 @@ class PlainAnalyzer extends Analyzer {
 		// over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
 		// results in two lines that get drawn on the canvas.
 
-		const multiplier = this.multiplier,
-			tmp = this.tmp,
+		const multiplier = this._multiplier,
+			tmp = this._tmp,
 			ctx = this.ctx as CanvasRenderingContext2D, // ctx is null only with WebGL analyzers
 			sqrt = Math.sqrt,
 			ln = Math.log,
-			valueCount = 512, bw = this.sampleRate / 2048,
+			valueCount = 512, bw = this._sampleRate / 2048,
 			filterLength2 = (2048 >>> 1),
 			cos = Math.cos,
-			visibleFrequencies = this.visibleFrequencies,
+			visibleFrequencies = this._visibleFrequencies,
 			colors = Analyzer.colors;
 
 		let d = 0, im = 0, i = 0, freq = 0, ii = 0, avg = 0, avgCount = 0;
 
-		this.analyzerL.getByteTimeDomainData(this.data);
-		cLib._plainAnalyzer(this.fft4gfPtr, this.windowPtr, this.dataPtr, this.tmpPtr);
+		this._analyzerL.getByteTimeDomainData(this._data);
+		cLib._plainAnalyzer(this._fft4gfPtr, this._windowPtr, this._dataPtr, this._tmpPtr);
 
-		let dataf = this.prevL;
+		let dataf = this._prevL;
 
 		ctx.lineWidth = 1;
 		ctx.fillStyle = "#000000";
@@ -187,10 +187,10 @@ class PlainAnalyzer extends Analyzer {
 
 		// Sorry for the copy/paste :(
 
-		this.analyzerR.getByteTimeDomainData(this.data);
-		cLib._plainAnalyzer(this.fft4gfPtr, this.windowPtr, this.dataPtr, this.tmpPtr);
+		this._analyzerR.getByteTimeDomainData(this._data);
+		cLib._plainAnalyzer(this._fft4gfPtr, this._windowPtr, this._dataPtr, this._tmpPtr);
 
-		dataf = this.prevR;
+		dataf = this._prevR;
 
 		i = 0;
 		ii = 0;
@@ -235,7 +235,7 @@ class PlainAnalyzer extends Analyzer {
 	}
 
 	protected cleanUp(): void {
-		if (this.ptr)
-			cLib._freeBuffer(this.ptr);
+		if (this._ptr)
+			cLib._freeBuffer(this._ptr);
 	}
 }

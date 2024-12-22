@@ -25,52 +25,52 @@
 //
 
 class WaveletAnalyzer extends Analyzer {
-	private readonly analyzerL: AnalyserNode;
-	private readonly analyzerR: AnalyserNode;
+	private readonly _analyzerL: AnalyserNode;
+	private readonly _analyzerR: AnalyserNode;
 
-	private readonly ptr: number;
-	private readonly dataLPtr: number;
-	private readonly dataL: Uint8Array;
-	private readonly dataRPtr: number;
-	private readonly dataR: Uint8Array;
-	private readonly tmpPtr: number;
-	private readonly tmp: Float32Array;
-	private readonly oL1Ptr: number;
-	private readonly oL1: Float32Array;
-	private readonly oR1Ptr: number;
-	private readonly oR1: Float32Array;
+	private readonly _ptr: number;
+	private readonly _dataLPtr: number;
+	private readonly _dataL: Uint8Array;
+	private readonly _dataRPtr: number;
+	private readonly _dataR: Uint8Array;
+	private readonly _tmpPtr: number;
+	private readonly _tmp: Float32Array;
+	private readonly _oL1Ptr: number;
+	private readonly _oL1: Float32Array;
+	private readonly _oR1Ptr: number;
+	private readonly _oR1: Float32Array;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
 		super(audioContext, parent, id);
 
-		this.analyzerL = audioContext.createAnalyser();
-		this.analyzerL.fftSize = 128;
-		this.analyzerR = audioContext.createAnalyser();
-		this.analyzerR.fftSize = 128;
+		this._analyzerL = audioContext.createAnalyser();
+		this._analyzerL.fftSize = 128;
+		this._analyzerR = audioContext.createAnalyser();
+		this._analyzerR.fftSize = 128;
 
 		const buffer = cLib.HEAP8.buffer as ArrayBuffer;
 
 		let ptr = cLib._allocBuffer((2 * 128) + (64 * 4) + (2 * 128 * 4));
-		this.ptr = ptr;
+		this._ptr = ptr;
 
-		this.dataLPtr = ptr;
-		this.dataL = new Uint8Array(buffer, ptr, 128);
+		this._dataLPtr = ptr;
+		this._dataL = new Uint8Array(buffer, ptr, 128);
 		ptr += 128;
 
-		this.dataRPtr = ptr;
-		this.dataR = new Uint8Array(buffer, ptr, 128);
+		this._dataRPtr = ptr;
+		this._dataR = new Uint8Array(buffer, ptr, 128);
 		ptr += 128;
 
-		this.tmpPtr = ptr;
-		this.tmp = new Float32Array(buffer, ptr, 64);
+		this._tmpPtr = ptr;
+		this._tmp = new Float32Array(buffer, ptr, 64);
 		ptr += 64 * 4;
 
-		this.oL1Ptr = ptr;
-		this.oL1 = new Float32Array(buffer, ptr, 128);
+		this._oL1Ptr = ptr;
+		this._oL1 = new Float32Array(buffer, ptr, 128);
 		ptr += (128 * 4);
 
-		this.oR1Ptr = ptr;
-		this.oR1 = new Float32Array(buffer, ptr, 128);
+		this._oR1Ptr = ptr;
+		this._oR1 = new Float32Array(buffer, ptr, 128);
 	}
 
 	protected analyze(time: number): void {
@@ -81,13 +81,13 @@ class WaveletAnalyzer extends Analyzer {
 		// results in two lines that get drawn on the canvas.
 		const ctx = this.ctx as CanvasRenderingContext2D, // ctx is null only with WebGL analyzers
 			colors = Analyzer.colors,
-			oL1 = this.oL1,
-			oR1 = this.oR1;
+			oL1 = this._oL1,
+			oR1 = this._oR1;
 
-		this.analyzerL.getByteTimeDomainData(this.dataL);
-		this.analyzerR.getByteTimeDomainData(this.dataR);
+		this._analyzerL.getByteTimeDomainData(this._dataL);
+		this._analyzerR.getByteTimeDomainData(this._dataR);
 
-		cLib._waveletAnalyzer(this.dataLPtr, this.dataRPtr, this.tmpPtr, this.oL1Ptr, this.oR1Ptr);
+		cLib._waveletAnalyzer(this._dataLPtr, this._dataRPtr, this._tmpPtr, this._oL1Ptr, this._oR1Ptr);
 
 		let i = 0, t = 0, tot = 64, w = Analyzer.controlWidth / 64, x = 0, y = 0, y2 = Analyzer.controlHeight - 32;
 
@@ -138,7 +138,7 @@ class WaveletAnalyzer extends Analyzer {
 	}
 
 	protected cleanUp(): void {
-		if (this.ptr)
-			cLib._freeBuffer(this.ptr);
+		if (this._ptr)
+			cLib._freeBuffer(this._ptr);
 	}
 }

@@ -72,91 +72,91 @@ void main() {
 		return ((Math.random() * 65536) | 0);
 	}
 
-	private readonly analyzerL: AnalyserNode;
-	private readonly analyzerR: AnalyserNode;
+	private readonly _analyzerL: AnalyserNode;
+	private readonly _analyzerR: AnalyserNode;
 
-	private readonly ptr: number;
-	private readonly processedDataPtr: number;
-	private readonly processedData: Uint8Array;
-	private readonly processedDataRPtr: number;
-	private readonly processedDataR: Uint8Array;
-	private readonly fftPtr: number;
-	private readonly fft: Float32Array;
-	private readonly COLORSPtr: number;
-	private readonly COLORS: Float32Array;
-	private readonly bgPosPtr: number;
-	private readonly bgPos: Float32Array;
-	private readonly bgSpeedYPtr: number;
-	private readonly bgSpeedY: Float32Array;
-	private readonly bgThetaPtr: number;
-	private readonly bgTheta: Float32Array;
-	private readonly bgColorPtr: number;
-	private readonly bgColor: Uint8Array;
+	private readonly _ptr: number;
+	private readonly _processedDataPtr: number;
+	private readonly _processedData: Uint8Array;
+	private readonly _processedDataRPtr: number;
+	private readonly _processedDataR: Uint8Array;
+	private readonly _fftPtr: number;
+	private readonly _fft: Float32Array;
+	private readonly _COLORSPtr: number;
+	private readonly _COLORS: Float32Array;
+	private readonly _bgPosPtr: number;
+	private readonly _bgPos: Float32Array;
+	private readonly _bgSpeedYPtr: number;
+	private readonly _bgSpeedY: Float32Array;
+	private readonly _bgThetaPtr: number;
+	private readonly _bgTheta: Float32Array;
+	private readonly _bgColorPtr: number;
+	private readonly _bgColor: Uint8Array;
 
-	private readonly BG_COLUMNS = 31;
-	private readonly BG_PARTICLES_BY_COLUMN = 16;
-	private readonly BG_COUNT = (this.BG_COLUMNS * this.BG_PARTICLES_BY_COLUMN);
+	private readonly _BG_COLUMNS = 31;
+	private readonly _BG_PARTICLES_BY_COLUMN = 16;
+	private readonly _BG_COUNT = (this._BG_COLUMNS * this._BG_PARTICLES_BY_COLUMN);
 
-	private readonly program: Program;
-	private lastTime = 0;
+	private readonly _program: Program;
+	private _lastTime = 0;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
 		super(audioContext, parent, id, true, Analyzer.controlWidth, 320);
 
-		this.analyzerL = audioContext.createAnalyser();
-		this.analyzerL.fftSize = 1024;
-		this.analyzerL.maxDecibels = -12;
-		this.analyzerL.minDecibels = -45;
-		this.analyzerL.smoothingTimeConstant = 0;
-		this.analyzerR = audioContext.createAnalyser();
-		this.analyzerR.fftSize = 1024;
-		this.analyzerR.maxDecibels = -12;
-		this.analyzerR.minDecibels = -45;
-		this.analyzerR.smoothingTimeConstant = 0;
+		this._analyzerL = audioContext.createAnalyser();
+		this._analyzerL.fftSize = 1024;
+		this._analyzerL.maxDecibels = -12;
+		this._analyzerL.minDecibels = -45;
+		this._analyzerL.smoothingTimeConstant = 0;
+		this._analyzerR = audioContext.createAnalyser();
+		this._analyzerR.fftSize = 1024;
+		this._analyzerR.maxDecibels = -12;
+		this._analyzerR.minDecibels = -45;
+		this._analyzerR.smoothingTimeConstant = 0;
 
 		const exp = Math.exp,
 			FULL = 0.75,
 			HALF = 0.325,
 			ZERO = 0.0,
-			COLORS_R = (A: number, B: number) => { this.COLORS[(3 * A)] = B; },
-			COLORS_G = (A: number, B: number) => { this.COLORS[(3 * A) + 1] = B; },
-			COLORS_B = (A: number, B: number) => { this.COLORS[(3 * A) + 2] = B; };
+			COLORS_R = (A: number, B: number) => { this._COLORS[(3 * A)] = B; },
+			COLORS_G = (A: number, B: number) => { this._COLORS[(3 * A) + 1] = B; },
+			COLORS_B = (A: number, B: number) => { this._COLORS[(3 * A) + 2] = B; };
 
 		const buffer = cLib.HEAP8.buffer as ArrayBuffer;
 
-		let ptr = cLib._allocBuffer((2 * 512) + (256 * 4) + (16 * 3 * 4) + (this.BG_COUNT * 2 * 4) + (2 * this.BG_COUNT * 4) + this.BG_COUNT);
-		this.ptr = ptr;
+		let ptr = cLib._allocBuffer((2 * 512) + (256 * 4) + (16 * 3 * 4) + (this._BG_COUNT * 2 * 4) + (2 * this._BG_COUNT * 4) + this._BG_COUNT);
+		this._ptr = ptr;
 
-		this.processedDataPtr = ptr;
-		this.processedData = new Uint8Array(buffer, ptr, 512);
+		this._processedDataPtr = ptr;
+		this._processedData = new Uint8Array(buffer, ptr, 512);
 		ptr += 512;
 
-		this.processedDataRPtr = ptr;
-		this.processedDataR = new Uint8Array(buffer, ptr, 512);
+		this._processedDataRPtr = ptr;
+		this._processedDataR = new Uint8Array(buffer, ptr, 512);
 		ptr += 512;
 
-		this.fftPtr = ptr;
-		this.fft = new Float32Array(buffer, ptr, 256);
+		this._fftPtr = ptr;
+		this._fft = new Float32Array(buffer, ptr, 256);
 		ptr += (256 * 4);
 
-		this.COLORSPtr = ptr;
-		this.COLORS = new Float32Array(buffer, ptr, 16 * 3);
+		this._COLORSPtr = ptr;
+		this._COLORS = new Float32Array(buffer, ptr, 16 * 3);
 		ptr += (16 * 3 * 4);
 
-		this.bgPosPtr = ptr;
-		this.bgPos = new Float32Array(buffer, ptr, this.BG_COUNT * 2);
-		ptr += (this.BG_COUNT * 2 * 4);
+		this._bgPosPtr = ptr;
+		this._bgPos = new Float32Array(buffer, ptr, this._BG_COUNT * 2);
+		ptr += (this._BG_COUNT * 2 * 4);
 
-		this.bgSpeedYPtr = ptr;
-		this.bgSpeedY = new Float32Array(buffer, ptr, this.BG_COUNT);
-		ptr += (this.BG_COUNT * 4);
+		this._bgSpeedYPtr = ptr;
+		this._bgSpeedY = new Float32Array(buffer, ptr, this._BG_COUNT);
+		ptr += (this._BG_COUNT * 4);
 
-		this.bgThetaPtr = ptr;
-		this.bgTheta = new Float32Array(buffer, ptr, this.BG_COUNT);
-		ptr += (this.BG_COUNT * 4);
+		this._bgThetaPtr = ptr;
+		this._bgTheta = new Float32Array(buffer, ptr, this._BG_COUNT);
+		ptr += (this._BG_COUNT * 4);
 
-		this.bgColorPtr = ptr;
-		this.bgColor = new Uint8Array(buffer, ptr, this.BG_COUNT);
+		this._bgColorPtr = ptr;
+		this._bgColor = new Uint8Array(buffer, ptr, this._BG_COUNT);
 
 		COLORS_R(0, FULL); COLORS_G(0, ZERO); COLORS_B(0, ZERO);
 		COLORS_R(1, ZERO); COLORS_G(1, FULL); COLORS_B(1, ZERO);
@@ -176,8 +176,8 @@ void main() {
 		COLORS_R(14, FULL); COLORS_G(14, HALF); COLORS_B(14, ZERO);
 		COLORS_R(15, ZERO); COLORS_G(15, HALF); COLORS_B(15, FULL);
 
-		for (let c = 0, i = 0; c < this.BG_COLUMNS; c++) {
-			for (let ic = 0; ic < this.BG_PARTICLES_BY_COLUMN; ic++, i++)
+		for (let c = 0, i = 0; c < this._BG_COLUMNS; c++) {
+			for (let ic = 0; ic < this._BG_PARTICLES_BY_COLUMN; ic++, i++)
 				this.fillBgParticle(i, -1.2 + (0.01953125 * (SoundParticlesAnalyzer.rand() & 127)));
 		}
 
@@ -195,13 +195,13 @@ void main() {
 			throw new Error();
 		}
 
-		this.program = program;
+		this._program = program;
 
-		this.program.use();
-		this.program["texColor"](0);
-		this.program["aspect"](320.0 / 512.0, 1);
+		this._program.use();
+		this._program["texColor"](0);
+		this._program["aspect"](320.0 / 512.0, 1);
 
-		const gl = this.program.gl,
+		const gl = this._program.gl,
 			glVerticesRect = new Float32Array([
 				-1, -1, 0, 1,
 				1, -1, 0, 1,
@@ -279,15 +279,15 @@ void main() {
 	}
 
 	private fillBgParticle(index: number, y: number): void {
-		this.bgPos[(index << 1)] = 0.0078125 * ((SoundParticlesAnalyzer.rand() & 7) - 4);
-		this.bgPos[(index << 1) + 1] = y;
-		this.bgTheta[index] = 0.03125 * (SoundParticlesAnalyzer.rand() & 63);
-		this.bgSpeedY[index] = 0.125 + (0.00390625 * (SoundParticlesAnalyzer.rand() & 15));
-		this.bgColor[index] = SoundParticlesAnalyzer.rand() & 15;
+		this._bgPos[(index << 1)] = 0.0078125 * ((SoundParticlesAnalyzer.rand() & 7) - 4);
+		this._bgPos[(index << 1) + 1] = y;
+		this._bgTheta[index] = 0.03125 * (SoundParticlesAnalyzer.rand() & 63);
+		this._bgSpeedY[index] = 0.125 + (0.00390625 * (SoundParticlesAnalyzer.rand() & 15));
+		this._bgColor[index] = SoundParticlesAnalyzer.rand() & 15;
 	}
 
 	private fillTexture(): void {
-		const gl = this.program.gl,
+		const gl = this._program.gl,
 			sqrtf = Math.sqrt,
 			TEXTURE_SIZE = 64,
 			tex = new Uint8Array(TEXTURE_SIZE * TEXTURE_SIZE);
@@ -330,17 +330,17 @@ void main() {
 		// For the future: rethink this, create a large vertex buffer,
 		// process everything in C and call drawArrays() only once,
 		// like what is done in https://github.com/carlosrafaelgn/pixel :)
-		let delta = (time - this.lastTime);
+		let delta = (time - this._lastTime);
 		if (delta > 33)
 			delta = 33;
-		this.lastTime = time;
+		this._lastTime = time;
 
-		const gl = this.program.gl,
+		const gl = this._program.gl,
 			coefNew = (0.0625 / 16.0) * delta, coefOld = 1.0 - coefNew,
-			processedData = this.processedData, processedDataR = this.processedDataR, fft = this.fft,
-			BG_COLUMNS = this.BG_COLUMNS, BG_PARTICLES_BY_COLUMN = this.BG_PARTICLES_BY_COLUMN, COLORS = this.COLORS,
-			program = this.program, bgPos = this.bgPos, bgSpeedY = this.bgSpeedY, bgColor = this.bgColor,
-			bgTheta = this.bgTheta, MAX = Math.max;
+			processedData = this._processedData, processedDataR = this._processedDataR, fft = this._fft,
+			BG_COLUMNS = this._BG_COLUMNS, BG_PARTICLES_BY_COLUMN = this._BG_PARTICLES_BY_COLUMN, COLORS = this._COLORS,
+			program = this._program, bgPos = this._bgPos, bgSpeedY = this._bgSpeedY, bgColor = this._bgColor,
+			bgTheta = this._bgTheta, MAX = Math.max;
 
 		let i = 0, last = 44, last2 = 116;
 
@@ -348,8 +348,8 @@ void main() {
 
 		// http://www.w3.org/TR/webaudio/
 		// http://webaudio.github.io/web-audio-api/#widl-AnalyserNode-getByteTimeDomainData-void-Uint8Array-array
-		this.analyzerL.getByteFrequencyData(processedData);
-		this.analyzerR.getByteFrequencyData(processedDataR);
+		this._analyzerL.getByteFrequencyData(processedData);
+		this._analyzerR.getByteFrequencyData(processedDataR);
 
 		// Use only the first 256 amplitudes (which convers DC to 11025Hz, considering a sample rate of 44100Hz)
 		for (i = 0; i < 256; i++) {
@@ -415,9 +415,9 @@ void main() {
 	}
 
 	protected cleanUp(): void {
-		if (this.ptr)
-			cLib._freeBuffer(this.ptr);
-		if (this.program)
-			this.program.destroy();
+		if (this._ptr)
+			cLib._freeBuffer(this._ptr);
+		if (this._program)
+			this._program.destroy();
 	}
 }

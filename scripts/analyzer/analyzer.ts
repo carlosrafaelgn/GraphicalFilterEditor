@@ -34,10 +34,10 @@ abstract class Analyzer {
 	protected canvas: HTMLCanvasElement;
 	protected ctx: CanvasRenderingContext2D | null;
 
-	private alive = false;
-	private lastRequest = 0;
+	private _alive = false;
+	private _lastRequest = 0;
 
-	private boundAnalyze: any = null;
+	private _boundAnalyze: any = null;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, id?: string, ignoreContext?: boolean, controlWidth?: number, controlHeight?: number) {
 		this.audioContext = audioContext;
@@ -58,13 +58,13 @@ abstract class Analyzer {
 		this.ctx = (ignoreContext ? null : this.canvas.getContext("2d", { alpha: false }));
 		parent.appendChild(this.canvas);
 
-		this.boundAnalyze = (time: number) => {
-			if (!this.alive) {
-				this.lastRequest = 0;
+		this._boundAnalyze = (time: number) => {
+			if (!this._alive) {
+				this._lastRequest = 0;
 				return;
 			}
 
-			this.lastRequest = requestAnimationFrame(this.boundAnalyze);
+			this._lastRequest = requestAnimationFrame(this._boundAnalyze);
 
 			this.analyze(time);
 		};
@@ -82,21 +82,21 @@ abstract class Analyzer {
 	}
 
 	public start(): boolean {
-		if (this.alive)
+		if (this._alive)
 			return false;
 
-		this.alive = true;
-		this.lastRequest = requestAnimationFrame(this.boundAnalyze);
+		this._alive = true;
+		this._lastRequest = requestAnimationFrame(this._boundAnalyze);
 
 		return true;
 	}
 
 	public stop(): void {
-		this.alive = false;
+		this._alive = false;
 
-		if (this.lastRequest) {
-			cancelAnimationFrame(this.lastRequest);
-			this.lastRequest = 0;
+		if (this._lastRequest) {
+			cancelAnimationFrame(this._lastRequest);
+			this._lastRequest = 0;
 		}
 	}
 

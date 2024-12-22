@@ -25,18 +25,18 @@
 //
 
 class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<HTMLCanvasElement> {
-	private pixelRatio: number;
-	private ctx: CanvasRenderingContext2D;
-	private rangeImage: CanvasGradient;
+	private _pixelRatio: number;
+	private _ctx: CanvasRenderingContext2D;
+	private _rangeImage: CanvasGradient;
 
 	public constructor(editor: GraphicalFilterEditorControl) {
 		super(document.createElement("canvas"), Math.abs(GraphicalFilterEditorControl.controlWidth - GraphicalFilterEditor.visibleBinCount) >> 1, editor);
 
 		this.element.className = "GECV";
 
-		this.pixelRatio = 1;
-		this.ctx = null as any;
-		this.rangeImage = null as any;
+		this._pixelRatio = 1;
+		this._ctx = null as any;
+		this._rangeImage = null as any;
 
 		this.scaleChanged();
 	}
@@ -72,9 +72,9 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		rangeImage.addColorStop(0.796875, "#0000ff");
 		rangeImage.addColorStop(1, "#ff00ff");
 
-		this.pixelRatio = pixelRatio;
-		this.ctx = ctx;
-		this.rangeImage = rangeImage;
+		this._pixelRatio = pixelRatio;
+		this._ctx = ctx;
+		this._rangeImage = rangeImage;
 	}
 
 	public drawCurve(showZones: boolean, isActualChannelCurveNeeded: boolean, currentChannelIndex: number): void {
@@ -84,15 +84,15 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		// over the point (10, 10) means, that this 1 pixel at that position reaches from 9.5 to 10.5 which
 		// results in two lines that get drawn on the canvas.
 
-		const ctx = this.ctx;
+		const ctx = this._ctx;
 
 		if (!ctx)
 			return;
 
 		let pixelRatio = (devicePixelRatio > 1 ? devicePixelRatio : 1);
-		if (pixelRatio !== this.pixelRatio) {
+		if (pixelRatio !== this._pixelRatio) {
 			this.scaleChanged();
-			pixelRatio = this.pixelRatio;
+			pixelRatio = this._pixelRatio;
 		}
 
 		const editor = this.editor,
@@ -166,7 +166,7 @@ class GraphicalFilterEditorCanvasRenderer extends GraphicalFilterEditorRenderer<
 		for (let turn = (isActualChannelCurveNeeded ? 1 : 0); turn >= 0; turn--) {
 			const curve = ((turn || !isActualChannelCurveNeeded) ? filter.channelCurves[currentChannelIndex] : filter.actualChannelCurve);
 
-			ctx.strokeStyle = (turn ? "#707070" : this.rangeImage);
+			ctx.strokeStyle = (turn ? "#707070" : this._rangeImage);
 			ctx.beginPath();
 			ctx.moveTo((canvasLeftMargin * scale) | 0, (curve[0] * scale) + halfLineWidth);
 

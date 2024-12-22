@@ -35,12 +35,12 @@ enum GraphicalFilterEditorIIRType {
 }
 
 abstract class Filter {
-	private source: AudioNode | null;
+	private _source: AudioNode | null;
 
 	public filterChangedCallback: FilterChangedCallback | null | undefined;
 
 	public constructor(filterChangedCallback?: FilterChangedCallback | null) {
-		this.source = null;
+		this._source = null;
 		this.filterChangedCallback = filterChangedCallback;
 	}
 
@@ -58,9 +58,9 @@ abstract class Filter {
 	}
 
 	public disconnectSourceFromInput(): boolean {
-		if (this.source) {
-			this.source.disconnect();
-			this.source = null;
+		if (this._source) {
+			this._source.disconnect();
+			this._source = null;
 			return true;
 		}
 		return false;
@@ -68,7 +68,7 @@ abstract class Filter {
 
 	public connectSourceToInput(source: AudioNode | null): boolean {
 		this.disconnectSourceFromInput();
-		this.source = source;
+		this._source = source;
 		if (source) {
 			source.disconnect();
 			const inputNode = this.inputNode;
@@ -169,27 +169,27 @@ class GraphicalFilterEditor extends Filter {
 		return array;
 	}
 
-	private editorPtr: number;
-	private filterLength: number;
+	private _editorPtr: number;
+	private _filterLength: number;
 	private _sampleRate: number;
 	private _isNormalized: boolean;
 	private _iirType: GraphicalFilterEditorIIRType;
-	private binCount: number;
-	private audioContext: AudioContext;
-	private filterKernel: AudioBuffer;
+	private _binCount: number;
+	private _audioContext: AudioContext;
+	private _filterKernel: AudioBuffer;
 	private _convolver: ConvolverNode | null;
-	private biquadFilters: AudioNode[] | null;
-	private biquadFilterInput: AudioNode | null;
-	private biquadFilterOutput: AudioNode | null;
-	private biquadFilterGains: number[] | null;
-	private biquadFilterActualGains: number[] | null;
-	private biquadFilterActualFrequencies: Float32Array | null;
-	private biquadFilterActualAccum: Float32Array | null;
-	private biquadFilterActualMag: Float32Array | null;
-	private biquadFilterActualPhase: Float32Array | null;
-	private curveSnapshot: Int32Array | null;
+	private _biquadFilters: AudioNode[] | null;
+	private _biquadFilterInput: AudioNode | null;
+	private _biquadFilterOutput: AudioNode | null;
+	private _biquadFilterGains: number[] | null;
+	private _biquadFilterActualGains: number[] | null;
+	private _biquadFilterActualFrequencies: Float32Array | null;
+	private _biquadFilterActualAccum: Float32Array | null;
+	private _biquadFilterActualMag: Float32Array | null;
+	private _biquadFilterActualPhase: Float32Array | null;
+	private _curveSnapshot: Int32Array | null;
 
-	private readonly filterKernelBuffer: Float32Array;
+	private readonly _filterKernelBuffer: Float32Array;
 	public readonly iirSupported: boolean;
 	public readonly channelCurves: Int32Array[];
 	public readonly actualChannelCurve: Int32Array;
@@ -205,40 +205,40 @@ class GraphicalFilterEditor extends Filter {
 		if (filterLength < 8 || (filterLength & (filterLength - 1)))
 			throw "Sorry, class available only for fft sizes that are a power of 2 >= 8! :(";
 
-		this.filterLength = filterLength;
+		this._filterLength = filterLength;
 		this._sampleRate = (audioContext.sampleRate ? audioContext.sampleRate : 44100);
 		this._isNormalized = false;
 		this.iirSupported = (("createBiquadFilter" in audioContext) && ("createIIRFilter" in audioContext));
 		this._iirType = (this.iirSupported && _iirType) || GraphicalFilterEditorIIRType.None;
-		this.binCount = (filterLength >>> 1) + 1;
-		this.filterKernel = audioContext.createBuffer(2, filterLength, this._sampleRate);
-		this.audioContext = audioContext;
+		this._binCount = (filterLength >>> 1) + 1;
+		this._filterKernel = audioContext.createBuffer(2, filterLength, this._sampleRate);
+		this._audioContext = audioContext;
 
-		this.editorPtr = cLib._graphicalFilterEditorAlloc(this.filterLength, this._sampleRate);
+		this._editorPtr = cLib._graphicalFilterEditorAlloc(this._filterLength, this._sampleRate);
 
 		const buffer = cLib.HEAP8.buffer as ArrayBuffer;
 
-		this.filterKernelBuffer = new Float32Array(buffer, cLib._graphicalFilterEditorGetFilterKernelBuffer(this.editorPtr), GraphicalFilterEditor.maximumFilterLength);
+		this._filterKernelBuffer = new Float32Array(buffer, cLib._graphicalFilterEditorGetFilterKernelBuffer(this._editorPtr), GraphicalFilterEditor.maximumFilterLength);
 		this.channelCurves = [
-			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 0), GraphicalFilterEditor.visibleBinCount),
-			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this.editorPtr, 1), GraphicalFilterEditor.visibleBinCount)
+			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this._editorPtr, 0), GraphicalFilterEditor.visibleBinCount),
+			new Int32Array(buffer, cLib._graphicalFilterEditorGetChannelCurve(this._editorPtr, 1), GraphicalFilterEditor.visibleBinCount)
 		];
-		this.actualChannelCurve = new Int32Array(buffer, cLib._graphicalFilterEditorGetActualChannelCurve(this.editorPtr), GraphicalFilterEditor.visibleBinCount);
-		this.visibleFrequencies = new Float64Array(buffer, cLib._graphicalFilterEditorGetVisibleFrequencies(this.editorPtr), GraphicalFilterEditor.visibleBinCount);
-		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this.editorPtr), GraphicalFilterEditor.equivalentZoneCount);
-		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this.editorPtr), GraphicalFilterEditor.equivalentZoneCount + 1);
+		this.actualChannelCurve = new Int32Array(buffer, cLib._graphicalFilterEditorGetActualChannelCurve(this._editorPtr), GraphicalFilterEditor.visibleBinCount);
+		this.visibleFrequencies = new Float64Array(buffer, cLib._graphicalFilterEditorGetVisibleFrequencies(this._editorPtr), GraphicalFilterEditor.visibleBinCount);
+		this.equivalentZones = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZones(this._editorPtr), GraphicalFilterEditor.equivalentZoneCount);
+		this.equivalentZonesFrequencyCount = new Int32Array(buffer, cLib._graphicalFilterEditorGetEquivalentZonesFrequencyCount(this._editorPtr), GraphicalFilterEditor.equivalentZoneCount + 1);
 
 		this._convolver = null;
-		this.biquadFilters = null;
-		this.biquadFilterInput = null;
-		this.biquadFilterOutput = null;
-		this.biquadFilterGains = null;
-		this.biquadFilterActualGains = null;
-		this.biquadFilterActualFrequencies = null;
-		this.biquadFilterActualAccum = null;
-		this.biquadFilterActualMag = null;
-		this.biquadFilterActualPhase = null;
-		this.curveSnapshot = null;
+		this._biquadFilters = null;
+		this._biquadFilterInput = null;
+		this._biquadFilterOutput = null;
+		this._biquadFilterGains = null;
+		this._biquadFilterActualGains = null;
+		this._biquadFilterActualFrequencies = null;
+		this._biquadFilterActualAccum = null;
+		this._biquadFilterActualMag = null;
+		this._biquadFilterActualPhase = null;
+		this._curveSnapshot = null;
 
 		this.updateFilter(0, true, true);
 		this.updateActualChannelCurve(0);
@@ -264,17 +264,17 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public get inputNode(): AudioNode | null {
-		return this.biquadFilterInput || this._convolver;
+		return this._biquadFilterInput || this._convolver;
 	}
 
 	public get outputNode(): AudioNode | null {
-		return this.biquadFilterOutput || this._convolver;
+		return this._biquadFilterOutput || this._convolver;
 	}
 
 	public destroy(): void {
-		if (this.editorPtr) {
+		if (this._editorPtr) {
 			super.destroy();
-			cLib._graphicalFilterEditorFree(this.editorPtr);
+			cLib._graphicalFilterEditorFree(this._editorPtr);
 			zeroObject(this);
 		}
 	}
@@ -430,13 +430,13 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public startSmoothEdition(channelIndex: number): void {
-		if (!this.curveSnapshot)
-			this.curveSnapshot = new Int32Array(GraphicalFilterEditor.visibleBinCount);
-		this.curveSnapshot.set(this.channelCurves[channelIndex]);
+		if (!this._curveSnapshot)
+			this._curveSnapshot = new Int32Array(GraphicalFilterEditor.visibleBinCount);
+		this._curveSnapshot.set(this.channelCurves[channelIndex]);
 	}
 
 	public changeSmoothY(channelIndex: number, x: number, y: number, width: number): void {
-		const curveSnapshot = this.curveSnapshot;
+		const curveSnapshot = this._curveSnapshot;
 		if (!curveSnapshot)
 			return;
 		const count = GraphicalFilterEditor.visibleBinCount,
@@ -457,7 +457,7 @@ class GraphicalFilterEditor extends Filter {
 	private updateBuffer(): void {
 		const oldConvolver = this._convolver;
 		if (!this._convolver) {
-			this._convolver = this.audioContext.createConvolver();
+			this._convolver = this._audioContext.createConvolver();
 			this._convolver.normalize = false;
 		}
 		// Even though this._convolver.buffer === this.filterKernel, changing
@@ -467,13 +467,13 @@ class GraphicalFilterEditor extends Filter {
 		// the audio buffer to this._convolver.buffer, even if it is the same
 		// audio buffer, makes the convolver update its internal state.
 		try {
-			this._convolver.buffer = this.filterKernel;
+			this._convolver.buffer = this._filterKernel;
 		} catch (ex: any) {
 			// Old Chrome versions do not allow non-null buffers to be set to another
 			// non-null buffer
-			this._convolver = this.audioContext.createConvolver();
+			this._convolver = this._audioContext.createConvolver();
 			this._convolver.normalize = false;
-			this._convolver.buffer = this.filterKernel;
+			this._convolver.buffer = this._filterKernel;
 		}
 		if (oldConvolver !== this._convolver && this.filterChangedCallback)
 			this.filterChangedCallback();
@@ -481,28 +481,28 @@ class GraphicalFilterEditor extends Filter {
 
 	private copyToChannel(source: Float32Array, channelNumber: number): void {
 		// Safari and Safari for iOS do no support AudioBuffer.copyToChannel()
-		if (this.filterKernel["copyToChannel"]) {
-			this.filterKernel.copyToChannel(source, channelNumber);
+		if (this._filterKernel["copyToChannel"]) {
+			this._filterKernel.copyToChannel(source, channelNumber);
 		} else {
-			const dst = this.filterKernel.getChannelData(channelNumber);
-			for (let i = (this.filterLength - 1); i >= 0; i--)
+			const dst = this._filterKernel.getChannelData(channelNumber);
+			for (let i = (this._filterLength - 1); i >= 0; i--)
 				dst[i] = source[i];	
 		}
 	}
 
 	private copyFromChannel(destination: Float32Array, channelNumber: number): void {
 		// Safari and Safari for iOS do no support AudioBuffer.copyFromChannel()
-		if (this.filterKernel["copyToChannel"]) {
-			this.filterKernel.copyFromChannel(destination, channelNumber);
+		if (this._filterKernel["copyToChannel"]) {
+			this._filterKernel.copyFromChannel(destination, channelNumber);
 		} else {
-			const src = this.filterKernel.getChannelData(channelNumber);
-			for (let i = (this.filterLength - 1); i >= 0; i--)
+			const src = this._filterKernel.getChannelData(channelNumber);
+			for (let i = (this._filterLength - 1); i >= 0; i--)
 				destination[i] = src[i];	
 		}
 	}
 
 	public copyFilter(sourceChannel: number, destinationChannel: number): void {
-		this.copyToChannel(this.filterKernel.getChannelData(sourceChannel), destinationChannel);
+		this.copyToChannel(this._filterKernel.getChannelData(sourceChannel), destinationChannel);
 		this.updateBuffer();
 	}
 
@@ -516,8 +516,8 @@ class GraphicalFilterEditor extends Filter {
 				return;
 		}
 
-		cLib._graphicalFilterEditorUpdateFilter(this.editorPtr, channelIndex, this._isNormalized);
-		this.copyToChannel(this.filterKernelBuffer, channelIndex);
+		cLib._graphicalFilterEditorUpdateFilter(this._editorPtr, channelIndex, this._isNormalized);
+		this.copyToChannel(this._filterKernelBuffer, channelIndex);
 
 		if (isSameFilterLR) {
 			// Copy the filter to the other channel
@@ -536,19 +536,19 @@ class GraphicalFilterEditor extends Filter {
 			return;
 		}
 
-		this.copyFromChannel(this.filterKernelBuffer, channelIndex);
-		cLib._graphicalFilterEditorUpdateActualChannelCurve(this.editorPtr, channelIndex);
+		this.copyFromChannel(this._filterKernelBuffer, channelIndex);
+		cLib._graphicalFilterEditorUpdateActualChannelCurve(this._editorPtr, channelIndex);
 	}
 
 	public updatePeakingEq(channelIndex: number): void {
-		const audioContext = this.audioContext,
+		const audioContext = this._audioContext,
 			curve = this.channelCurves[channelIndex],
 			equivalentZones = this.equivalentZones,
 			equivalentZonesFrequencyCount = this.equivalentZonesFrequencyCount,
 			equivalentZoneCount = GraphicalFilterEditor.equivalentZoneCount;
 
-		let biquadFilters = this.biquadFilters,
-			biquadFilterGains = this.biquadFilterGains,
+		let biquadFilters = this._biquadFilters,
+			biquadFilterGains = this._biquadFilterGains,
 			connectionsChanged = false;
 
 		if (!biquadFilters || !biquadFilterGains) {
@@ -559,7 +559,7 @@ class GraphicalFilterEditor extends Filter {
 
 			const q = new Array(equivalentZoneCount),
 				ln2_2 = Math.log(2) * 0.5,
-				fs = this.audioContext.sampleRate,
+				fs = this._audioContext.sampleRate,
 				_2pi = 2 * Math.PI;
 
 			for (let i = equivalentZoneCount - 1; i >= 0; i--) {
@@ -577,9 +577,9 @@ class GraphicalFilterEditor extends Filter {
 					biquadFilters[i + 1].connect(biquadFilters[i]);
 			}
 
-			this.biquadFilters = biquadFilters;
-			this.biquadFilterInput = biquadFilters[equivalentZoneCount - 1];
-			this.biquadFilterOutput = biquadFilters[0];
+			this._biquadFilters = biquadFilters;
+			this._biquadFilterInput = biquadFilters[equivalentZoneCount - 1];
+			this._biquadFilterOutput = biquadFilters[0];
 		}
 
 		for (let i = equivalentZoneCount - 1; i >= 0; i--)
@@ -596,27 +596,27 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public updateShelfEq(channelIndex: number): void {
-		const audioContext = this.audioContext,
+		const audioContext = this._audioContext,
 			curve = this.channelCurves[channelIndex],
 			equivalentZonesFrequencyCount = this.equivalentZonesFrequencyCount,
 			shelfEquivalentZoneCount = GraphicalFilterEditor.shelfEquivalentZoneCount,
 			shelfEquivalentZones = GraphicalFilterEditor.shelfEquivalentZones;
 
-		let biquadFilters = this.biquadFilters,
-			biquadFilterGains = this.biquadFilterGains,
-			biquadFilterActualGains = this.biquadFilterActualGains;
+		let biquadFilters = this._biquadFilters,
+			biquadFilterGains = this._biquadFilterGains,
+			biquadFilterActualGains = this._biquadFilterActualGains;
 
 		if (!biquadFilters || !biquadFilterGains || !biquadFilterActualGains) {
 			biquadFilters = new Array(shelfEquivalentZoneCount);
 			biquadFilterGains = new Array(shelfEquivalentZoneCount);
 			biquadFilterActualGains = new Array(shelfEquivalentZoneCount);
 
-			this.biquadFilters = biquadFilters;
-			this.biquadFilterGains = biquadFilterGains;
-			this.biquadFilterActualGains = biquadFilterActualGains;
+			this._biquadFilters = biquadFilters;
+			this._biquadFilterGains = biquadFilterGains;
+			this._biquadFilterActualGains = biquadFilterActualGains;
 
 			biquadFilters[shelfEquivalentZoneCount - 1] = audioContext.createGain();
-			this.biquadFilterInput = biquadFilters[shelfEquivalentZoneCount - 1];
+			this._biquadFilterInput = biquadFilters[shelfEquivalentZoneCount - 1];
 		}
 
 		for (let i = shelfEquivalentZoneCount - 1; i >= 0; i--)
@@ -671,8 +671,8 @@ class GraphicalFilterEditor extends Filter {
 			}
 		}
 
-		if (this.biquadFilterOutput !== biquadFilterOutput) {
-			this.biquadFilterOutput = biquadFilterOutput;
+		if (this._biquadFilterOutput !== biquadFilterOutput) {
+			this._biquadFilterOutput = biquadFilterOutput;
 			if (this.filterChangedCallback)
 				this.filterChangedCallback();
 		}
@@ -681,7 +681,7 @@ class GraphicalFilterEditor extends Filter {
 	// Taken from my other project: FPlayAndroid
 	// https://github.com/carlosrafaelgn/FPlayAndroid/blob/master/jni/x/Effects.h
 	private createIIRFilter(band: number, gain: number): IIRFilterNode {
-		const audioContext = this.audioContext;
+		const audioContext = this._audioContext;
 
 		// The idea for this equalizer is simple/trick ;)
 		//
@@ -800,15 +800,15 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public updateActualChannelCurveIIR(): void {
-		const biquadFilters = this.biquadFilters;
+		const biquadFilters = this._biquadFilters;
 
 		if (!biquadFilters)
 			return;
 
-		let biquadFilterActualFrequencies = this.biquadFilterActualFrequencies,
-			biquadFilterActualAccum = this.biquadFilterActualAccum,
-			biquadFilterActualMag = this.biquadFilterActualMag,
-			biquadFilterActualPhase = this.biquadFilterActualPhase;
+		let biquadFilterActualFrequencies = this._biquadFilterActualFrequencies,
+			biquadFilterActualAccum = this._biquadFilterActualAccum,
+			biquadFilterActualMag = this._biquadFilterActualMag,
+			biquadFilterActualPhase = this._biquadFilterActualPhase;
 
 		if (!biquadFilterActualFrequencies || !biquadFilterActualAccum || !biquadFilterActualMag || !biquadFilterActualPhase) {
 			const visibleFrequencies = this.visibleFrequencies;
@@ -818,10 +818,10 @@ class GraphicalFilterEditor extends Filter {
 			biquadFilterActualAccum = new Float32Array(visibleFrequencies.length);
 			biquadFilterActualMag = new Float32Array(visibleFrequencies.length);
 			biquadFilterActualPhase = new Float32Array(visibleFrequencies.length);
-			this.biquadFilterActualFrequencies = biquadFilterActualFrequencies;
-			this.biquadFilterActualAccum = biquadFilterActualAccum;
-			this.biquadFilterActualMag = biquadFilterActualMag;
-			this.biquadFilterActualPhase = biquadFilterActualPhase;
+			this._biquadFilterActualFrequencies = biquadFilterActualFrequencies;
+			this._biquadFilterActualAccum = biquadFilterActualAccum;
+			this._biquadFilterActualMag = biquadFilterActualMag;
+			this._biquadFilterActualPhase = biquadFilterActualPhase;
 		}
 
 		const length = biquadFilterActualFrequencies.length;
@@ -863,11 +863,11 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public changeFilterLength(newFilterLength: number, channelIndex: number, isSameFilterLR: boolean): boolean {
-		if (this.filterLength !== newFilterLength) {
-			this.filterLength = newFilterLength;
-			this.binCount = (newFilterLength >>> 1) + 1;
-			this.filterKernel = this.audioContext.createBuffer(2, newFilterLength, this._sampleRate);
-			cLib._graphicalFilterEditorChangeFilterLength(this.editorPtr, newFilterLength);
+		if (this._filterLength !== newFilterLength) {
+			this._filterLength = newFilterLength;
+			this._binCount = (newFilterLength >>> 1) + 1;
+			this._filterKernel = this._audioContext.createBuffer(2, newFilterLength, this._sampleRate);
+			cLib._graphicalFilterEditorChangeFilterLength(this._editorPtr, newFilterLength);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
@@ -877,7 +877,7 @@ class GraphicalFilterEditor extends Filter {
 	public changeSampleRate(newSampleRate: number, channelIndex: number, isSameFilterLR: boolean): boolean {
 		if (this._sampleRate !== newSampleRate) {
 			this._sampleRate = newSampleRate;
-			this.filterKernel = this.audioContext.createBuffer(2, this.filterLength, newSampleRate);
+			this._filterKernel = this._audioContext.createBuffer(2, this._filterLength, newSampleRate);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
@@ -898,22 +898,22 @@ class GraphicalFilterEditor extends Filter {
 			this._iirType = iirType;
 			this.disconnectOutputFromDestination();
 			this._convolver = null;
-			const biquadFilters = this.biquadFilters;
+			const biquadFilters = this._biquadFilters;
 			if (biquadFilters) {
 				for (let i = biquadFilters.length - 1; i >= 0; i--) {
 					if (biquadFilters[i])
 						biquadFilters[i].disconnect();
 				}
 				biquadFilters.fill(null as any);
-				this.biquadFilters = null;
+				this._biquadFilters = null;
 			}
-			this.biquadFilterInput = null;
-			this.biquadFilterOutput = null;
-			this.biquadFilterGains = null;
-			this.biquadFilterActualFrequencies = null;
-			this.biquadFilterActualAccum = null;
-			this.biquadFilterActualMag = null;
-			this.biquadFilterActualPhase = null;
+			this._biquadFilterInput = null;
+			this._biquadFilterOutput = null;
+			this._biquadFilterGains = null;
+			this._biquadFilterActualFrequencies = null;
+			this._biquadFilterActualAccum = null;
+			this._biquadFilterActualMag = null;
+			this._biquadFilterActualPhase = null;
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			return true;
 		}
@@ -921,28 +921,28 @@ class GraphicalFilterEditor extends Filter {
 	}
 
 	public changeAudioContext(newAudioContext: AudioContext, channelIndex: number, isSameFilterLR: boolean): boolean {
-		if (this.audioContext !== newAudioContext) {
+		if (this._audioContext !== newAudioContext) {
 			this.disconnectOutputFromDestination();
 			this._convolver = null;
-			const biquadFilters = this.biquadFilters;
+			const biquadFilters = this._biquadFilters;
 			if (biquadFilters) {
 				for (let i = biquadFilters.length - 1; i >= 0; i--) {
 					if (biquadFilters[i])
 						biquadFilters[i].disconnect();
 				}
 				biquadFilters.fill(null as any);
-				this.biquadFilters = null;
+				this._biquadFilters = null;
 			}
-			this.biquadFilterInput = null;
-			this.biquadFilterOutput = null;
-			this.biquadFilterGains = null;
-			this.biquadFilterActualFrequencies = null;
-			this.biquadFilterActualAccum = null;
-			this.biquadFilterActualMag = null;
-			this.biquadFilterActualPhase = null;
-			this.audioContext = newAudioContext;
+			this._biquadFilterInput = null;
+			this._biquadFilterOutput = null;
+			this._biquadFilterGains = null;
+			this._biquadFilterActualFrequencies = null;
+			this._biquadFilterActualAccum = null;
+			this._biquadFilterActualMag = null;
+			this._biquadFilterActualPhase = null;
+			this._audioContext = newAudioContext;
 			this._sampleRate = (newAudioContext.sampleRate ? newAudioContext.sampleRate : 44100);
-			this.filterKernel = newAudioContext.createBuffer(2, this.filterLength, this._sampleRate);
+			this._filterKernel = newAudioContext.createBuffer(2, this._filterLength, this._sampleRate);
 			this.updateFilter(channelIndex, isSameFilterLR, true);
 			this.updateBuffer();
 			return true;

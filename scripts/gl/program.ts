@@ -26,9 +26,9 @@
 
 class Program {
 	public readonly gl: WebGLRenderingContext;
-	private readonly program: WebGLProgram;
-	private readonly vs: WebGLShader;
-	private readonly fs: WebGLShader;
+	private readonly _program: WebGLProgram;
+	private readonly _vs: WebGLShader;
+	private readonly _fs: WebGLShader;
 
 	[uniformName: string]: any;
 
@@ -55,45 +55,45 @@ class Program {
 		const program = gl.createProgram();
 		if (!program)
 			throw new Error("Null program");
-		this.program = program;
+		this._program = program;
 
 		const vs = gl.createShader(gl.VERTEX_SHADER);
 		if (!vs)
 			throw new Error("Null vertex shader");
-		this.vs = vs;
+		this._vs = vs;
 
 		const fs = gl.createShader(gl.FRAGMENT_SHADER);
 		if (!fs)
 			throw new Error("Null fragment shader");
-		this.fs = fs;
+		this._fs = fs;
 
-		gl.shaderSource(this.vs, vertexShaderSource);
-		gl.compileShader(this.vs);
-		if (!gl.getShaderParameter(this.vs, gl.COMPILE_STATUS)) {
-			const msg = "Vertex shader: " + gl.getShaderInfoLog(this.vs);
+		gl.shaderSource(this._vs, vertexShaderSource);
+		gl.compileShader(this._vs);
+		if (!gl.getShaderParameter(this._vs, gl.COMPILE_STATUS)) {
+			const msg = "Vertex shader: " + gl.getShaderInfoLog(this._vs);
 			this.destroy();
 			alert(msg);
 			throw msg;
 		}
 		this.getAttribsAndUniforms(vertexShaderSource, attribs, uniforms, utypes);
 
-		gl.shaderSource(this.fs, fragmentShaderSource);
-		gl.compileShader(this.fs);
-		if (!gl.getShaderParameter(this.fs, gl.COMPILE_STATUS)) {
-			const msg = "Fragment shader: " + gl.getShaderInfoLog(this.fs);
+		gl.shaderSource(this._fs, fragmentShaderSource);
+		gl.compileShader(this._fs);
+		if (!gl.getShaderParameter(this._fs, gl.COMPILE_STATUS)) {
+			const msg = "Fragment shader: " + gl.getShaderInfoLog(this._fs);
 			this.destroy();
 			alert(msg);
 			throw msg;
 		}
 		this.getAttribsAndUniforms(fragmentShaderSource, attribs, uniforms, utypes);
 
-		gl.attachShader(this.program, this.vs);
-		gl.attachShader(this.program, this.fs);
+		gl.attachShader(this._program, this._vs);
+		gl.attachShader(this._program, this._fs);
 		// This way all attributes are numbered starting at 0, beginning with
 		// the first attribute found in the file
 		for (let i = 0; i < attribs.length; i++)
-			gl.bindAttribLocation(this.program, i, attribs[i]);
-		gl.linkProgram(this.program);
+			gl.bindAttribLocation(this._program, i, attribs[i]);
+		gl.linkProgram(this._program);
 
 		for (let i = 0; i < uniforms.length; i++)
 			this.prepareUniform(uniforms[i], utypes[i]);
@@ -149,7 +149,7 @@ class Program {
 	}
 
 	private prepareUniform(u: string, t: string): boolean {
-		const gl = this.gl, l = gl.getUniformLocation(this.program, u);
+		const gl = this.gl, l = gl.getUniformLocation(this._program, u);
 		if (!this[u]) {
 			if (t === "bool" || t === "int" || t === "sampler2D") {
 				this[u] = function (i: number): void { gl.uniform1i(l, i); }
@@ -174,22 +174,22 @@ class Program {
 	}
 
 	public use(): void {
-		this.gl.useProgram(this.program);
+		this.gl.useProgram(this._program);
 	}
 
 	public destroy(): void {
 		if (this.gl) {
 			this.gl.useProgram(null);
-			if (this.vs) {
-				this.gl.detachShader(this.program, this.vs);
-				this.gl.deleteShader(this.vs);
+			if (this._vs) {
+				this.gl.detachShader(this._program, this._vs);
+				this.gl.deleteShader(this._vs);
 			}
-			if (this.fs) {
-				this.gl.detachShader(this.program, this.fs);
-				this.gl.deleteShader(this.fs);
+			if (this._fs) {
+				this.gl.detachShader(this._program, this._fs);
+				this.gl.deleteShader(this._fs);
 			}
-			if (this.program)
-				this.gl.deleteProgram(this.program);
+			if (this._program)
+				this.gl.deleteProgram(this._program);
 			zeroObject(this);
 		}
 	}

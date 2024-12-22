@@ -256,8 +256,8 @@
 		splitter.disconnect(0);
 		splitter.disconnect(1);
 		if (analyzer) {
-			analyzer.analyzerL.disconnect(0);
-			analyzer.analyzerR.disconnect(0);
+			analyzer._analyzerL.disconnect(0);
+			analyzer._analyzerR.disconnect(0);
 			analyzerType = null;
 			analyzer.destroy();
 			analyzer = null;
@@ -344,11 +344,11 @@
 				}
 
 				graphicEqualizer.filter.connectOutputToDestination(splitter);
-				splitter.connect(analyzer.analyzerL, 0, 0);
-				splitter.connect(analyzer.analyzerR, 1, 0);
+				splitter.connect(analyzer._analyzerL, 0, 0);
+				splitter.connect(analyzer._analyzerR, 1, 0);
 
-				analyzer.analyzerL.connect(merger, 0, 0);
-				analyzer.analyzerR.connect(merger, 0, 1);
+				analyzer._analyzerL.connect(merger, 0, 0);
+				analyzer._analyzerR.connect(merger, 0, 1);
 
 				merger.connect(audioContext.destination, 0, 0);
 				return analyzer.start();
