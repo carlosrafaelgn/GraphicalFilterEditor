@@ -148,7 +148,7 @@ class GraphicalFilterEditor extends Filter {
 			return null;
 		try {
 			str = atob(str);
-		} catch (ex) {
+		} catch (ex: any) {
 			return null;
 		}
 		if (str.length < GraphicalFilterEditor.visibleBinCount)

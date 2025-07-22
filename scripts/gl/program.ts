@@ -39,7 +39,7 @@ class Program {
 			try {
 				const gl = canvas.getContext(ctxName[i], options) as WebGLRenderingContext;
 				return new Program(gl, vertexShaderSource, fragmentShaderSource);
-			} catch (ex) {
+			} catch (ex: any) {
 			}
 		}
 
