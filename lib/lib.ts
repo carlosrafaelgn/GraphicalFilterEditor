@@ -25,8 +25,8 @@
 //
 
 interface CLib {
-	HEAP8: Uint8Array;
-	HEAPF32: Float32Array;
+	HEAP8: Uint8Array<ArrayBuffer>;
+	HEAPF32: Float32Array<ArrayBuffer>;
 
 	_allocBuffer(size: number): number;
 	_freeBuffer(ptr: number): void;

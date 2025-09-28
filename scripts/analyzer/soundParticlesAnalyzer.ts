@@ -77,21 +77,21 @@ void main() {
 
 	private readonly _ptr: number;
 	private readonly _processedDataPtr: number;
-	private readonly _processedData: Uint8Array;
+	private readonly _processedData: Uint8Array<ArrayBuffer>;
 	private readonly _processedDataRPtr: number;
-	private readonly _processedDataR: Uint8Array;
+	private readonly _processedDataR: Uint8Array<ArrayBuffer>;
 	private readonly _fftPtr: number;
-	private readonly _fft: Float32Array;
+	private readonly _fft: Float32Array<ArrayBuffer>;
 	private readonly _COLORSPtr: number;
-	private readonly _COLORS: Float32Array;
+	private readonly _COLORS: Float32Array<ArrayBuffer>;
 	private readonly _bgPosPtr: number;
-	private readonly _bgPos: Float32Array;
+	private readonly _bgPos: Float32Array<ArrayBuffer>;
 	private readonly _bgSpeedYPtr: number;
-	private readonly _bgSpeedY: Float32Array;
+	private readonly _bgSpeedY: Float32Array<ArrayBuffer>;
 	private readonly _bgThetaPtr: number;
-	private readonly _bgTheta: Float32Array;
+	private readonly _bgTheta: Float32Array<ArrayBuffer>;
 	private readonly _bgColorPtr: number;
-	private readonly _bgColor: Uint8Array;
+	private readonly _bgColor: Uint8Array<ArrayBuffer>;
 
 	private readonly _BG_COLUMNS = 31;
 	private readonly _BG_PARTICLES_BY_COLUMN = 16;

@@ -123,7 +123,7 @@ class GraphicalFilterEditor extends Filter {
 	public static readonly shelfEquivalentZoneCount = 7;
 	public static readonly shelfEquivalentZones = [0, 2, 3, 4, 6, 8, 9];
 
-	public static encodeCurve(curve: Int32Array): string {
+	public static encodeCurve(curve: Int32Array<ArrayBuffer>): string {
 		const min = GraphicalFilterEditor.minimumChannelValueY,
 			range = GraphicalFilterEditor.validYRangeHeight,
 			length = curve.length,
@@ -183,19 +183,19 @@ class GraphicalFilterEditor extends Filter {
 	private _biquadFilterOutput: AudioNode | null;
 	private _biquadFilterGains: number[] | null;
 	private _biquadFilterActualGains: number[] | null;
-	private _biquadFilterActualFrequencies: Float32Array | null;
-	private _biquadFilterActualAccum: Float32Array | null;
-	private _biquadFilterActualMag: Float32Array | null;
-	private _biquadFilterActualPhase: Float32Array | null;
-	private _curveSnapshot: Int32Array | null;
+	private _biquadFilterActualFrequencies: Float32Array<ArrayBuffer> | null;
+	private _biquadFilterActualAccum: Float32Array<ArrayBuffer> | null;
+	private _biquadFilterActualMag: Float32Array<ArrayBuffer> | null;
+	private _biquadFilterActualPhase: Float32Array<ArrayBuffer> | null;
+	private _curveSnapshot: Int32Array<ArrayBuffer> | null;
 
-	private readonly _filterKernelBuffer: Float32Array;
+	private readonly _filterKernelBuffer: Float32Array<ArrayBuffer>;
 	public readonly iirSupported: boolean;
-	public readonly channelCurves: Int32Array[];
-	public readonly actualChannelCurve: Int32Array;
-	public readonly visibleFrequencies: Float64Array;
-	public readonly equivalentZones: Int32Array;
-	public readonly equivalentZonesFrequencyCount: Int32Array;
+	public readonly channelCurves: Int32Array<ArrayBuffer>[];
+	public readonly actualChannelCurve: Int32Array<ArrayBuffer>;
+	public readonly visibleFrequencies: Float64Array<ArrayBuffer>;
+	public readonly equivalentZones: Int32Array<ArrayBuffer>;
+	public readonly equivalentZonesFrequencyCount: Int32Array<ArrayBuffer>;
 
 	public filterChangedCallback: FilterChangedCallback | null | undefined;
 
@@ -479,7 +479,7 @@ class GraphicalFilterEditor extends Filter {
 			this.filterChangedCallback();
 	}
 
-	private copyToChannel(source: Float32Array, channelNumber: number): void {
+	private copyToChannel(source: Float32Array<ArrayBuffer>, channelNumber: number): void {
 		// Safari and Safari for iOS do no support AudioBuffer.copyToChannel()
 		if (this._filterKernel["copyToChannel"]) {
 			this._filterKernel.copyToChannel(source, channelNumber);
@@ -490,7 +490,7 @@ class GraphicalFilterEditor extends Filter {
 		}
 	}
 
-	private copyFromChannel(destination: Float32Array, channelNumber: number): void {
+	private copyFromChannel(destination: Float32Array<ArrayBuffer>, channelNumber: number): void {
 		// Safari and Safari for iOS do no support AudioBuffer.copyFromChannel()
 		if (this._filterKernel["copyToChannel"]) {
 			this._filterKernel.copyFromChannel(destination, channelNumber);

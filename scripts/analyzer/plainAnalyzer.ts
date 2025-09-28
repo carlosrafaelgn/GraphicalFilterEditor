@@ -34,17 +34,17 @@ class PlainAnalyzer extends Analyzer {
 	private readonly _ptr: number;
 	private readonly _fft4gfPtr: number;
 	private readonly _dataPtr: number;
-	private readonly _data: Uint8Array;
+	private readonly _data: Uint8Array<ArrayBuffer>;
 	private readonly _tmpPtr: number;
-	private readonly _tmp: Float32Array;
+	private readonly _tmp: Float32Array<ArrayBuffer>;
 	private readonly _windowPtr: number;
-	private readonly _window: Float32Array;
+	private readonly _window: Float32Array<ArrayBuffer>;
 	private readonly _multiplierPtr: number;
-	private readonly _multiplier: Float32Array;
+	private readonly _multiplier: Float32Array<ArrayBuffer>;
 	private readonly _prevLPtr: number;
-	private readonly _prevL: Float32Array;
+	private readonly _prevL: Float32Array<ArrayBuffer>;
 	private readonly _prevRPtr: number;
-	private readonly _prevR: Float32Array;
+	private readonly _prevR: Float32Array<ArrayBuffer>;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
 		super(audioContext, parent, id);

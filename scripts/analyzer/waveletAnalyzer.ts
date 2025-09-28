@@ -30,15 +30,15 @@ class WaveletAnalyzer extends Analyzer {
 
 	private readonly _ptr: number;
 	private readonly _dataLPtr: number;
-	private readonly _dataL: Uint8Array;
+	private readonly _dataL: Uint8Array<ArrayBuffer>;
 	private readonly _dataRPtr: number;
-	private readonly _dataR: Uint8Array;
+	private readonly _dataR: Uint8Array<ArrayBuffer>;
 	private readonly _tmpPtr: number;
-	private readonly _tmp: Float32Array;
+	private readonly _tmp: Float32Array<ArrayBuffer>;
 	private readonly _oL1Ptr: number;
-	private readonly _oL1: Float32Array;
+	private readonly _oL1: Float32Array<ArrayBuffer>;
 	private readonly _oR1Ptr: number;
-	private readonly _oR1: Float32Array;
+	private readonly _oR1: Float32Array<ArrayBuffer>;
 
 	public constructor(audioContext: AudioContext, parent: HTMLElement, graphicalFilterEditor: GraphicalFilterEditor, id?: string) {
 		super(audioContext, parent, id);
